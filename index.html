@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
+<title>Spendo</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a0a0f;--s1:#13131a;--s2:#1c1c26;--s3:#252532;
+  --b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.11);
+  --txt:#ededf4;--mut:#636375;--mut2:#9292a8;
+  --acc:#d4f74a;--acc-d:rgba(212,247,74,0.1);
+  --teal:#3df5be;--teal-d:rgba(61,245,190,0.1);
+  --red:#f54a6a;--red-d:rgba(245,74,106,0.1);
+  --amb:#f5b73d;--r:16px;--rs:12px;
+}
+html,body{height:100%;overscroll-behavior:none}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;font-size:15px}
+
+/* ─── SETUP SCREEN ─── */
+#setupScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:28px 22px;text-align:center}
+.setup-icon{font-size:52px;margin-bottom:18px;animation:bob 2.5s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.setup-title{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;letter-spacing:-1px;margin-bottom:6px}
+.setup-title em{color:var(--acc);font-style:normal}
+.setup-sub{color:var(--mut2);font-size:14px;line-height:1.7;margin-bottom:24px}
+
+.steps{width:100%;text-align:left;display:flex;flex-direction:column;gap:9px;margin-bottom:24px}
+.step{display:flex;gap:13px;align-items:flex-start;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:13px 15px}
+.step-n{width:26px;height:26px;border-radius:50%;background:var(--acc-d);border:1px solid var(--acc);color:var(--acc);font-family:'Syne',sans-serif;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-b strong{display:block;font-size:13px;font-weight:500;margin-bottom:3px}
+.step-b small{color:var(--mut2);font-size:12px;line-height:1.6}
+.step-b code{display:inline-block;background:var(--s3);border:1px solid var(--b2);border-radius:5px;padding:2px 6px;font-size:10px;color:var(--acc);font-family:monospace;margin-top:4px;word-break:break-all}
+
+/* Error box */
+.err-box{display:none;width:100%;background:var(--red-d);border:1px solid var(--red);border-radius:var(--rs);padding:12px 14px;margin-bottom:16px;text-align:left;font-size:13px;color:var(--red);line-height:1.6}
+.err-box strong{display:block;margin-bottom:4px;font-size:14px}
+.err-box.show{display:block}
+
+.url-wrap{width:100%;margin-bottom:14px}
+.url-lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--mut2);margin-bottom:7px;text-align:left}
+.url-inp{width:100%;padding:13px 14px;background:var(--s2);border:1.5px solid var(--b2);border-radius:var(--rs);color:var(--txt);font-size:12px;outline:none;transition:border-color .2s;font-family:monospace}
+.url-inp:focus{border-color:var(--acc)}
+.url-inp.ok{border-color:var(--teal)}
+.url-inp.bad{border-color:var(--red)}
+.url-inp::placeholder{color:var(--mut);font-family:'DM Sans',sans-serif;font-size:13px}
+
+.btn-connect{width:100%;padding:15px;background:var(--acc);color:#000;border:none;border-radius:var(--rs);font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 28px rgba(212,247,74,.2);transition:opacity .2s,transform .15s}
+.btn-connect:hover{opacity:.9;transform:translateY(-1px)}.btn-connect:active{transform:scale(.98)}
+.btn-connect:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* ─── LOADING ─── */
+#loadScreen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid var(--s3);border-top-color:var(--acc);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-msg{color:var(--mut2);font-size:14px}
+
+/* ─── MAIN APP ─── */
+#app{display:none;flex-direction:column;min-height:100vh}
+.shell{max-width:430px;margin:0 auto;display:flex;flex-direction:column;flex:1}
+
+/* ─── HEADER ─── */
+.hdr{position:sticky;top:0;z-index:50;background:rgba(10,10,15,.94);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--b1);padding:13px 18px 0}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.logo{font-family:'Syne',sans-serif;font-size:21px;font-weight:800;letter-spacing:-.5px}
+.logo span{color:var(--acc)}
+.hdr-r{display:flex;align-items:center;gap:9px}
+.syn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px}
+.syn.ok{background:var(--teal-d);color:var(--teal)}.syn.busy{background:var(--acc-d);color:var(--acc)}.syn.err{background:var(--red-d);color:var(--red)}
+.syn-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.syn-dot.p{animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.set-btn{width:32px;height:32px;border-radius:50%;background:var(--s2);border:1px solid var(--b2);color:var(--mut2);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:border-color .2s,color .2s}
+.set-btn:hover{border-color:var(--acc);color:var(--acc)}
+.hdr-bot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--b1);margin:0 -18px;padding:0 18px}
+.mon-nav{display:flex;align-items:center;gap:7px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700}
+.mon-btn{width:28px;height:28px;border-radius:8px;background:var(--s2);border:1px solid var(--b2);color:var(--txt);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s;margin:9px 0}
+.mon-btn:hover{background:var(--acc);color:#000;border-color:var(--acc)}
+#monLbl{min-width:88px;text-align:center}
+.tabs{display:flex}
+.tab{padding:12px 9px;background:none;border:none;border-bottom:2px solid transparent;color:var(--mut);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.6px;transition:color .2s,border-color .2s;white-space:nowrap}
+.tab.on{color:var(--acc);border-bottom-color:var(--acc)}
+
+/* ─── SCROLL ─── */
+.scroll{overflow-y:auto;flex:1;padding-bottom:88px}
+
+
+
+/* ─── SUMMARY CARDS ─── */
+.sum-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;padding:10px 18px 0}
+.sc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rs);padding:12px 10px;position:relative;overflow:hidden}
+.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
+.sc.i::after{background:var(--teal)}.sc.e::after{background:var(--red)}.sc.b::after{background:var(--acc)}
+.sc-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);display:block;margin-bottom:4px}
+.sc-val{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc.i .sc-val{color:var(--teal)}.sc.e .sc-val{color:var(--red)}.sc.b .sc-val{color:var(--acc)}
+.sc-sub{font-size:9px;color:var(--mut);margin-top:3px}
+
+/* ─── BUDGET BAR ─── */
+.bud{padding:12px 18px 0}
+.bud-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.bud-lbl{font-size:12px;color:var(--mut2)}.bud-pct{font-family:'Syne',sans-serif;font-size:12px;font-weight:700}
+.bar-t{height:5px;background:var(--s3);border-radius:99px;overflow:hidden}
+.bar-f{height:100%;border-radius:99px;background:var(--acc);transition:width .6s cubic-bezier(.4,0,.2,1),background .3s}
+
+/* ─── SECTION ─── */
+.sec{padding:16px 18px 9px;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:1.5px}
+
+/* ─── CATEGORIES ─── */
+.cat-list{padding:0 18px;display:flex;flex-direction:column;gap:9px}
+.cat-row{display:flex;align-items:center;gap:11px}
+.cat-ico{width:38px;height:38px;border-radius:11px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.cat-bod{flex:1;min-width:0}.cat-nm{font-size:14px;font-weight:500}
+.cat-bar{height:3px;background:var(--s3);border-radius:99px;margin-top:4px}
+.cat-bar-f{height:100%;border-radius:99px;background:var(--teal)}
+.cat-amt{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--red);white-space:nowrap;flex-shrink:0}
+
+/* ─── TX LIST ─── */
+.tx-list{padding:0 18px;display:flex;flex-direction:column;gap:6px}
+.tx{display:flex;align-items:center;gap:11px;padding:12px 13px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--rs);position:relative;transition:background .15s}
+.tx:active{background:var(--s2)}
+.tx-ico{width:38px;height:38px;border-radius:10px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.tx-bod{flex:1;min-width:0}
+.tx-nm{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx-ct{font-size:11px;color:var(--mut2);margin-top:1px}
+.tx-r{text-align:right;flex-shrink:0}
+.tx-amt{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+.tx-amt.income{color:var(--teal)}.tx-amt.expense{color:var(--red)}
+.tx-dt{font-size:10px;color:var(--mut);margin-top:2px}
+.tx-del{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--mut);width:22px;height:22px;border-radius:6px;font-size:12px;cursor:pointer;opacity:0;display:flex;align-items:center;justify-content:center;transition:opacity .2s,background .15s}
+.tx:hover .tx-del{opacity:1}.tx-del:hover{background:var(--red-d);color:var(--red)}
+
+/* ─── FAB ─── */
+.fab-wrap{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:10px 18px 28px;background:linear-gradient(to top,var(--bg) 60%,transparent);z-index:40}
+.fab{width:100%;padding:15px;background:var(--acc);color:#000;border:none;border-radius:var(--rs);font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 28px rgba(212,247,74,.2);transition:opacity .15s,transform .15s}
+.fab:hover{opacity:.92}.fab:active{transform:scale(.98)}
+
+/* ─── BOTTOM SHEET ─── */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.ov.on{opacity:1;pointer-events:all}
+.bsht{background:var(--s1);border-radius:22px 22px 0 0;border:1px solid var(--b2);border-bottom:none;width:100%;max-width:430px;padding:6px 18px 46px;max-height:93vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.15,1)}
+.ov.on .bsht{transform:translateY(0)}
+.bhandle{width:34px;height:4px;background:var(--b2);border-radius:99px;margin:10px auto 18px}
+.sht-title{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;margin-bottom:18px}
+.type-row{display:flex;gap:8px;margin-bottom:16px}
+.type-btn{flex:1;padding:10px 8px;border:1px solid var(--b2);border-radius:var(--rs);background:var(--s2);color:var(--mut2);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+.type-btn.se{background:var(--red-d);color:var(--red);border-color:var(--red)}
+.type-btn.si{background:var(--teal-d);color:var(--teal);border-color:var(--teal)}
+.fld{margin-bottom:13px}
+.fld>label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--mut2);margin-bottom:6px}
+.fld input,.fld select{width:100%;padding:12px 14px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+.fld input:focus,.fld select:focus{border-color:var(--acc)}
+.fld input.bigamt{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;text-align:center;padding:16px;letter-spacing:-1px;color:var(--acc);-webkit-appearance: textfield;-moz-appearance: textfield;}
+.fld select option{background:#1c1c26}
+.emj-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-bottom:13px}
+.emj-btn{aspect-ratio:1;border-radius:9px;background:var(--s2);border:1px solid var(--b1);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.emj-btn.on{border-color:var(--acc);background:var(--acc-d)}
+.btn-save{width:100%;padding:15px;background:var(--acc);color:#000;border:none;border-radius:var(--rs);font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s}
+.btn-save:hover{opacity:.9}.btn-save:disabled{opacity:.45;cursor:not-allowed}
+
+/* ─── CENTER MODAL ─── */
+.cov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+.cov.on{opacity:1;pointer-events:all}
+.cmod{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);padding:22px;width:100%;max-width:340px;transform:scale(.95);transition:transform .25s}
+.cov.on .cmod{transform:scale(1)}
+
+/* ─── SETTINGS ─── */
+.set-info{padding:12px 14px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--rs);margin-bottom:12px;font-size:13px;color:var(--mut2);line-height:1.7}
+.set-info strong{color:var(--txt);display:block;margin-bottom:3px;font-size:13px}
+.set-info a{color:var(--acc);text-decoration:none}
+.set-url{font-family:monospace;font-size:10px;word-break:break-all;color:var(--mut)}
+.btn-danger{background:var(--red-d);color:var(--red);border:1px solid var(--red);box-shadow:none}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:94px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--s1);border:1px solid var(--b2);color:var(--txt);padding:9px 18px;border-radius:99px;font-size:13px;font-weight:500;z-index:200;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--teal-d);border-color:var(--teal);color:var(--teal)}
+.toast.bad{background:var(--red-d);border-color:var(--red);color:var(--red)}
+
+/* ─── EMPTY ─── */
+.empty{text-align:center;padding:44px 20px;color:var(--mut)}
+.empty-ico{font-size:44px;margin-bottom:12px}
+.empty p{font-size:14px;line-height:1.7}
+</style>
+</head>
+<body>
+
+<!-- ═══ SETUP SCREEN ═══ -->
+<div id="setupScreen">
+  <div class="setup-icon">📊</div>
+  <h1 class="setup-title">Spendo<em>.</em></h1>
+  <p class="setup-sub">Paste your Apps Script Web App URL below<br>to connect to your Google Sheet.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-b">
+        <strong>Open Google Sheets → Extensions → Apps Script</strong>
+        <small>Paste the <b>Code.gs</b> file and click Save (💾)</small>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-b">
+        <strong>Deploy → New Deployment → Web App</strong>
+        <small>Execute as: <b>Me</b> &nbsp;|&nbsp; Who has access: <b>Anyone</b></small>
+        <code>⚠️ Always create a NEW deployment after code changes</code>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <div class="step-b">
+        <strong>Copy the Web App URL and paste below</strong>
+        <code>https://script.google.com/macros/s/…/exec</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error box shown on failure -->
+  <div class="err-box" id="errBox">
+    <strong>⚠️ Connection Failed</strong>
+    <span id="errMsg">Check that your URL is correct and the deployment is set to "Anyone can access".</span>
+  </div>
+
+  <div class="url-wrap">
+    <label class="url-lbl">Apps Script Web App URL</label>
+    <input class="url-inp" id="urlInput" type="url"
+      placeholder="https://script.google.com/macros/s/…/exec"
+      oninput="onUrlInput()" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+  <button class="btn-connect" id="connectBtn" onclick="connect()" disabled>
+    <span>⚡</span> Connect &amp; Launch
+  </button>
+</div>
+
+<!-- ═══ LOADING ═══ -->
+<div id="loadScreen">
+  <div class="spinner"></div>
+  <p class="load-msg" id="loadMsg">Connecting…</p>
+</div>
+
+<!-- ═══ MAIN APP ═══ -->
+<div id="app">
+ <div class="shell">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="logo">Spendo<span>.</span></div>
+      <div class="hdr-r">
+        <div class="syn ok" id="synBadge"><div class="syn-dot"></div><span id="synTxt">Synced</span></div>
+        <button class="set-btn" onclick="openSettings()">⚙️</button>
+      </div>
+    </div>
+    <div class="hdr-bot">
+      <div class="mon-nav">
+        <button class="mon-btn" onclick="chMon(-1)">‹</button>
+        <span id="monLbl">Jan 2025</span>
+        <button class="mon-btn" onclick="chMon(1)">›</button>
+      </div>
+      <div class="tabs">
+        <button class="tab on" onclick="swTab('ov',this)">Overview</button>
+        <button class="tab"    onclick="swTab('tx',this)">Transactions</button>
+        <button class="tab"    onclick="swTab('cat',this)">Categories</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll">
+    <!-- OVERVIEW -->
+    <div id="tab-ov">
+      <div class="sum-grid">
+        <div class="sc i"><span class="sc-lbl">Income</span><div class="sc-val" id="sInc">₹0</div><div class="sc-sub" id="sIncCt">0</div></div>
+        <div class="sc e"><span class="sc-lbl">Spent</span><div class="sc-val" id="sExp">₹0</div><div class="sc-sub" id="sExpCt">0</div></div>
+        <div class="sc b"><span class="sc-lbl">Balance</span><div class="sc-val" id="sBal">₹0</div><div class="sc-sub" id="sBalPct">0%</div></div>
+      </div>
+      <div class="bud">
+        <div class="bud-row"><span class="bud-lbl">Budget used</span><span class="bud-pct" id="bPct">0%</span></div>
+        <div class="bar-t"><div class="bar-f" id="bBar" style="width:0%"></div></div>
+      </div>
+      <div class="sec">Top Spending</div>
+      <div class="cat-list" id="topCats"><div class="empty"><div class="empty-ico">📊</div><p>No expenses yet this month</p></div></div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div id="tab-tx" style="display:none">
+      <div class="sec">All Transactions</div>
+      <div class="tx-list" id="txList"><div class="empty"><div class="empty-ico">💸</div><p>No transactions yet.<br>Tap + to add one.</p></div></div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div id="tab-cat" style="display:none">
+      <div class="sec">Category Breakdown</div>
+      <div class="cat-list" id="catAll"><div class="empty"><div class="empty-ico">🗂️</div><p>No data yet</p></div></div>
+    </div>
+  </div>
+
+  <div class="fab-wrap">
+    <button class="fab" onclick="openAdd()"><span style="font-size:20px">＋</span> Add Transaction</button>
+  </div>
+ </div>
+</div>
+
+<!-- ═══ ADD TRANSACTION ═══ -->
+<div class="ov" id="addOv" onclick="closeIfBg(event,'addOv')">
+ <div class="bsht">
+  <div class="bhandle"></div>
+  <div class="sht-title">New Transaction</div>
+  <div class="type-row">
+    <button class="type-btn se" id="tExp" onclick="setType('expense')">🔴 Expense</button>
+    <button class="type-btn"    id="tInc" onclick="setType('income')">🟢 Income</button>
+  </div>
+  <div class="fld"><label>Amount (₹)</label><input type="number" id="amtIn" class="bigamt" placeholder="0" inputmode="decimal" style="-webkit-appearance: textfield; -moz-appearance: textfield;"></div>
+  <div class="fld"><label>Description</label><input type="text" id="descIn" placeholder="e.g. Swiggy, salary, rent…"></div>
+  <div class="fld"><label>Category</label>
+    <select id="catSel">
+      <option value="Food">🍔 Food &amp; Dining</option>
+      <option value="Grocery">🛒 Grocery</option>
+      <option value="Transport">🚌 Transport</option>
+      <option value="Shopping">🛍️ Shopping</option>
+      <option value="Bills">⚡ Bills &amp; Utilities</option>
+      <option value="Health">💊 Health</option>
+      <option value="Entertainment">🎬 Entertainment</option>
+      <option value="Education">📚 Education</option>
+      <option value="Rent">🏠 Rent &amp; Housing</option>
+      <option value="Savings">💰 Savings / Investment</option>
+      <option value="Travel">✈️ Travel</option>
+      <option value="Salary">💼 Salary</option>
+      <option value="Other">📦 Other</option>
+    </select>
+  </div>
+  <div class="fld"><label>Date</label><input type="date" id="dateIn"></div>
+  <div class="fld"><label>Pick an icon</label><div class="emj-grid" id="emjGrid"></div></div>
+  <button class="btn-save" id="saveBtn" onclick="saveTx()"><span id="saveTxt">💾 Save Transaction</span></button>
+ </div>
+</div>
+
+
+
+<!-- ═══ SETTINGS ═══ -->
+<div class="ov" id="setOv" onclick="closeIfBg(event,'setOv')">
+ <div class="bsht">
+  <div class="bhandle"></div>
+  <div class="sht-title">Settings</div>
+  <div class="set-info">
+    <strong>Connected URL</strong>
+    <span class="set-url" id="urlDisplay"></span>
+  </div>
+  <div class="fld" style="margin-bottom:10px">
+    <label>Change Apps Script URL</label>
+    <input type="url" id="newUrlIn" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+  <button class="btn-save" style="margin-bottom:10px" onclick="changeUrl()">Update URL &amp; Reconnect</button>
+  <button class="btn-save btn-danger" onclick="resetApp()">Reset App (clear saved URL)</button>
+ </div>
+</div>
+
+<div class="toast" id="toastEl"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONFIG & STATE
+// ══════════════════════════════════════════════
+var EMOJIS = ['🍔','☕','🛍️','🚌','⚡','💊','🎬','📚','🏠','💰','💼','🛒','✈️','🍕','🎮','🎁','🏋️','🍺','💇','📦','🐾','💻','📱','🎵','🧴'];
+var CAT_ICO = {Food:'🍔',Grocery:'🛒',Transport:'🚌',Shopping:'🛍️',Bills:'⚡',Health:'💊',Entertainment:'🎬',Education:'📚',Rent:'🏠',Savings:'💰',Travel:'✈️',Salary:'💼',Other:'📦'};
+var MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var STORE_KEY = 'spendo_api_url';
+var CACHE_KEY = 'spendo_tx_cache';
+
+// Check if running on file:// protocol
+var isFileProtocol = window.location.protocol === 'file:';
+
+var API_URL  = '';
+var txCache  = [];
+var curMon   = new Date().getMonth();
+var curYr    = new Date().getFullYear();
+var selType  = 'expense';
+var selEmoji = '💳';
+var isSaving = false;
+
+// Helper functions for storage (handles file:// protocol issues)
+function setStorage(key, value) {
+  try {
+    if (isFileProtocol) {
+      // Use sessionStorage as fallback for file:// protocol
+      sessionStorage.setItem(key, value);
+      // Also try localStorage in case it works
+      localStorage.setItem(key, value);
+    } else {
+      localStorage.setItem(key, value);
+    }
+  } catch(e) {
+    console.warn('Storage failed:', e);
+  }
+}
+
+function getStorage(key) {
+  try {
+    var value = localStorage.getItem(key);
+    if (!value && isFileProtocol) {
+      // Fallback to sessionStorage for file:// protocol
+      value = sessionStorage.getItem(key);
+    }
+    return value;
+  } catch(e) {
+    console.warn('Storage read failed:', e);
+    return null;
+  }
+}
+
+function removeStorage(key) {
+  try {
+    localStorage.removeItem(key);
+    if (isFileProtocol) {
+      sessionStorage.removeItem(key);
+    }
+  } catch(e) {
+    console.warn('Storage remove failed:', e);
+  }
+}
+
+var fmt = function(n){ return '₹' + Math.abs(Math.round(n)).toLocaleString('en-IN'); };
+var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+var mk  = function(y,m){ return y+'-'+m; };
+
+// ══════════════════════════════════════════════
+//  JSONP — bypasses CORS completely
+//  Apps Script returns: callbackFn({...})
+// ══════════════════════════════════════════════
+var _cbCount = 0;
+function jsonp(params, timeout) {
+  return new Promise(function(resolve, reject) {
+    var cbName = '__spendo_cb_' + (++_cbCount);
+    var timer  = setTimeout(function(){
+      delete window[cbName];
+      var s = document.getElementById(cbName);
+      if (s) s.remove();
+      reject(new Error('Timeout — check your Apps Script URL'));
+    }, timeout || 10000);
+
+    window[cbName] = function(data) {
+      clearTimeout(timer);
+      delete window[cbName];
+      var s = document.getElementById(cbName);
+      if (s) s.remove();
+      resolve(data);
+    };
+
+    params.callback = cbName;
+    params.key = "SPENDO_SECURE_2026"; // 🔐 SAME KEY
+    var qs = Object.keys(params).map(function(k){
+      return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+    }).join('&');
+
+    var script = document.createElement('script');
+    script.id  = cbName;
+    script.src = API_URL + '?' + qs;
+    script.onerror = function(){
+      clearTimeout(timer);
+      delete window[cbName];
+      script.remove();
+      reject(new Error('Script load error — check your URL'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  SETUP & URL VALIDATION
+// ══════════════════════════════════════════════
+function onUrlInput() {
+  var v   = document.getElementById('urlInput').value.trim();
+  var inp = document.getElementById('urlInput');
+  var btn = document.getElementById('connectBtn');
+  var isValid = v.indexOf('script.google.com') !== -1 && v.indexOf('/exec') !== -1;
+  inp.className = 'url-inp' + (v.length > 10 ? (isValid ? ' ok' : ' bad') : '');
+  btn.disabled  = !isValid;
+  document.getElementById('errBox').classList.remove('show');
+}
+
+function connect() {
+  var url = document.getElementById('urlInput').value.trim();
+  if (!url) return;
+  setStorage(STORE_KEY, url);
+  launchApp(url);
+}
+
+function launchApp(url) {
+  API_URL = url;
+  document.getElementById('urlDisplay').textContent = url;
+  
+  // Show file:// protocol warning
+  if (isFileProtocol) {
+    showToast('File protocol detected - some features may be limited', 'bad', 4000);
+  }
+  
+  showLoad('Testing connection…');
+
+  // Always render cached data first if available
+  if(txCache.length > 0) {
+    render();
+  }
+
+  // Skip API calls for file:// protocol
+  if (isFileProtocol) {
+    showApp();
+    setSyn('err');
+    showToast('Running locally - API calls disabled', 'bad', 4000);
+    return;
+  }
+
+  // Ping the Apps Script to verify it works
+  jsonp({ action: 'ping' }, 12000)
+    .then(function(res) {
+      if (res && res.ok) {
+        showLoad('Loading your data…');
+        return loadMonth(curYr, curMon);
+      } else {
+        throw new Error(res ? res.error : 'No response');
+      }
+    })
+    .then(function(){ showApp(); })
+    .catch(function(e) {
+      // If we have cached data, show the app anyway
+      if(txCache.length > 0) {
+        showApp();
+        setSyn('err');
+        showToast('Showing cached data - sync failed: ' + e.message, 'bad', 4000);
+      } else {
+        showSetup();
+        document.getElementById('errMsg').textContent = e.message || 'Unknown error.';
+        document.getElementById('errBox').classList.add('show');
+        removeStorage(STORE_KEY);
+      }
+    });
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN MANAGEMENT
+// ══════════════════════════════════════════════
+function showSetup() {
+  document.getElementById('setupScreen').style.display = 'flex';
+  document.getElementById('loadScreen').style.display  = 'none';
+  document.getElementById('app').style.display         = 'none';
+}
+function showLoad(msg) {
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('loadScreen').style.display  = 'flex';
+  document.getElementById('app').style.display         = 'none';
+  document.getElementById('loadMsg').textContent = msg || 'Loading…';
+}
+function showApp() {
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('loadScreen').style.display  = 'none';
+  document.getElementById('app').style.display         = 'flex';
+  updMon(); 
+  render(); // Always render when showing app
+}
+
+// ══════════════════════════════════════════════
+//  DATA LOADING
+// ══════════════════════════════════════════════
+function loadMonth(yr, mon) {
+  var monthKey = mk(yr, mon);
+  setSyn('busy');
+  
+  return jsonp({ action: 'getTx', monthKey: monthKey })
+    .then(function(res) {
+      if (res.ok) {
+        // Remove existing data for this month
+        txCache = txCache.filter(function(t){ return t.month !== monthKey; });
+        // Add new data
+        txCache = txCache.concat(res.data || []);
+        // Save to localStorage for persistence
+        setStorage(CACHE_KEY, JSON.stringify(txCache));
+      }
+      setSyn('ok');
+      render();
+    }).catch(function(e){
+      setSyn('err');
+      showToast('Sync error: ' + e.message, 'bad', 3500);
+      // Still render cached data even if sync fails
+      render();
+      throw e;
+    });
+}
+
+// ══════════════════════════════════════════════
+//  MONTH NAV
+// ══════════════════════════════════════════════
+function updMon(){ document.getElementById('monLbl').textContent = MONS[curMon]+' '+curYr; }
+function chMon(d){
+  curMon += d;
+  if (curMon > 11){ curMon=0; curYr++; }
+  if (curMon < 0) { curMon=11; curYr--; }
+  updMon();
+  var key = mk(curYr,curMon);
+  var cached = txCache.some(function(t){ return t.month===key; });
+  if (!cached && API_URL) {
+    loadMonth(curYr, curMon);
+  } else {
+    render();
+  }
+}
+
+// ══════════════════════════════════════════════
+//  TAB SWITCHING
+// ══════════════════════════════════════════════
+function swTab(name, btn){
+  ['ov','tx','cat'].forEach(function(t){
+    document.getElementById('tab-'+t).style.display = t===name?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+}
+
+// ══════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════
+function render(){
+  var key     = mk(curYr,curMon);
+  var txns    = txCache.filter(function(t){ return t.month===key; });
+  var incT    = txns.filter(function(t){ return t.type==='income'; });
+  var expT    = txns.filter(function(t){ return t.type==='expense'; });
+  var income  = incT.reduce(function(s,t){ return s+t.amount; },0);
+  var expense = expT.reduce(function(s,t){ return s+t.amount; },0);
+  var balance = income-expense;
+  var pct     = income>0?Math.min(100,Math.round(expense/income*100)):0;
+  var savPct  = income>0?Math.round(balance/income*100):0;
+
+  document.getElementById('sInc').textContent    = fmt(income);
+  document.getElementById('sExp').textContent    = fmt(expense);
+  document.getElementById('sBal').textContent    = fmt(balance);
+  document.getElementById('sIncCt').textContent  = incT.length+' entries';
+  document.getElementById('sExpCt').textContent  = expT.length+' entries';
+  document.getElementById('sBalPct').textContent = savPct+'% of income';
+  document.getElementById('bPct').textContent    = pct+'%';
+  var bar = document.getElementById('bBar');
+  bar.style.width      = pct+'%';
+  bar.style.background = pct>90?'var(--red)':pct>70?'var(--amb)':'var(--acc)';
+
+  var cats={};
+  expT.forEach(function(t){ cats[t.cat]=(cats[t.cat]||0)+t.amount; });
+  var sc   = Object.entries(cats).sort(function(a,b){ return b[1]-a[1]; });
+  var maxC = sc[0]?sc[0][1]:1;
+
+  function renderCats(el,limit){
+    if(!sc.length){ el.innerHTML='<div class="empty"><div class="empty-ico">📊</div><p>No expenses yet this month</p></div>'; return; }
+    el.innerHTML='';
+    (limit?sc.slice(0,limit):sc).forEach(function(pair){
+      el.innerHTML+='<div class="cat-row"><div class="cat-ico">'+(CAT_ICO[pair[0]]||'📦')+'</div>'+
+        '<div class="cat-bod"><div class="cat-nm">'+esc(pair[0])+'</div>'+
+        '<div class="cat-bar"><div class="cat-bar-f" style="width:'+Math.round(pair[1]/maxC*100)+'%"></div></div></div>'+
+        '<div class="cat-amt">'+fmt(pair[1])+'</div></div>';
+    });
+  }
+  renderCats(document.getElementById('topCats'),5);
+  renderCats(document.getElementById('catAll'),0);
+
+  var sorted = txns.slice().sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
+  var txList = document.getElementById('txList');
+  if(!sorted.length){
+    txList.innerHTML='<div class="empty"><div class="empty-ico">💸</div><p>No transactions yet.<br>Tap + to add one.</p></div>';
+    return;
+  }
+  txList.innerHTML='';
+  sorted.forEach(function(t){
+    var ds=new Date(t.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+    txList.innerHTML+=
+      '<div class="tx">'+
+        '<div class="tx-ico">'+(t.emoji||'💳')+'</div>'+
+        '<div class="tx-bod"><div class="tx-nm">'+esc(t.desc)+'</div><div class="tx-ct">'+esc(t.cat)+'</div></div>'+
+        '<div class="tx-r"><div class="tx-amt '+t.type+'">'+(t.type==='income'?'+':'-')+fmt(t.amount)+'</div><div class="tx-dt">'+ds+'</div></div>'+
+        '<button class="tx-del" onclick="delTx(\''+t.id+'\')">✕</button>'+
+      '</div>';
+  });
+}
+
+// ══════════════════════════════════════════════
+//  ADD TRANSACTION
+// ══════════════════════════════════════════════
+function openAdd(){
+  selType='expense'; selEmoji='💳';
+  document.getElementById('amtIn').value='';
+  document.getElementById('descIn').value='';
+  document.getElementById('catSel').value='Food';
+  document.getElementById('dateIn').value=new Date().toISOString().split('T')[0];
+  setType('expense'); buildEmojis();
+  document.getElementById('addOv').classList.add('on');
+  setTimeout(function(){ document.getElementById('amtIn').focus(); },350);
+}
+
+function setType(t){
+  selType=t;
+  document.getElementById('tExp').className='type-btn'+(t==='expense'?' se':'');
+  document.getElementById('tInc').className='type-btn'+(t==='income'?' si':'');
+  document.getElementById('catSel').value=t==='income'?'Salary':'Food';
+}
+
+function buildEmojis(){
+  var g=document.getElementById('emjGrid'); g.innerHTML='';
+  EMOJIS.forEach(function(em){
+    var b=document.createElement('button');
+    b.className='emj-btn'+(em===selEmoji?' on':'');
+    b.textContent=em; b.type='button';
+    b.onclick=function(){ selEmoji=em; buildEmojis(); };
+    g.appendChild(b);
+  });
+}
+
+function saveTx(){
+  if(isSaving) return;
+  var amt=parseFloat(document.getElementById('amtIn').value);
+  if(!amt||amt<=0){ showToast('Enter a valid amount','bad'); return; }
+  var desc=document.getElementById('descIn').value.trim()||'Transaction';
+  var cat=document.getElementById('catSel').value;
+  var date=document.getElementById('dateIn').value||new Date().toISOString().split('T')[0];
+  var key=mk(curYr,curMon);
+
+  isSaving=true;
+  document.getElementById('saveBtn').disabled=true;
+  document.getElementById('saveTxt').textContent='⏳ Saving…';
+  setSyn('busy');
+
+  // Optimistic local update
+  var tempId=String(Date.now());
+  var tx={id:tempId,type:selType,amount:amt,desc:desc,cat:cat,date:date,emoji:selEmoji,month:key};
+  txCache.unshift(tx);
+  // Save to localStorage immediately
+  setStorage(CACHE_KEY, JSON.stringify(txCache));
+  render();
+  document.getElementById('addOv').classList.remove('on');
+
+  // If no API URL, just save locally
+  if(!API_URL) {
+    isSaving=false;
+    document.getElementById('saveBtn').disabled=false;
+    document.getElementById('saveTxt').textContent='💾 Save Transaction';
+    setSyn('err');
+    showToast('Saved locally - set up connection to sync', 'bad');
+    return;
+  }
+
+  jsonp({ action:'addTx', type:selType, amount:amt, desc:desc, cat:cat, date:date, emoji:selEmoji, monthKey:key })
+    .then(function(res){
+      if(res.ok){
+        // Update the temp id with server id
+        var i=txCache.findIndex(function(t){ return t.id===tempId; });
+        if(i>=0) txCache[i].id=res.id;
+        // Save updated cache to localStorage
+        setStorage(CACHE_KEY, JSON.stringify(txCache));
+        setSyn('ok'); showToast('Saved to Google Sheet ✓','ok');
+      } else {
+        setSyn('err'); showToast('Sheet error: '+(res.error||'unknown'),'bad');
+      }
+    })
+    .catch(function(e){ 
+      setSyn('err'); 
+      showToast('Sync failed - saved locally: '+e.message,'bad'); 
+    })
+    .finally(function(){
+      isSaving=false;
+      document.getElementById('saveBtn').disabled=false;
+      document.getElementById('saveTxt').textContent='💾 Save Transaction';
+    });
+}
+
+function delTx(id){
+  if(!confirm('Delete this transaction?')) return;
+  
+  // Remove from cache and save immediately
+  txCache=txCache.filter(function(t){ return t.id!==id; });
+  setStorage(CACHE_KEY, JSON.stringify(txCache));
+  render(); 
+  
+  // If no API URL, just delete locally
+  if(!API_URL) {
+    setSyn('err');
+    showToast('Deleted locally - set up connection to sync', 'bad');
+    return;
+  }
+  
+  setSyn('busy');
+  jsonp({ action:'deleteTx', id:id })
+    .then(function(res){
+      setSyn(res.ok?'ok':'err');
+      showToast(res.ok?'Deleted ✓':'Delete failed - removed locally','ok');
+    })
+    .catch(function(){ 
+      setSyn('err'); 
+      showToast('Deleted locally — sync failed','bad'); 
+    });
+}
+
+
+
+// ══════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════
+function openSettings(){ document.getElementById('newUrlIn').value=''; document.getElementById('setOv').classList.add('on'); }
+function changeUrl(){
+  var u=document.getElementById('newUrlIn').value.trim();
+  if(u.indexOf('script.google.com')===-1){ showToast('Invalid URL','bad'); return; }
+  setStorage(STORE_KEY,u);
+  document.getElementById('setOv').classList.remove('on');
+  // Keep cached transactions but refresh from server
+  launchApp(u);
+}
+function resetApp(){
+  if(!confirm('Reset app? Your Sheet data is safe.')) return;
+  removeStorage(STORE_KEY);
+  removeStorage(CACHE_KEY); // Clear cached transactions
+  location.reload();
+}
+
+// ══════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════
+function closeIfBg(e,id){ if(e.target===document.getElementById(id)) document.getElementById(id).classList.remove('on'); }
+
+function setSyn(s){
+  var el=document.getElementById('synBadge');
+  var dot=el.querySelector('.syn-dot');
+  el.className='syn '+s;
+  dot.className='syn-dot'+(s==='busy'?' p':'');
+  document.getElementById('synTxt').textContent=s==='busy'?'Syncing…':s==='ok'?'Synced':'Error';
+}
+
+var _tt;
+function showToast(msg,type,dur){
+  clearTimeout(_tt);
+  var el=document.getElementById('toastEl');
+  el.textContent=msg; el.className='toast on'+(type?' '+type:'');
+  _tt=setTimeout(function(){ el.classList.remove('on'); },dur||2600);
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+(function(){
+  // Show file protocol warning immediately if needed
+  if (isFileProtocol) {
+    console.log('Running on file:// protocol - some features may be limited');
+  }
+  
+  // Load cached transactions on startup
+  var cachedTx = getStorage(CACHE_KEY);
+  console.log('Cached transactions found:', cachedTx ? 'Yes' : 'No');
+  
+  if(cachedTx) {
+    try {
+      txCache = JSON.parse(cachedTx);
+      console.log('Loaded', txCache.length, 'cached transactions');
+    } catch(e) {
+      console.warn('Failed to parse cached transactions:', e);
+      txCache = [];
+      removeStorage(CACHE_KEY);
+    }
+  }
+  
+  var saved=getStorage(STORE_KEY);
+  if(saved){
+    document.getElementById('urlInput').value=saved;
+    launchApp(saved);
+  } else {
+    // Even without API URL, show cached data if available
+    if(txCache.length > 0) {
+      console.log('Showing', txCache.length, 'cached transactions without API');
+      showApp();
+      setSyn('err');
+      render();
+      showToast('Showing cached data - please set up connection', 'bad', 4000);
+    } else {
+      // Add some demo data for file:// protocol to show functionality
+      if (isFileProtocol) {
+        var currentMonth = mk(curYr, curMon);
+        txCache = [
+          {id: 'demo1', type: 'expense', amount: 250, desc: 'Grocery shopping', cat: 'Grocery', date: '2026-04-28', emoji: '🛒', month: currentMonth},
+          {id: 'demo2', type: 'expense', amount: 500, desc: 'Rent payment', cat: 'Rent', date: '2026-04-27', emoji: '🏠', month: currentMonth},
+          {id: 'demo3', type: 'income', amount: 2000, desc: 'Freelance work', cat: 'Salary', date: '2026-04-26', emoji: '💼', month: currentMonth},
+          {id: 'demo4', type: 'expense', amount: 150, desc: 'Dinner out', cat: 'Food', date: '2026-04-25', emoji: '🍔', month: currentMonth}
+        ];
+        setStorage(CACHE_KEY, JSON.stringify(txCache));
+        showApp();
+        setSyn('err');
+        render();
+        showToast('Demo mode: Add your API URL in settings to sync with Google Sheets', 'bad', 5000);
+      } else {
+        showSetup();
+      }
+    }
+  }
+})();
+</script>
+</body>
+</html>
