@@ -10,199 +10,347 @@
 <title>Spendo</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
 <style>
+/* ── RESET ─────────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
   --bg:#0a0a0f;--s1:#13131a;--s2:#1c1c26;--s3:#252532;
   --b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.11);
   --txt:#ededf4;--mut:#636375;--mut2:#9292a8;
-  --acc:#d4f74a;--acc-d:rgba(212,247,74,0.1);
-  --teal:#3df5be;--teal-d:rgba(61,245,190,0.1);
-  --red:#f54a6a;--red-d:rgba(245,74,106,0.1);
+  --acc:#d4f74a;--acc-d:rgba(212,247,74,0.10);
+  --teal:#3df5be;--teal-d:rgba(61,245,190,0.10);
+  --red:#f54a6a;--red-d:rgba(245,74,106,0.10);
   --amb:#f5b73d;--r:16px;--rs:12px;
 }
-html,body{height:100%;overscroll-behavior:none}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;font-size:15px}
+html,body{height:100%;overscroll-behavior:none;overflow-x:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);
+     -webkit-font-smoothing:antialiased;font-size:15px;width:100%}
 
-/* ─── SETUP SCREEN ─── */
-#setupScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:28px 22px;text-align:center}
-.setup-icon{font-size:52px;margin-bottom:18px;animation:bob 2.5s ease-in-out infinite}
+/* ── FULL-SCREEN PAGES ─────────────────────────────────────── */
+.page{display:none;flex-direction:column;align-items:center;justify-content:center;
+      min-height:100vh;padding:28px 20px;text-align:center;width:100%;overflow-x:hidden}
+.page.active{display:flex}
+
+/* ── LOGIN PAGE ─────────────────────────────────────────────── */
+.login-icon{font-size:52px;margin-bottom:18px;animation:bob 2.5s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-.setup-title{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;letter-spacing:-1px;margin-bottom:6px}
-.setup-title em{color:var(--acc);font-style:normal}
-.setup-sub{color:var(--mut2);font-size:14px;line-height:1.7;margin-bottom:24px}
+.pg-title{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;letter-spacing:-1px;margin-bottom:6px}
+.pg-title em{color:var(--acc);font-style:normal}
+.pg-sub{color:var(--mut2);font-size:14px;line-height:1.7;margin-bottom:24px}
+.login-form{width:100%;max-width:320px;display:flex;flex-direction:column;gap:13px}
+.fld-wrap{width:100%}
+.fld-wrap label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;
+                color:var(--mut2);margin-bottom:6px;text-align:left}
+.fld-wrap input{width:100%;padding:13px 14px;background:var(--s2);border:1.5px solid var(--b2);
+                border-radius:var(--rs);color:var(--txt);font-size:14px;outline:none;
+                transition:border-color .2s;font-family:'DM Sans',sans-serif}
+.fld-wrap input:focus{border-color:var(--acc)}
+.fld-wrap input.err{border-color:var(--red)}
+.btn-primary{width:100%;padding:15px;background:var(--acc);color:#000;border:none;
+             border-radius:var(--rs);font-family:'Syne',sans-serif;font-size:15px;
+             font-weight:800;cursor:pointer;display:flex;align-items:center;
+             justify-content:center;gap:8px;
+             box-shadow:0 8px 28px rgba(212,247,74,.20);
+             transition:opacity .2s,transform .15s}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
 
-.steps{width:100%;text-align:left;display:flex;flex-direction:column;gap:9px;margin-bottom:24px}
-.step{display:flex;gap:13px;align-items:flex-start;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:13px 15px}
-.step-n{width:26px;height:26px;border-radius:50%;background:var(--acc-d);border:1px solid var(--acc);color:var(--acc);font-family:'Syne',sans-serif;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+/* ── SETUP PAGE ─────────────────────────────────────────────── */
+.steps{width:100%;text-align:left;display:flex;flex-direction:column;gap:9px;margin-bottom:22px}
+.step{display:flex;gap:13px;align-items:flex-start;background:var(--s1);
+      border:1px solid var(--b1);border-radius:var(--r);padding:13px 14px}
+.step-n{width:26px;height:26px;border-radius:50%;background:var(--acc-d);border:1px solid var(--acc);
+        color:var(--acc);font-family:'Syne',sans-serif;font-weight:800;font-size:12px;
+        display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 .step-b strong{display:block;font-size:13px;font-weight:500;margin-bottom:3px}
 .step-b small{color:var(--mut2);font-size:12px;line-height:1.6}
-.step-b code{display:inline-block;background:var(--s3);border:1px solid var(--b2);border-radius:5px;padding:2px 6px;font-size:10px;color:var(--acc);font-family:monospace;margin-top:4px;word-break:break-all}
-
-/* Error box */
-.err-box{display:none;width:100%;background:var(--red-d);border:1px solid var(--red);border-radius:var(--rs);padding:12px 14px;margin-bottom:16px;text-align:left;font-size:13px;color:var(--red);line-height:1.6}
-.err-box strong{display:block;margin-bottom:4px;font-size:14px}
-.err-box.show{display:block}
-
-.url-wrap{width:100%;margin-bottom:14px}
-.url-lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--mut2);margin-bottom:7px;text-align:left}
-.url-inp{width:100%;padding:13px 14px;background:var(--s2);border:1.5px solid var(--b2);border-radius:var(--rs);color:var(--txt);font-size:12px;outline:none;transition:border-color .2s;font-family:monospace}
+.step-b code{display:inline-block;background:var(--s3);border:1px solid var(--b2);
+             border-radius:5px;padding:2px 6px;font-size:10px;color:var(--acc);
+             font-family:monospace;margin-top:4px;word-break:break-all}
+.url-lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;
+         color:var(--mut2);margin-bottom:7px;text-align:left}
+.url-inp{width:100%;padding:13px 14px;background:var(--s2);border:1.5px solid var(--b2);
+         border-radius:var(--rs);color:var(--txt);font-size:12px;outline:none;
+         transition:border-color .2s;font-family:monospace}
 .url-inp:focus{border-color:var(--acc)}
-.url-inp.ok{border-color:var(--teal)}
-.url-inp.bad{border-color:var(--red)}
+.url-inp.ok{border-color:var(--teal)}.url-inp.bad{border-color:var(--red)}
 .url-inp::placeholder{color:var(--mut);font-family:'DM Sans',sans-serif;font-size:13px}
 
-.btn-connect{width:100%;padding:15px;background:var(--acc);color:#000;border:none;border-radius:var(--rs);font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 28px rgba(212,247,74,.2);transition:opacity .2s,transform .15s}
-.btn-connect:hover{opacity:.9;transform:translateY(-1px)}.btn-connect:active{transform:scale(.98)}
-.btn-connect:disabled{opacity:.4;cursor:not-allowed;transform:none}
+/* ── ERROR BOX ──────────────────────────────────────────────── */
+.err-box{display:none;width:100%;background:var(--red-d);border:1px solid var(--red);
+         border-radius:var(--rs);padding:11px 13px;margin-bottom:14px;
+         text-align:left;font-size:13px;color:var(--red);line-height:1.6}
+.err-box strong{display:block;margin-bottom:3px;font-size:14px}
+.err-box.show{display:block}
 
-/* ─── LOADING ─── */
-#loadScreen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px}
-.spinner{width:40px;height:40px;border:3px solid var(--s3);border-top-color:var(--acc);border-radius:50%;animation:spin .75s linear infinite}
+/* ── LOADING PAGE ───────────────────────────────────────────── */
+.spinner{width:40px;height:40px;border:3px solid var(--s3);border-top-color:var(--acc);
+         border-radius:50%;animation:spin .75s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.load-msg{color:var(--mut2);font-size:14px}
+.load-msg{color:var(--mut2);font-size:14px;margin-top:14px}
 
-/* ─── MAIN APP ─── */
-#app{display:none;flex-direction:column;min-height:100vh}
-.shell{max-width:430px;margin:0 auto;display:flex;flex-direction:column;flex:1}
+/* ── MAIN APP ───────────────────────────────────────────────── */
+#app{display:none;flex-direction:column;min-height:100vh;width:100%;overflow-x:hidden}
+.shell{max-width:430px;margin:0 auto;display:flex;flex-direction:column;
+       flex:1;width:100%;overflow-x:hidden}
 
-/* ─── HEADER ─── */
-.hdr{position:sticky;top:0;z-index:50;background:rgba(10,10,15,.94);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--b1);padding:13px 18px 0}
+/* ── HEADER ─────────────────────────────────────────────────── */
+.hdr{position:sticky;top:0;z-index:50;
+     background:rgba(10,10,15,.95);
+     backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+     border-bottom:1px solid var(--b1);padding:12px 16px 0;width:100%}
 .hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.logo{font-family:'Syne',sans-serif;font-size:21px;font-weight:800;letter-spacing:-.5px}
+.logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.5px;white-space:nowrap}
 .logo span{color:var(--acc)}
-.hdr-r{display:flex;align-items:center;gap:9px}
-.syn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px}
-.syn.ok{background:var(--teal-d);color:var(--teal)}.syn.busy{background:var(--acc-d);color:var(--acc)}.syn.err{background:var(--red-d);color:var(--red)}
-.syn-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.hdr-r{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.syn{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;
+     padding:3px 8px;border-radius:99px;white-space:nowrap}
+.syn.ok{background:var(--teal-d);color:var(--teal)}
+.syn.busy{background:var(--acc-d);color:var(--acc)}
+.syn.err{background:var(--red-d);color:var(--red)}
+.syn-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
 .syn-dot.p{animation:pulse 1.2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
-.set-btn{width:32px;height:32px;border-radius:50%;background:var(--s2);border:1px solid var(--b2);color:var(--mut2);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:border-color .2s,color .2s}
+.set-btn{width:30px;height:30px;border-radius:50%;background:var(--s2);
+         border:1px solid var(--b2);color:var(--mut2);cursor:pointer;font-size:14px;
+         display:flex;align-items:center;justify-content:center;
+         transition:border-color .2s,color .2s;flex-shrink:0}
 .set-btn:hover{border-color:var(--acc);color:var(--acc)}
-.hdr-bot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--b1);margin:0 -18px;padding:0 18px}
-.mon-nav{display:flex;align-items:center;gap:7px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700}
-.mon-btn{width:28px;height:28px;border-radius:8px;background:var(--s2);border:1px solid var(--b2);color:var(--txt);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s;margin:9px 0}
+
+/* ── MONTH + TABS ───────────────────────────────────────────── */
+.hdr-bot{display:flex;align-items:center;justify-content:space-between;
+         border-top:1px solid var(--b1);margin:0 -16px;padding:0 16px}
+.mon-nav{display:flex;align-items:center;gap:6px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;flex-shrink:0}
+.mon-btn{width:26px;height:26px;border-radius:7px;background:var(--s2);
+         border:1px solid var(--b2);color:var(--txt);cursor:pointer;font-size:13px;
+         display:flex;align-items:center;justify-content:center;transition:background .15s;margin:8px 0}
 .mon-btn:hover{background:var(--acc);color:#000;border-color:var(--acc)}
-#monLbl{min-width:88px;text-align:center}
-.tabs{display:flex}
-.tab{padding:12px 9px;background:none;border:none;border-bottom:2px solid transparent;color:var(--mut);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.6px;transition:color .2s,border-color .2s;white-space:nowrap}
+#monLbl{min-width:82px;text-align:center;font-size:12px}
+.tabs{display:flex;overflow:hidden}
+.tab{padding:11px 8px;background:none;border:none;border-bottom:2px solid transparent;
+     color:var(--mut);font-family:'Syne',sans-serif;font-size:10px;font-weight:700;
+     cursor:pointer;text-transform:uppercase;letter-spacing:.5px;
+     transition:color .2s,border-color .2s;white-space:nowrap}
 .tab.on{color:var(--acc);border-bottom-color:var(--acc)}
 
-/* ─── SCROLL ─── */
-.scroll{overflow-y:auto;flex:1;padding-bottom:88px}
+/* ── SCROLL AREA ────────────────────────────────────────────── */
+.scroll{overflow-y:auto;overflow-x:hidden;flex:1;padding-bottom:88px;width:100%}
 
+/* ── SALARY CARD ────────────────────────────────────────────── */
+.sal-card{margin:14px 16px 0;
+          background:linear-gradient(135deg,rgba(212,247,74,.07),rgba(61,245,190,.05));
+          border:1px solid rgba(212,247,74,.16);border-radius:var(--r);
+          padding:13px 15px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sal-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;
+         color:var(--mut2);display:block;margin-bottom:3px}
+.sal-val{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;
+         color:var(--teal);letter-spacing:-.3px}
+.btn-edt{background:var(--s2);border:1px solid var(--b2);color:var(--mut2);
+         border-radius:9px;padding:7px 11px;font-size:12px;cursor:pointer;
+         transition:all .2s;white-space:nowrap;flex-shrink:0}
+.btn-edt:hover{border-color:var(--acc);color:var(--acc)}
 
-
-/* ─── SUMMARY CARDS ─── */
-.sum-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;padding:10px 18px 0}
-.sc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rs);padding:12px 10px;position:relative;overflow:hidden}
+/* ── SUMMARY CARDS ──────────────────────────────────────────── */
+/* FIX #3: prevent horizontal overflow on mobile */
+.sum-grid{display:grid;grid-template-columns:repeat(3,1fr);
+          gap:8px;padding:10px 16px 0;width:100%}
+.sc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rs);
+    padding:11px 8px;position:relative;overflow:hidden;min-width:0}
 .sc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
 .sc.i::after{background:var(--teal)}.sc.e::after{background:var(--red)}.sc.b::after{background:var(--acc)}
-.sc-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);display:block;margin-bottom:4px}
-.sc-val{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc-lbl{font-size:8px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);display:block;margin-bottom:3px}
+/* FIX #3: clamp font size so long numbers don't overflow */
+.sc-val{font-family:'Syne',sans-serif;font-size:clamp(11px,3.5vw,15px);font-weight:700;
+        overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .sc.i .sc-val{color:var(--teal)}.sc.e .sc-val{color:var(--red)}.sc.b .sc-val{color:var(--acc)}
-.sc-sub{font-size:9px;color:var(--mut);margin-top:3px}
+.sc-sub{font-size:8px;color:var(--mut);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ─── BUDGET BAR ─── */
-.bud{padding:12px 18px 0}
+/* ── BUDGET BAR ─────────────────────────────────────────────── */
+.bud{padding:12px 16px 0}
 .bud-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.bud-lbl{font-size:12px;color:var(--mut2)}.bud-pct{font-family:'Syne',sans-serif;font-size:12px;font-weight:700}
+.bud-lbl{font-size:11px;color:var(--mut2)}
+.bud-pct{font-family:'Syne',sans-serif;font-size:12px;font-weight:700}
 .bar-t{height:5px;background:var(--s3);border-radius:99px;overflow:hidden}
 .bar-f{height:100%;border-radius:99px;background:var(--acc);transition:width .6s cubic-bezier(.4,0,.2,1),background .3s}
 
-/* ─── SECTION ─── */
-.sec{padding:16px 18px 9px;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:1.5px}
+/* ── SECTION TITLE ──────────────────────────────────────────── */
+.sec{padding:15px 16px 8px;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;
+     color:var(--mut);text-transform:uppercase;letter-spacing:1.5px}
 
-/* ─── CATEGORIES ─── */
-.cat-list{padding:0 18px;display:flex;flex-direction:column;gap:9px}
-.cat-row{display:flex;align-items:center;gap:11px}
-.cat-ico{width:38px;height:38px;border-radius:11px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
-.cat-bod{flex:1;min-width:0}.cat-nm{font-size:14px;font-weight:500}
+/* ── CATEGORIES ─────────────────────────────────────────────── */
+.cat-list{padding:0 16px;display:flex;flex-direction:column;gap:9px}
+.cat-row{display:flex;align-items:center;gap:10px}
+.cat-ico{width:36px;height:36px;border-radius:10px;background:var(--s2);
+         display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.cat-bod{flex:1;min-width:0}
+.cat-nm{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cat-bar{height:3px;background:var(--s3);border-radius:99px;margin-top:4px}
 .cat-bar-f{height:100%;border-radius:99px;background:var(--teal)}
-.cat-amt{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--red);white-space:nowrap;flex-shrink:0}
+.cat-amt{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--red);
+         white-space:nowrap;flex-shrink:0}
 
-/* ─── TX LIST ─── */
-.tx-list{padding:0 18px;display:flex;flex-direction:column;gap:6px}
-.tx{display:flex;align-items:center;gap:11px;padding:12px 13px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--rs);position:relative;transition:background .15s}
+/* ── TRANSACTION LIST ───────────────────────────────────────── */
+.tx-list{padding:0 16px;display:flex;flex-direction:column;gap:6px}
+.tx{display:flex;align-items:center;gap:10px;padding:11px 12px;
+    background:var(--s1);border:1px solid var(--b1);border-radius:var(--rs);
+    position:relative;transition:background .15s;overflow:hidden}
 .tx:active{background:var(--s2)}
-.tx-ico{width:38px;height:38px;border-radius:10px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.tx-ico{width:36px;height:36px;border-radius:10px;background:var(--s2);
+        display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .tx-bod{flex:1;min-width:0}
-.tx-nm{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx-nm{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tx-ct{font-size:11px;color:var(--mut2);margin-top:1px}
-.tx-r{text-align:right;flex-shrink:0}
-.tx-amt{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+.tx-r{text-align:right;flex-shrink:0;min-width:0}
+.tx-amt{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;white-space:nowrap}
 .tx-amt.income{color:var(--teal)}.tx-amt.expense{color:var(--red)}
-.tx-dt{font-size:10px;color:var(--mut);margin-top:2px}
-.tx-del{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--mut);width:22px;height:22px;border-radius:6px;font-size:12px;cursor:pointer;opacity:0;display:flex;align-items:center;justify-content:center;transition:opacity .2s,background .15s}
+.tx-dt{font-size:10px;color:var(--mut);margin-top:1px}
+.tx-del{position:absolute;top:7px;right:7px;background:none;border:none;
+        color:var(--mut);width:20px;height:20px;border-radius:5px;
+        font-size:11px;cursor:pointer;opacity:0;display:flex;align-items:center;
+        justify-content:center;transition:opacity .2s,background .15s}
 .tx:hover .tx-del{opacity:1}.tx-del:hover{background:var(--red-d);color:var(--red)}
 
-/* ─── FAB ─── */
-.fab-wrap{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:10px 18px 28px;background:linear-gradient(to top,var(--bg) 60%,transparent);z-index:40}
-.fab{width:100%;padding:15px;background:var(--acc);color:#000;border:none;border-radius:var(--rs);font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 28px rgba(212,247,74,.2);transition:opacity .15s,transform .15s}
+/* ── FAB ────────────────────────────────────────────────────── */
+.fab-wrap{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+          width:100%;max-width:430px;padding:10px 16px 28px;
+          background:linear-gradient(to top,var(--bg) 62%,transparent);z-index:40}
+.fab{width:100%;padding:14px;background:var(--acc);color:#000;border:none;
+     border-radius:var(--rs);font-family:'Syne',sans-serif;font-size:14px;font-weight:800;
+     cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+     box-shadow:0 8px 28px rgba(212,247,74,.20);transition:opacity .15s,transform .15s}
 .fab:hover{opacity:.92}.fab:active{transform:scale(.98)}
 
-/* ─── BOTTOM SHEET ─── */
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+/* ── BOTTOM SHEET ───────────────────────────────────────────── */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;
+    display:flex;align-items:flex-end;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .25s}
 .ov.on{opacity:1;pointer-events:all}
-.bsht{background:var(--s1);border-radius:22px 22px 0 0;border:1px solid var(--b2);border-bottom:none;width:100%;max-width:430px;padding:6px 18px 46px;max-height:93vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.15,1)}
+.bsht{background:var(--s1);border-radius:22px 22px 0 0;border:1px solid var(--b2);
+      border-bottom:none;width:100%;max-width:430px;padding:6px 16px 44px;
+      max-height:92vh;overflow-y:auto;
+      transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.15,1)}
 .ov.on .bsht{transform:translateY(0)}
-.bhandle{width:34px;height:4px;background:var(--b2);border-radius:99px;margin:10px auto 18px}
-.sht-title{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;margin-bottom:18px}
-.type-row{display:flex;gap:8px;margin-bottom:16px}
-.type-btn{flex:1;padding:10px 8px;border:1px solid var(--b2);border-radius:var(--rs);background:var(--s2);color:var(--mut2);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+.bhandle{width:34px;height:4px;background:var(--b2);border-radius:99px;margin:10px auto 17px}
+.sht-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:16px}
+.type-row{display:flex;gap:8px;margin-bottom:15px}
+.type-btn{flex:1;padding:10px 8px;border:1px solid var(--b2);border-radius:var(--rs);
+          background:var(--s2);color:var(--mut2);font-family:'Syne',sans-serif;
+          font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
 .type-btn.se{background:var(--red-d);color:var(--red);border-color:var(--red)}
 .type-btn.si{background:var(--teal-d);color:var(--teal);border-color:var(--teal)}
-.fld{margin-bottom:13px}
-.fld>label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--mut2);margin-bottom:6px}
-.fld input,.fld select{width:100%;padding:12px 14px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+.fld{margin-bottom:12px}
+.fld>label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;
+           color:var(--mut2);margin-bottom:5px}
+.fld input,.fld select{width:100%;padding:11px 13px;background:var(--s2);
+                       border:1px solid var(--b2);border-radius:var(--rs);
+                       color:var(--txt);font-family:'DM Sans',sans-serif;font-size:14px;
+                       outline:none;transition:border-color .2s;
+                       -webkit-appearance:none;appearance:none}
 .fld input:focus,.fld select:focus{border-color:var(--acc)}
-.fld input.bigamt{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;text-align:center;padding:16px;letter-spacing:-1px;color:var(--acc);-webkit-appearance: textfield;-moz-appearance: textfield;}
+.fld input.bigamt{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;
+                  text-align:center;padding:14px;letter-spacing:-1px;color:var(--acc)}
 .fld select option{background:#1c1c26}
-.emj-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-bottom:13px}
-.emj-btn{aspect-ratio:1;border-radius:9px;background:var(--s2);border:1px solid var(--b1);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.emj-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-bottom:12px}
+.emj-btn{aspect-ratio:1;border-radius:9px;background:var(--s2);border:1px solid var(--b1);
+         font-size:18px;cursor:pointer;display:flex;align-items:center;
+         justify-content:center;transition:all .15s}
 .emj-btn.on{border-color:var(--acc);background:var(--acc-d)}
-.btn-save{width:100%;padding:15px;background:var(--acc);color:#000;border:none;border-radius:var(--rs);font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s}
+.btn-save{width:100%;padding:14px;background:var(--acc);color:#000;border:none;
+          border-radius:var(--rs);font-family:'Syne',sans-serif;font-size:14px;font-weight:800;
+          cursor:pointer;display:flex;align-items:center;justify-content:center;
+          gap:8px;transition:opacity .15s}
 .btn-save:hover{opacity:.9}.btn-save:disabled{opacity:.45;cursor:not-allowed}
 
-/* ─── CENTER MODAL ─── */
-.cov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+/* ── CENTER MODAL ───────────────────────────────────────────── */
+.cov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;
+     display:flex;align-items:center;justify-content:center;padding:20px;
+     opacity:0;pointer-events:none;transition:opacity .2s}
 .cov.on{opacity:1;pointer-events:all}
-.cmod{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);padding:22px;width:100%;max-width:340px;transform:scale(.95);transition:transform .25s}
+.cmod{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);
+      padding:20px;width:100%;max-width:330px;
+      transform:scale(.95);transition:transform .25s}
 .cov.on .cmod{transform:scale(1)}
 
-/* ─── SETTINGS ─── */
-.set-info{padding:12px 14px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--rs);margin-bottom:12px;font-size:13px;color:var(--mut2);line-height:1.7}
-.set-info strong{color:var(--txt);display:block;margin-bottom:3px;font-size:13px}
-.set-info a{color:var(--acc);text-decoration:none}
+/* ── SETTINGS SHEET ─────────────────────────────────────────── */
+.set-blk{padding:11px 13px;background:var(--s2);border:1px solid var(--b1);
+         border-radius:var(--rs);margin-bottom:10px;font-size:13px;color:var(--mut2);line-height:1.7}
+.set-blk strong{color:var(--txt);display:block;margin-bottom:2px;font-size:13px}
 .set-url{font-family:monospace;font-size:10px;word-break:break-all;color:var(--mut)}
+.btn-warn{background:rgba(245,183,61,.1);color:var(--amb);border:1px solid var(--amb);box-shadow:none}
 .btn-danger{background:var(--red-d);color:var(--red);border:1px solid var(--red);box-shadow:none}
 
-/* ─── TOAST ─── */
-.toast{position:fixed;bottom:94px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--s1);border:1px solid var(--b2);color:var(--txt);padding:9px 18px;border-radius:99px;font-size:13px;font-weight:500;z-index:200;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+/* ── TOAST ──────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:92px;left:50%;
+       transform:translateX(-50%) translateY(8px);
+       background:var(--s1);border:1px solid var(--b2);color:var(--txt);
+       padding:9px 16px;border-radius:99px;font-size:13px;font-weight:500;
+       z-index:200;opacity:0;pointer-events:none;
+       transition:opacity .3s,transform .3s;
+       white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.45)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.ok{background:var(--teal-d);border-color:var(--teal);color:var(--teal)}
 .toast.bad{background:var(--red-d);border-color:var(--red);color:var(--red)}
 
-/* ─── EMPTY ─── */
-.empty{text-align:center;padding:44px 20px;color:var(--mut)}
-.empty-ico{font-size:44px;margin-bottom:12px}
+/* ── EMPTY STATE ────────────────────────────────────────────── */
+.empty{text-align:center;padding:40px 16px;color:var(--mut)}
+.empty-ico{font-size:42px;margin-bottom:10px}
 .empty p{font-size:14px;line-height:1.7}
 </style>
 </head>
 <body>
 
-<!-- ═══ SETUP SCREEN ═══ -->
-<div id="setupScreen">
-  <div class="setup-icon">📊</div>
-  <h1 class="setup-title">Spendo<em>.</em></h1>
-  <p class="setup-sub">Paste your Apps Script Web App URL below<br>to connect to your Google Sheet.</p>
+<!-- ══════════════════════════════════════
+     LOGIN PAGE
+═════════════════════════════════════════ -->
+<div id="pgLogin" class="page active">
+  <div class="login-icon">🔐</div>
+  <h1 class="pg-title">Spendo<em>.</em></h1>
+  <p class="pg-sub">Sign in to access your expense tracker</p>
+
+  <div class="err-box" id="loginErr">
+    <strong>⚠️ Login Failed</strong>
+    <span id="loginErrMsg">Invalid credentials. Please try again.</span>
+  </div>
+
+  <div class="login-form">
+    <div class="fld-wrap">
+      <label>User ID</label>
+      <input type="text" id="userIdIn" placeholder="Enter your user ID"
+             autocomplete="username" oninput="clearLoginErr()">
+    </div>
+    <div class="fld-wrap">
+      <label>Password</label>
+      <input type="password" id="passIn" placeholder="Enter your password"
+             autocomplete="current-password" oninput="clearLoginErr()"
+             onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <button class="btn-primary" id="loginBtn" onclick="doLogin()">
+      <span>🔑</span> <span id="loginBtnTxt">Login</span>
+    </button>
+  </div>
+
+  <p style="margin-top:20px;font-size:12px;color:var(--mut)">
+    No account? Ask your admin to run <code style="color:var(--acc);background:var(--s2);padding:1px 5px;border-radius:4px;font-size:11px">addUser()</code> in Apps Script.
+  </p>
+  <button onclick="showSetup()" style="margin-top:12px;background:none;border:none;color:var(--mut);font-size:12px;cursor:pointer;text-decoration:underline">
+    Change Apps Script URL
+  </button>
+</div>
+
+<!-- ══════════════════════════════════════
+     SETUP PAGE
+═════════════════════════════════════════ -->
+<div id="pgSetup" class="page">
+  <div style="font-size:50px;margin-bottom:16px;animation:bob 2.5s ease-in-out infinite">📊</div>
+  <h1 class="pg-title">Spendo<em>.</em></h1>
+  <p class="pg-sub">Connect your Google Sheet backend</p>
 
   <div class="steps">
     <div class="step">
       <div class="step-n">1</div>
       <div class="step-b">
         <strong>Open Google Sheets → Extensions → Apps Script</strong>
-        <small>Paste the <b>Code.gs</b> file and click Save (💾)</small>
+        <small>Paste <b>Code.gs</b> and save (Ctrl+S)</small>
       </div>
     </div>
     <div class="step">
@@ -210,50 +358,57 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);-web
       <div class="step-b">
         <strong>Deploy → New Deployment → Web App</strong>
         <small>Execute as: <b>Me</b> &nbsp;|&nbsp; Who has access: <b>Anyone</b></small>
-        <code>⚠️ Always create a NEW deployment after code changes</code>
+        <code>⚠️ Create a NEW deployment after every code change</code>
       </div>
     </div>
     <div class="step">
       <div class="step-n">3</div>
       <div class="step-b">
-        <strong>Copy the Web App URL and paste below</strong>
+        <strong>Paste the Web App URL below</strong>
         <code>https://script.google.com/macros/s/…/exec</code>
       </div>
     </div>
   </div>
 
-  <!-- Error box shown on failure -->
-  <div class="err-box" id="errBox">
+  <div class="err-box" id="setupErr">
     <strong>⚠️ Connection Failed</strong>
-    <span id="errMsg">Check that your URL is correct and the deployment is set to "Anyone can access".</span>
+    <span id="setupErrMsg">Check URL and deployment settings.</span>
   </div>
 
-  <div class="url-wrap">
+  <div style="width:100%;margin-bottom:13px">
     <label class="url-lbl">Apps Script Web App URL</label>
-    <input class="url-inp" id="urlInput" type="url"
+    <input class="url-inp" id="urlIn" type="url"
       placeholder="https://script.google.com/macros/s/…/exec"
       oninput="onUrlInput()" autocomplete="off" autocorrect="off" spellcheck="false">
   </div>
-  <button class="btn-connect" id="connectBtn" onclick="connect()" disabled>
-    <span>⚡</span> Connect &amp; Launch
+  <button class="btn-primary" id="connectBtn" onclick="doConnect()" disabled>
+    <span>⚡</span> Connect &amp; Continue
   </button>
 </div>
 
-<!-- ═══ LOADING ═══ -->
-<div id="loadScreen">
+<!-- ══════════════════════════════════════
+     LOADING PAGE
+═════════════════════════════════════════ -->
+<div id="pgLoad" class="page">
   <div class="spinner"></div>
-  <p class="load-msg" id="loadMsg">Connecting…</p>
+  <p class="load-msg" id="loadMsg">Loading…</p>
 </div>
 
-<!-- ═══ MAIN APP ═══ -->
+<!-- ══════════════════════════════════════
+     MAIN APP
+═════════════════════════════════════════ -->
 <div id="app">
  <div class="shell">
+
+  <!-- Header -->
   <div class="hdr">
     <div class="hdr-top">
       <div class="logo">Spendo<span>.</span></div>
       <div class="hdr-r">
-        <div class="syn ok" id="synBadge"><div class="syn-dot"></div><span id="synTxt">Synced</span></div>
-        <button class="set-btn" onclick="openSettings()">⚙️</button>
+        <div class="syn ok" id="synBadge">
+          <div class="syn-dot"></div><span id="synTxt">Synced</span>
+        </div>
+        <button class="set-btn" onclick="openSettings()" title="Settings">⚙️</button>
       </div>
     </div>
     <div class="hdr-bot">
@@ -270,52 +425,93 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);-web
     </div>
   </div>
 
+  <!-- Scrollable content -->
   <div class="scroll">
-    <!-- OVERVIEW -->
+
+    <!-- OVERVIEW TAB -->
     <div id="tab-ov">
+      <div class="sal-card">
+        <div>
+          <span class="sal-lbl">Monthly Salary</span>
+          <div class="sal-val" id="salVal">₹0</div>
+        </div>
+        <button class="btn-edt" onclick="openSalMod()">✏️ Salary</button>
+      </div>
       <div class="sum-grid">
-        <div class="sc i"><span class="sc-lbl">Income</span><div class="sc-val" id="sInc">₹0</div><div class="sc-sub" id="sIncCt">0</div></div>
-        <div class="sc e"><span class="sc-lbl">Spent</span><div class="sc-val" id="sExp">₹0</div><div class="sc-sub" id="sExpCt">0</div></div>
-        <div class="sc b"><span class="sc-lbl">Balance</span><div class="sc-val" id="sBal">₹0</div><div class="sc-sub" id="sBalPct">0%</div></div>
+        <div class="sc i">
+          <span class="sc-lbl">Income</span>
+          <div class="sc-val" id="sInc">₹0</div>
+          <div class="sc-sub" id="sIncCt">0 entries</div>
+        </div>
+        <div class="sc e">
+          <span class="sc-lbl">Spent</span>
+          <div class="sc-val" id="sExp">₹0</div>
+          <div class="sc-sub" id="sExpCt">0 entries</div>
+        </div>
+        <div class="sc b">
+          <span class="sc-lbl">Balance</span>
+          <div class="sc-val" id="sBal">₹0</div>
+          <div class="sc-sub" id="sBalPct">0%</div>
+        </div>
       </div>
       <div class="bud">
-        <div class="bud-row"><span class="bud-lbl">Budget used</span><span class="bud-pct" id="bPct">0%</span></div>
+        <div class="bud-row">
+          <span class="bud-lbl">Budget used this month</span>
+          <span class="bud-pct" id="bPct">0%</span>
+        </div>
         <div class="bar-t"><div class="bar-f" id="bBar" style="width:0%"></div></div>
       </div>
       <div class="sec">Top Spending</div>
-      <div class="cat-list" id="topCats"><div class="empty"><div class="empty-ico">📊</div><p>No expenses yet this month</p></div></div>
+      <div class="cat-list" id="topCats">
+        <div class="empty"><div class="empty-ico">📊</div><p>No expenses yet this month</p></div>
+      </div>
     </div>
 
-    <!-- TRANSACTIONS -->
+    <!-- TRANSACTIONS TAB -->
     <div id="tab-tx" style="display:none">
       <div class="sec">All Transactions</div>
-      <div class="tx-list" id="txList"><div class="empty"><div class="empty-ico">💸</div><p>No transactions yet.<br>Tap + to add one.</p></div></div>
+      <div class="tx-list" id="txList">
+        <div class="empty"><div class="empty-ico">💸</div><p>No transactions yet.<br>Tap + to add one.</p></div>
+      </div>
     </div>
 
-    <!-- CATEGORIES -->
+    <!-- CATEGORIES TAB -->
     <div id="tab-cat" style="display:none">
       <div class="sec">Category Breakdown</div>
-      <div class="cat-list" id="catAll"><div class="empty"><div class="empty-ico">🗂️</div><p>No data yet</p></div></div>
+      <div class="cat-list" id="catAll">
+        <div class="empty"><div class="empty-ico">🗂️</div><p>No data yet</p></div>
+      </div>
     </div>
-  </div>
 
+  </div><!-- /scroll -->
+
+  <!-- FAB -->
   <div class="fab-wrap">
-    <button class="fab" onclick="openAdd()"><span style="font-size:20px">＋</span> Add Transaction</button>
+    <button class="fab" onclick="openAdd()">
+      <span style="font-size:18px">＋</span> Add Transaction
+    </button>
   </div>
- </div>
-</div>
 
-<!-- ═══ ADD TRANSACTION ═══ -->
-<div class="ov" id="addOv" onclick="closeIfBg(event,'addOv')">
+ </div>
+</div><!-- /app -->
+
+<!-- ══════════════════════════════════════
+     ADD TRANSACTION BOTTOM SHEET
+═════════════════════════════════════════ -->
+<div class="ov" id="addOv" onclick="closeBg(event,'addOv')">
  <div class="bsht">
   <div class="bhandle"></div>
   <div class="sht-title">New Transaction</div>
   <div class="type-row">
-    <button class="type-btn se" id="tExp" onclick="setType('expense')">🔴 Expense</button>
-    <button class="type-btn"    id="tInc" onclick="setType('income')">🟢 Income</button>
+    <button class="type-btn se" id="tExp" onclick="setTxType('expense')">🔴 Expense</button>
+    <button class="type-btn"    id="tInc" onclick="setTxType('income')">🟢 Income</button>
   </div>
-  <div class="fld"><label>Amount (₹)</label><input type="number" id="amtIn" class="bigamt" placeholder="0" inputmode="decimal" style="-webkit-appearance: textfield; -moz-appearance: textfield;"></div>
-  <div class="fld"><label>Description</label><input type="text" id="descIn" placeholder="e.g. Swiggy, salary, rent…"></div>
+  <div class="fld"><label>Amount (₹)</label>
+    <input type="number" id="amtIn" class="bigamt" placeholder="0" inputmode="decimal">
+  </div>
+  <div class="fld"><label>Description</label>
+    <input type="text" id="descIn" placeholder="e.g. Swiggy, electricity, salary…">
+  </div>
   <div class="fld"><label>Category</label>
     <select id="catSel">
       <option value="Food">🍔 Food &amp; Dining</option>
@@ -333,284 +529,354 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);-web
       <option value="Other">📦 Other</option>
     </select>
   </div>
-  <div class="fld"><label>Date</label><input type="date" id="dateIn"></div>
-  <div class="fld"><label>Pick an icon</label><div class="emj-grid" id="emjGrid"></div></div>
-  <button class="btn-save" id="saveBtn" onclick="saveTx()"><span id="saveTxt">💾 Save Transaction</span></button>
+  <div class="fld"><label>Date</label>
+    <input type="date" id="dateIn">
+  </div>
+  <div class="fld"><label>Icon</label>
+    <div class="emj-grid" id="emjGrid"></div>
+  </div>
+  <button class="btn-save" id="saveBtn" onclick="saveTx()">
+    <span id="saveTxt">💾 Save Transaction</span>
+  </button>
  </div>
 </div>
 
+<!-- ══════════════════════════════════════
+     SALARY MODAL
+═════════════════════════════════════════ -->
+<div class="cov" id="salOv" onclick="closeBg(event,'salOv')">
+  <div class="cmod">
+    <div class="sht-title" style="font-size:16px;margin-bottom:13px">Set Monthly Salary</div>
+    <div class="fld">
+      <label>Salary Amount (₹)</label>
+      <input type="number" id="salIn" class="bigamt" placeholder="0"
+             inputmode="decimal" style="font-size:24px">
+    </div>
+    <button class="btn-save" onclick="saveSal()">Save Salary</button>
+  </div>
+</div>
 
-
-<!-- ═══ SETTINGS ═══ -->
-<div class="ov" id="setOv" onclick="closeIfBg(event,'setOv')">
+<!-- ══════════════════════════════════════
+     SETTINGS BOTTOM SHEET
+═════════════════════════════════════════ -->
+<div class="ov" id="setOv" onclick="closeBg(event,'setOv')">
  <div class="bsht">
   <div class="bhandle"></div>
   <div class="sht-title">Settings</div>
-  <div class="set-info">
-    <strong>Connected URL</strong>
-    <span class="set-url" id="urlDisplay"></span>
+
+  <div class="set-blk">
+    <strong>Logged in as</strong>
+    <span id="setUser" style="color:var(--acc);font-size:13px">—</span>
   </div>
+
+  <div class="set-blk">
+    <strong>Apps Script URL</strong>
+    <span class="set-url" id="urlDisplay">—</span>
+  </div>
+
   <div class="fld" style="margin-bottom:10px">
     <label>Change Apps Script URL</label>
-    <input type="url" id="newUrlIn" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocorrect="off" spellcheck="false">
+    <input type="url" id="newUrlIn"
+      placeholder="https://script.google.com/macros/s/…/exec"
+      autocomplete="off" autocorrect="off" spellcheck="false">
   </div>
-  <button class="btn-save" style="margin-bottom:10px" onclick="changeUrl()">Update URL &amp; Reconnect</button>
-  <button class="btn-save btn-danger" onclick="resetApp()">Reset App (clear saved URL)</button>
+  <button class="btn-save" style="margin-bottom:10px" onclick="changeUrl()">
+    Update URL &amp; Reconnect
+  </button>
+  <button class="btn-save btn-warn" style="margin-bottom:10px" onclick="doLogout()">
+    🔓 Logout
+  </button>
+  <button class="btn-save btn-danger" onclick="resetApp()">
+    ♻️ Reset App (clear all saved data)
+  </button>
  </div>
 </div>
 
+<!-- Toast -->
 <div class="toast" id="toastEl"></div>
 
 <script>
-// ══════════════════════════════════════════════
-//  CONFIG & STATE
-// ══════════════════════════════════════════════
-var EMOJIS = ['🍔','☕','🛍️','🚌','⚡','💊','🎬','📚','🏠','💰','💼','🛒','✈️','🍕','🎮','🎁','🏋️','🍺','💇','📦','🐾','💻','📱','🎵','🧴'];
-var CAT_ICO = {Food:'🍔',Grocery:'🛒',Transport:'🚌',Shopping:'🛍️',Bills:'⚡',Health:'💊',Entertainment:'🎬',Education:'📚',Rent:'🏠',Savings:'💰',Travel:'✈️',Salary:'💼',Other:'📦'};
-var MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-var STORE_KEY = 'spendo_api_url';
-var CACHE_KEY = 'spendo_tx_cache';
+// ═══════════════════════════════════════════════════════
+//  CONSTANTS & STATE
+// ═══════════════════════════════════════════════════════
+var EMOJIS   = ['🍔','☕','🛍️','🚌','⚡','💊','🎬','📚','🏠','💰','💼','🛒','✈️','🍕','🎮','🎁','🏋️','🍺','💇','📦','🐾','💻','📱','🎵','🧴'];
+var CAT_ICO  = {Food:'🍔',Grocery:'🛒',Transport:'🚌',Shopping:'🛍️',Bills:'⚡',Health:'💊',Entertainment:'🎬',Education:'📚',Rent:'🏠',Savings:'💰',Travel:'✈️',Salary:'💼',Other:'📦'};
+var MONS     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// Check if running on file:// protocol
-var isFileProtocol = window.location.protocol === 'file:';
+var K_URL    = 'spendo_url';
+var K_KEY    = 'spendo_key';
+var K_EXPIRY = 'spendo_expiry';
+var K_USER   = 'spendo_user';
+var K_SAL    = 'spendo_sal';   // salary cache prefix
 
 var API_URL  = '';
+var API_KEY  = '';
+var CUR_USER = '';
 var txCache  = [];
+var salCache = {};
 var curMon   = new Date().getMonth();
 var curYr    = new Date().getFullYear();
 var selType  = 'expense';
 var selEmoji = '💳';
 var isSaving = false;
 
-// Helper functions for storage (handles file:// protocol issues)
-function setStorage(key, value) {
-  try {
-    if (isFileProtocol) {
-      // Use sessionStorage as fallback for file:// protocol
-      sessionStorage.setItem(key, value);
-      // Also try localStorage in case it works
-      localStorage.setItem(key, value);
-    } else {
-      localStorage.setItem(key, value);
-    }
-  } catch(e) {
-    console.warn('Storage failed:', e);
-  }
-}
-
-function getStorage(key) {
-  try {
-    var value = localStorage.getItem(key);
-    if (!value && isFileProtocol) {
-      // Fallback to sessionStorage for file:// protocol
-      value = sessionStorage.getItem(key);
-    }
-    return value;
-  } catch(e) {
-    console.warn('Storage read failed:', e);
-    return null;
-  }
-}
-
-function removeStorage(key) {
-  try {
-    localStorage.removeItem(key);
-    if (isFileProtocol) {
-      sessionStorage.removeItem(key);
-    }
-  } catch(e) {
-    console.warn('Storage remove failed:', e);
-  }
-}
-
-var fmt = function(n){ return '₹' + Math.abs(Math.round(n)).toLocaleString('en-IN'); };
+var fmt = function(n){ return '₹'+Math.abs(Math.round(n)).toLocaleString('en-IN'); };
 var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
 var mk  = function(y,m){ return y+'-'+m; };
 
-// ══════════════════════════════════════════════
-//  JSONP — bypasses CORS completely
-//  Apps Script returns: callbackFn({...})
-// ══════════════════════════════════════════════
-var _cbCount = 0;
-function jsonp(params, timeout) {
+// ═══════════════════════════════════════════════════════
+//  JSONP — bypasses CORS for Apps Script calls
+// ═══════════════════════════════════════════════════════
+var _cbN = 0;
+function jsonp(params, ms) {
   return new Promise(function(resolve, reject) {
-    var cbName = '__spendo_cb_' + (++_cbCount);
-    var timer  = setTimeout(function(){
-      delete window[cbName];
-      var s = document.getElementById(cbName);
-      if (s) s.remove();
-      reject(new Error('Timeout — check your Apps Script URL'));
-    }, timeout || 10000);
+    var cb  = '__sp_' + (++_cbN);
+    var tid = setTimeout(function(){
+      cleanup(cb); reject(new Error('Timeout – check your Apps Script URL'));
+    }, ms || 12000);
 
-    window[cbName] = function(data) {
-      clearTimeout(timer);
-      delete window[cbName];
-      var s = document.getElementById(cbName);
-      if (s) s.remove();
-      resolve(data);
+    window[cb] = function(data){
+      clearTimeout(tid); cleanup(cb); resolve(data);
     };
 
-    params.callback = cbName;
-    params.key = "SPENDO_SECURE_2026"; // 🔐 SAME KEY
+    // Always attach apiKey for non-public actions
+    if (API_KEY && params.action !== 'ping' && params.action !== 'login') {
+      params.apiKey = API_KEY;
+    }
+    params.callback = cb;
+
     var qs = Object.keys(params).map(function(k){
-      return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+      return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
     }).join('&');
 
-    var script = document.createElement('script');
-    script.id  = cbName;
-    script.src = API_URL + '?' + qs;
-    script.onerror = function(){
-      clearTimeout(timer);
-      delete window[cbName];
-      script.remove();
-      reject(new Error('Script load error — check your URL'));
-    };
-    document.head.appendChild(script);
+    var s = document.createElement('script');
+    s.id  = cb;
+    s.src = API_URL + '?' + qs;
+    s.onerror = function(){ clearTimeout(tid); cleanup(cb); reject(new Error('Script error – check URL')); };
+    document.head.appendChild(s);
   });
 }
-
-// ══════════════════════════════════════════════
-//  SETUP & URL VALIDATION
-// ══════════════════════════════════════════════
-function onUrlInput() {
-  var v   = document.getElementById('urlInput').value.trim();
-  var inp = document.getElementById('urlInput');
-  var btn = document.getElementById('connectBtn');
-  var isValid = v.indexOf('script.google.com') !== -1 && v.indexOf('/exec') !== -1;
-  inp.className = 'url-inp' + (v.length > 10 ? (isValid ? ' ok' : ' bad') : '');
-  btn.disabled  = !isValid;
-  document.getElementById('errBox').classList.remove('show');
+function cleanup(cb){
+  delete window[cb];
+  var s = document.getElementById(cb);
+  if (s) s.remove();
 }
 
-function connect() {
-  var url = document.getElementById('urlInput').value.trim();
-  if (!url) return;
-  setStorage(STORE_KEY, url);
-  launchApp(url);
+// ═══════════════════════════════════════════════════════
+//  SCREEN SWITCHING
+// ═══════════════════════════════════════════════════════
+function showPage(id) {
+  ['pgLogin','pgSetup','pgLoad'].forEach(function(p){
+    document.getElementById(p).classList.toggle('active', p===id);
+  });
+  document.getElementById('app').style.display = id==='app' ? 'flex' : 'none';
+}
+function showLogin()  { showPage('pgLogin'); }
+function showSetup()  { showPage('pgSetup'); document.getElementById('setOv').classList.remove('on'); }
+function showLoad(m)  { showPage('pgLoad'); document.getElementById('loadMsg').textContent = m||'Loading…'; }
+function showApp()    { showPage('app'); updMon(); loadSalaryCacheFromStorage(); render(); }
+
+// ═══════════════════════════════════════════════════════
+//  SESSION HELPERS
+// ═══════════════════════════════════════════════════════
+function sessionValid() {
+  var k = localStorage.getItem(K_KEY);
+  var e = localStorage.getItem(K_EXPIRY);
+  if (!k || !e) return false;
+  if (new Date() >= new Date(e)) {
+    // expired – clean up
+    localStorage.removeItem(K_KEY);
+    localStorage.removeItem(K_EXPIRY);
+    return false;
+  }
+  API_KEY  = k;
+  CUR_USER = localStorage.getItem(K_USER) || '';
+  return true;
 }
 
-function launchApp(url) {
-  API_URL = url;
-  document.getElementById('urlDisplay').textContent = url;
-  
-  // Show file:// protocol warning
-  if (isFileProtocol) {
-    showToast('File protocol detected - some features may be limited', 'bad', 4000);
-  }
-  
-  showLoad('Testing connection…');
+function saveSession(key, expiry, userId) {
+  localStorage.setItem(K_KEY, key);
+  localStorage.setItem(K_EXPIRY, expiry);
+  localStorage.setItem(K_USER, userId);
+  API_KEY  = key;
+  CUR_USER = userId;
+  document.getElementById('setUser').textContent = userId;
+}
 
-  // Always render cached data first if available
-  if(txCache.length > 0) {
-    render();
-  }
+// ═══════════════════════════════════════════════════════
+//  LOGIN
+// ═══════════════════════════════════════════════════════
+function doLogin() {
+  var userId = document.getElementById('userIdIn').value.trim();
+  var pass   = document.getElementById('passIn').value;
 
-  // Skip API calls for file:// protocol
-  if (isFileProtocol) {
-    showApp();
-    setSyn('err');
-    showToast('Running locally - API calls disabled', 'bad', 4000);
-    return;
-  }
+  if (!userId || !pass) { showLoginErr('Enter both User ID and Password'); return; }
+  // FIX #1: make sure API_URL is loaded from storage before any jsonp call
+  API_URL = localStorage.getItem(K_URL) || API_URL;
+  if (!API_URL) { showLoginErr('No Apps Script URL configured. Tap "Change Apps Script URL" below.'); return; }
 
-  // Ping the Apps Script to verify it works
-  jsonp({ action: 'ping' }, 12000)
+  var btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  document.getElementById('loginBtnTxt').textContent = 'Signing in…';
+
+  jsonp({ action:'login', userId:userId, password:pass }, 12000)
     .then(function(res) {
-      if (res && res.ok) {
+      if (res.ok) {
+        saveSession(res.apiKey, res.expiry, userId);
         showLoad('Loading your data…');
-        return loadMonth(curYr, curMon);
+        // FIX #2: always load fresh from sheet after login (never use stale cache)
+        return loadMonthFresh(curYr, curMon);
+      } else {
+        showLoginErr(res.error || 'Login failed');
+      }
+    })
+    .then(function(){ if(CUR_USER) showApp(); })
+    .catch(function(e){ showLoginErr('Connection error: '+e.message); })
+    .finally(function(){
+      btn.disabled = false;
+      document.getElementById('loginBtnTxt').textContent = 'Login';
+    });
+}
+
+function showLoginErr(msg) {
+  document.getElementById('loginErrMsg').textContent = msg;
+  document.getElementById('loginErr').classList.add('show');
+  document.getElementById('userIdIn').classList.add('err');
+  document.getElementById('passIn').classList.add('err');
+}
+function clearLoginErr() {
+  document.getElementById('loginErr').classList.remove('show');
+  document.getElementById('userIdIn').classList.remove('err');
+  document.getElementById('passIn').classList.remove('err');
+}
+
+function doLogout() {
+  if (!confirm('Logout?')) return;
+  localStorage.removeItem(K_KEY);
+  localStorage.removeItem(K_EXPIRY);
+  localStorage.removeItem(K_USER);
+  API_KEY = ''; CUR_USER = '';
+  txCache = []; salCache = {};
+  document.getElementById('setOv').classList.remove('on');
+  showLogin();
+  showToast('Logged out','ok');
+}
+
+// ═══════════════════════════════════════════════════════
+//  SETUP / URL CONNECTION
+// ═══════════════════════════════════════════════════════
+function onUrlInput() {
+  var v   = document.getElementById('urlIn').value.trim();
+  var inp = document.getElementById('urlIn');
+  var ok  = v.indexOf('script.google.com')!==-1 && v.indexOf('/exec')!==-1;
+  inp.className = 'url-inp'+(v.length>10?(ok?' ok':' bad'):'');
+  document.getElementById('connectBtn').disabled = !ok;
+  document.getElementById('setupErr').classList.remove('show');
+}
+
+function doConnect() {
+  var url = document.getElementById('urlIn').value.trim();
+  if (!url) return;
+  showLoad('Testing connection…');
+  API_URL = url;
+
+  jsonp({ action:'ping' }, 12000)
+    .then(function(res){
+      if (res && res.ok) {
+        localStorage.setItem(K_URL, url);
+        document.getElementById('urlDisplay').textContent = url;
+        showToast('Connected! Please login.','ok');
+        showLogin();
       } else {
         throw new Error(res ? res.error : 'No response');
       }
     })
-    .then(function(){ showApp(); })
-    .catch(function(e) {
-      // If we have cached data, show the app anyway
-      if(txCache.length > 0) {
-        showApp();
-        setSyn('err');
-        showToast('Showing cached data - sync failed: ' + e.message, 'bad', 4000);
-      } else {
-        showSetup();
-        document.getElementById('errMsg').textContent = e.message || 'Unknown error.';
-        document.getElementById('errBox').classList.add('show');
-        removeStorage(STORE_KEY);
-      }
+    .catch(function(e){
+      showSetup();
+      document.getElementById('setupErrMsg').textContent = e.message||'Connection failed.';
+      document.getElementById('setupErr').classList.add('show');
     });
 }
 
-// ══════════════════════════════════════════════
-//  SCREEN MANAGEMENT
-// ══════════════════════════════════════════════
-function showSetup() {
-  document.getElementById('setupScreen').style.display = 'flex';
-  document.getElementById('loadScreen').style.display  = 'none';
-  document.getElementById('app').style.display         = 'none';
-}
-function showLoad(msg) {
-  document.getElementById('setupScreen').style.display = 'none';
-  document.getElementById('loadScreen').style.display  = 'flex';
-  document.getElementById('app').style.display         = 'none';
-  document.getElementById('loadMsg').textContent = msg || 'Loading…';
-}
-function showApp() {
-  document.getElementById('setupScreen').style.display = 'none';
-  document.getElementById('loadScreen').style.display  = 'none';
-  document.getElementById('app').style.display         = 'flex';
-  updMon(); 
-  render(); // Always render when showing app
-}
-
-// ══════════════════════════════════════════════
-//  DATA LOADING
-// ══════════════════════════════════════════════
-function loadMonth(yr, mon) {
-  var monthKey = mk(yr, mon);
+// ═══════════════════════════════════════════════════════
+//  LOAD DATA — FIX #2: always fetch fresh from sheet
+// ═══════════════════════════════════════════════════════
+function loadMonthFresh(yr, mon) {
+  var key = mk(yr, mon);
   setSyn('busy');
-  
-  return jsonp({ action: 'getTx', monthKey: monthKey })
-    .then(function(res) {
-      if (res.ok) {
-        // Remove existing data for this month
-        txCache = txCache.filter(function(t){ return t.month !== monthKey; });
-        // Add new data
-        txCache = txCache.concat(res.data || []);
-        // Save to localStorage for persistence
-        setStorage(CACHE_KEY, JSON.stringify(txCache));
-      }
-      setSyn('ok');
-      render();
-    }).catch(function(e){
-      setSyn('err');
-      showToast('Sync error: ' + e.message, 'bad', 3500);
-      // Still render cached data even if sync fails
-      render();
-      throw e;
-    });
+  return Promise.all([
+    jsonp({ action:'getTx', monthKey:key }),
+    jsonp({ action:'getSalary', monthKey:key })
+  ]).then(function(results){
+    var txRes  = results[0];
+    var salRes = results[1];
+
+    if (txRes.ok) {
+      // Replace ALL cached entries for this month with fresh data from sheet
+      txCache = txCache.filter(function(t){ return t.month !== key; });
+      txCache = txCache.concat(txRes.data || []);
+    } else if (txRes.error && txRes.error.indexOf('expired') !== -1) {
+      handleSessionExpired(); return;
+    }
+
+    if (salRes.ok) {
+      salCache[key] = salRes.salary || 0;
+      saveSalaryToStorage(key, salRes.salary || 0);
+    }
+
+    setSyn('ok');
+    render();
+  }).catch(function(e){
+    setSyn('err');
+    showToast('Sync error: '+e.message,'bad',3500);
+    render();
+    throw e;
+  });
 }
 
-// ══════════════════════════════════════════════
-//  MONTH NAV
-// ══════════════════════════════════════════════
-function updMon(){ document.getElementById('monLbl').textContent = MONS[curMon]+' '+curYr; }
-function chMon(d){
-  curMon += d;
-  if (curMon > 11){ curMon=0; curYr++; }
-  if (curMon < 0) { curMon=11; curYr--; }
-  updMon();
-  var key = mk(curYr,curMon);
-  var cached = txCache.some(function(t){ return t.month===key; });
-  if (!cached && API_URL) {
-    loadMonth(curYr, curMon);
-  } else {
-    render();
+function handleSessionExpired() {
+  localStorage.removeItem(K_KEY);
+  localStorage.removeItem(K_EXPIRY);
+  API_KEY = ''; CUR_USER = '';
+  showLogin();
+  showToast('Session expired — please login again','bad',3500);
+}
+
+// ═══════════════════════════════════════════════════════
+//  SALARY LOCAL CACHE (persisted per monthKey)
+// ═══════════════════════════════════════════════════════
+function saveSalaryToStorage(key, val) {
+  try { localStorage.setItem(K_SAL+key, String(val)); } catch(e){}
+}
+function loadSalaryCacheFromStorage() {
+  // Load any previously cached salary values into salCache
+  for (var i=0; i<localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if (k && k.indexOf(K_SAL) === 0) {
+      var mk2 = k.replace(K_SAL,'');
+      salCache[mk2] = parseFloat(localStorage.getItem(k)) || 0;
+    }
   }
 }
 
-// ══════════════════════════════════════════════
-//  TAB SWITCHING
-// ══════════════════════════════════════════════
-function swTab(name, btn){
+// ═══════════════════════════════════════════════════════
+//  MONTH NAVIGATION
+// ═══════════════════════════════════════════════════════
+function updMon(){ document.getElementById('monLbl').textContent = MONS[curMon]+' '+curYr; }
+function chMon(d) {
+  curMon += d;
+  if (curMon>11){ curMon=0; curYr++; }
+  if (curMon<0) { curMon=11; curYr--; }
+  updMon();
+  // Always fetch fresh when navigating months
+  if (API_URL && API_KEY) loadMonthFresh(curYr, curMon);
+  else render();
+}
+
+// ═══════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════
+function swTab(name, btn) {
   ['ov','tx','cat'].forEach(function(t){
     document.getElementById('tab-'+t).style.display = t===name?'block':'none';
   });
@@ -618,23 +884,25 @@ function swTab(name, btn){
   btn.classList.add('on');
 }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  RENDER
-// ══════════════════════════════════════════════
-function render(){
-  var key     = mk(curYr,curMon);
-  var txns    = txCache.filter(function(t){ return t.month===key; });
-  var incT    = txns.filter(function(t){ return t.type==='income'; });
-  var expT    = txns.filter(function(t){ return t.type==='expense'; });
-  var income  = incT.reduce(function(s,t){ return s+t.amount; },0);
-  var expense = expT.reduce(function(s,t){ return s+t.amount; },0);
-  var balance = income-expense;
-  var pct     = income>0?Math.min(100,Math.round(expense/income*100)):0;
-  var savPct  = income>0?Math.round(balance/income*100):0;
+// ═══════════════════════════════════════════════════════
+function render() {
+  var key    = mk(curYr,curMon);
+  var txns   = txCache.filter(function(t){ return t.month===key; });
+  var sal    = salCache[key] || 0;
+  var incT   = txns.filter(function(t){ return t.type==='income'; });
+  var expT   = txns.filter(function(t){ return t.type==='expense'; });
+  var income = incT.reduce(function(s,t){ return s+t.amount; },0)+sal;
+  var exp    = expT.reduce(function(s,t){ return s+t.amount; },0);
+  var bal    = income-exp;
+  var pct    = income>0?Math.min(100,Math.round(exp/income*100)):0;
+  var savPct = income>0?Math.round(bal/income*100):0;
 
+  document.getElementById('salVal').textContent  = fmt(sal);
   document.getElementById('sInc').textContent    = fmt(income);
-  document.getElementById('sExp').textContent    = fmt(expense);
-  document.getElementById('sBal').textContent    = fmt(balance);
+  document.getElementById('sExp').textContent    = fmt(exp);
+  document.getElementById('sBal').textContent    = fmt(bal);
   document.getElementById('sIncCt').textContent  = incT.length+' entries';
   document.getElementById('sExpCt').textContent  = expT.length+' entries';
   document.getElementById('sBalPct').textContent = savPct+'% of income';
@@ -643,65 +911,81 @@ function render(){
   bar.style.width      = pct+'%';
   bar.style.background = pct>90?'var(--red)':pct>70?'var(--amb)':'var(--acc)';
 
+  // Categories
   var cats={};
   expT.forEach(function(t){ cats[t.cat]=(cats[t.cat]||0)+t.amount; });
   var sc   = Object.entries(cats).sort(function(a,b){ return b[1]-a[1]; });
   var maxC = sc[0]?sc[0][1]:1;
 
-  function renderCats(el,limit){
-    if(!sc.length){ el.innerHTML='<div class="empty"><div class="empty-ico">📊</div><p>No expenses yet this month</p></div>'; return; }
+  function renderCats(el, limit) {
+    if (!sc.length) {
+      el.innerHTML='<div class="empty"><div class="empty-ico">📊</div><p>No expenses yet this month</p></div>';
+      return;
+    }
     el.innerHTML='';
     (limit?sc.slice(0,limit):sc).forEach(function(pair){
-      el.innerHTML+='<div class="cat-row"><div class="cat-ico">'+(CAT_ICO[pair[0]]||'📦')+'</div>'+
-        '<div class="cat-bod"><div class="cat-nm">'+esc(pair[0])+'</div>'+
-        '<div class="cat-bar"><div class="cat-bar-f" style="width:'+Math.round(pair[1]/maxC*100)+'%"></div></div></div>'+
-        '<div class="cat-amt">'+fmt(pair[1])+'</div></div>';
+      el.innerHTML+=
+        '<div class="cat-row">'+
+          '<div class="cat-ico">'+(CAT_ICO[pair[0]]||'📦')+'</div>'+
+          '<div class="cat-bod">'+
+            '<div class="cat-nm">'+esc(pair[0])+'</div>'+
+            '<div class="cat-bar"><div class="cat-bar-f" style="width:'+Math.round(pair[1]/maxC*100)+'%"></div></div>'+
+          '</div>'+
+          '<div class="cat-amt">'+fmt(pair[1])+'</div>'+
+        '</div>';
     });
   }
   renderCats(document.getElementById('topCats'),5);
   renderCats(document.getElementById('catAll'),0);
 
+  // Transactions
   var sorted = txns.slice().sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
   var txList = document.getElementById('txList');
-  if(!sorted.length){
+  if (!sorted.length) {
     txList.innerHTML='<div class="empty"><div class="empty-ico">💸</div><p>No transactions yet.<br>Tap + to add one.</p></div>';
     return;
   }
   txList.innerHTML='';
   sorted.forEach(function(t){
-    var ds=new Date(t.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+    var ds = new Date(t.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
     txList.innerHTML+=
       '<div class="tx">'+
         '<div class="tx-ico">'+(t.emoji||'💳')+'</div>'+
-        '<div class="tx-bod"><div class="tx-nm">'+esc(t.desc)+'</div><div class="tx-ct">'+esc(t.cat)+'</div></div>'+
-        '<div class="tx-r"><div class="tx-amt '+t.type+'">'+(t.type==='income'?'+':'-')+fmt(t.amount)+'</div><div class="tx-dt">'+ds+'</div></div>'+
+        '<div class="tx-bod">'+
+          '<div class="tx-nm">'+esc(t.desc)+'</div>'+
+          '<div class="tx-ct">'+esc(t.cat)+'</div>'+
+        '</div>'+
+        '<div class="tx-r">'+
+          '<div class="tx-amt '+t.type+'">'+(t.type==='income'?'+':'-')+fmt(t.amount)+'</div>'+
+          '<div class="tx-dt">'+ds+'</div>'+
+        '</div>'+
         '<button class="tx-del" onclick="delTx(\''+t.id+'\')">✕</button>'+
       '</div>';
   });
 }
 
-// ══════════════════════════════════════════════
-//  ADD TRANSACTION
-// ══════════════════════════════════════════════
-function openAdd(){
+// ═══════════════════════════════════════════════════════
+//  ADD TRANSACTION — FIX #2: reload from sheet after save
+// ═══════════════════════════════════════════════════════
+function openAdd() {
   selType='expense'; selEmoji='💳';
-  document.getElementById('amtIn').value='';
-  document.getElementById('descIn').value='';
-  document.getElementById('catSel').value='Food';
-  document.getElementById('dateIn').value=new Date().toISOString().split('T')[0];
-  setType('expense'); buildEmojis();
+  document.getElementById('amtIn').value  = '';
+  document.getElementById('descIn').value = '';
+  document.getElementById('catSel').value = 'Food';
+  document.getElementById('dateIn').value = new Date().toISOString().split('T')[0];
+  setTxType('expense'); buildEmojis();
   document.getElementById('addOv').classList.add('on');
   setTimeout(function(){ document.getElementById('amtIn').focus(); },350);
 }
 
-function setType(t){
+function setTxType(t) {
   selType=t;
   document.getElementById('tExp').className='type-btn'+(t==='expense'?' se':'');
   document.getElementById('tInc').className='type-btn'+(t==='income'?' si':'');
-  document.getElementById('catSel').value=t==='income'?'Salary':'Food';
+  document.getElementById('catSel').value = t==='income'?'Salary':'Food';
 }
 
-function buildEmojis(){
+function buildEmojis() {
   var g=document.getElementById('emjGrid'); g.innerHTML='';
   EMOJIS.forEach(function(em){
     var b=document.createElement('button');
@@ -712,56 +996,34 @@ function buildEmojis(){
   });
 }
 
-function saveTx(){
-  if(isSaving) return;
-  var amt=parseFloat(document.getElementById('amtIn').value);
-  if(!amt||amt<=0){ showToast('Enter a valid amount','bad'); return; }
-  var desc=document.getElementById('descIn').value.trim()||'Transaction';
-  var cat=document.getElementById('catSel').value;
-  var date=document.getElementById('dateIn').value||new Date().toISOString().split('T')[0];
-  var key=mk(curYr,curMon);
+function saveTx() {
+  if (isSaving) return;
+  var amt  = parseFloat(document.getElementById('amtIn').value);
+  if (!amt||amt<=0) { showToast('Enter a valid amount','bad'); return; }
+  var desc = document.getElementById('descIn').value.trim()||'Transaction';
+  var cat  = document.getElementById('catSel').value;
+  var date = document.getElementById('dateIn').value||new Date().toISOString().split('T')[0];
+  var key  = mk(curYr,curMon);
 
   isSaving=true;
   document.getElementById('saveBtn').disabled=true;
   document.getElementById('saveTxt').textContent='⏳ Saving…';
   setSyn('busy');
-
-  // Optimistic local update
-  var tempId=String(Date.now());
-  var tx={id:tempId,type:selType,amount:amt,desc:desc,cat:cat,date:date,emoji:selEmoji,month:key};
-  txCache.unshift(tx);
-  // Save to localStorage immediately
-  setStorage(CACHE_KEY, JSON.stringify(txCache));
-  render();
   document.getElementById('addOv').classList.remove('on');
-
-  // If no API URL, just save locally
-  if(!API_URL) {
-    isSaving=false;
-    document.getElementById('saveBtn').disabled=false;
-    document.getElementById('saveTxt').textContent='💾 Save Transaction';
-    setSyn('err');
-    showToast('Saved locally - set up connection to sync', 'bad');
-    return;
-  }
 
   jsonp({ action:'addTx', type:selType, amount:amt, desc:desc, cat:cat, date:date, emoji:selEmoji, monthKey:key })
     .then(function(res){
-      if(res.ok){
-        // Update the temp id with server id
-        var i=txCache.findIndex(function(t){ return t.id===tempId; });
-        if(i>=0) txCache[i].id=res.id;
-        // Save updated cache to localStorage
-        setStorage(CACHE_KEY, JSON.stringify(txCache));
-        setSyn('ok'); showToast('Saved to Google Sheet ✓','ok');
+      if (res.ok) {
+        showToast('Saved to Google Sheet ✓','ok');
+        // FIX #2: reload fresh from sheet so UI reflects actual saved data
+        return loadMonthFresh(curYr, curMon);
       } else {
-        setSyn('err'); showToast('Sheet error: '+(res.error||'unknown'),'bad');
+        if (res.error && res.error.indexOf('expired')!==-1) { handleSessionExpired(); return; }
+        setSyn('err');
+        showToast('Save error: '+(res.error||'unknown'),'bad');
       }
     })
-    .catch(function(e){ 
-      setSyn('err'); 
-      showToast('Sync failed - saved locally: '+e.message,'bad'); 
-    })
+    .catch(function(e){ setSyn('err'); showToast('Save failed: '+e.message,'bad'); })
     .finally(function(){
       isSaving=false;
       document.getElementById('saveBtn').disabled=false;
@@ -769,67 +1031,100 @@ function saveTx(){
     });
 }
 
-function delTx(id){
-  if(!confirm('Delete this transaction?')) return;
-  
-  // Remove from cache and save immediately
-  txCache=txCache.filter(function(t){ return t.id!==id; });
-  setStorage(CACHE_KEY, JSON.stringify(txCache));
-  render(); 
-  
-  // If no API URL, just delete locally
-  if(!API_URL) {
-    setSyn('err');
-    showToast('Deleted locally - set up connection to sync', 'bad');
-    return;
-  }
-  
+function delTx(id) {
+  if (!confirm('Delete this transaction?')) return;
+  // Optimistic remove
+  txCache = txCache.filter(function(t){ return t.id!==id; });
+  render();
   setSyn('busy');
   jsonp({ action:'deleteTx', id:id })
     .then(function(res){
-      setSyn(res.ok?'ok':'err');
-      showToast(res.ok?'Deleted ✓':'Delete failed - removed locally','ok');
+      if (res.ok) {
+        setSyn('ok'); showToast('Deleted ✓','ok');
+        // Refresh to confirm
+        loadMonthFresh(curYr, curMon);
+      } else {
+        if (res.error && res.error.indexOf('expired')!==-1) { handleSessionExpired(); return; }
+        setSyn('err'); showToast('Delete failed','bad');
+      }
     })
-    .catch(function(){ 
-      setSyn('err'); 
-      showToast('Deleted locally — sync failed','bad'); 
-    });
+    .catch(function(){ setSyn('err'); showToast('Delete sync failed','bad'); });
 }
 
+// ═══════════════════════════════════════════════════════
+//  SALARY
+// ═══════════════════════════════════════════════════════
+function openSalMod() {
+  var key = mk(curYr,curMon);
+  document.getElementById('salIn').value = salCache[key]||'';
+  document.getElementById('salOv').classList.add('on');
+}
 
+function saveSal() {
+  var v   = parseFloat(document.getElementById('salIn').value)||0;
+  var key = mk(curYr,curMon);
+  salCache[key]=v;
+  saveSalaryToStorage(key,v);
+  document.getElementById('salOv').classList.remove('on');
+  render();
+  setSyn('busy');
+  jsonp({ action:'setSalary', monthKey:key, salary:v })
+    .then(function(res){
+      setSyn(res.ok?'ok':'err');
+      showToast(res.ok?'Salary saved ✓':'Salary sync failed',res.ok?'ok':'bad');
+    })
+    .catch(function(){ setSyn('err'); showToast('Salary sync failed','bad'); });
+}
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  SETTINGS
-// ══════════════════════════════════════════════
-function openSettings(){ document.getElementById('newUrlIn').value=''; document.getElementById('setOv').classList.add('on'); }
-function changeUrl(){
-  var u=document.getElementById('newUrlIn').value.trim();
-  if(u.indexOf('script.google.com')===-1){ showToast('Invalid URL','bad'); return; }
-  setStorage(STORE_KEY,u);
-  document.getElementById('setOv').classList.remove('on');
-  // Keep cached transactions but refresh from server
-  launchApp(u);
+// ═══════════════════════════════════════════════════════
+function openSettings() {
+  document.getElementById('newUrlIn').value='';
+  document.getElementById('setUser').textContent = CUR_USER||'—';
+  document.getElementById('setOv').classList.add('on');
 }
-function resetApp(){
-  if(!confirm('Reset app? Your Sheet data is safe.')) return;
-  removeStorage(STORE_KEY);
-  removeStorage(CACHE_KEY); // Clear cached transactions
+
+function changeUrl() {
+  var u=document.getElementById('newUrlIn').value.trim();
+  if (u.indexOf('script.google.com')===-1){ showToast('Invalid URL','bad'); return; }
+  localStorage.setItem(K_URL,u);
+  API_URL=u;
+  document.getElementById('urlDisplay').textContent=u;
+  document.getElementById('setOv').classList.remove('on');
+  txCache=[]; salCache={};
+  showLogin();
+  showToast('URL updated — please login again','ok');
+}
+
+function resetApp() {
+  if (!confirm('Reset everything? Your Google Sheet data is safe.')) return;
+  [K_URL,K_KEY,K_EXPIRY,K_USER].forEach(function(k){ localStorage.removeItem(k); });
+  // Clear salary cache keys
+  var toRemove=[];
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k&&k.indexOf(K_SAL)===0) toRemove.push(k);
+  }
+  toRemove.forEach(function(k){ localStorage.removeItem(k); });
   location.reload();
 }
 
-// ══════════════════════════════════════════════
-//  HELPERS
-// ══════════════════════════════════════════════
-function closeIfBg(e,id){ if(e.target===document.getElementById(id)) document.getElementById(id).classList.remove('on'); }
-
-function setSyn(s){
-  var el=document.getElementById('synBadge');
-  var dot=el.querySelector('.syn-dot');
+// ═══════════════════════════════════════════════════════
+//  SYNC BADGE
+// ═══════════════════════════════════════════════════════
+function setSyn(s) {
+  var el  = document.getElementById('synBadge');
+  var dot = el.querySelector('.syn-dot');
   el.className='syn '+s;
   dot.className='syn-dot'+(s==='busy'?' p':'');
-  document.getElementById('synTxt').textContent=s==='busy'?'Syncing…':s==='ok'?'Synced':'Error';
+  document.getElementById('synTxt').textContent =
+    s==='busy'?'Syncing…':s==='ok'?'Synced':'Error';
 }
 
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
 var _tt;
 function showToast(msg,type,dur){
   clearTimeout(_tt);
@@ -838,61 +1133,44 @@ function showToast(msg,type,dur){
   _tt=setTimeout(function(){ el.classList.remove('on'); },dur||2600);
 }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  MISC HELPERS
+// ═══════════════════════════════════════════════════════
+function closeBg(e, id){
+  if (e.target===document.getElementById(id))
+    document.getElementById(id).classList.remove('on');
+}
+
+// ═══════════════════════════════════════════════════════
 //  INIT
-// ══════════════════════════════════════════════
-(function(){
-  // Show file protocol warning immediately if needed
-  if (isFileProtocol) {
-    console.log('Running on file:// protocol - some features may be limited');
+// ═══════════════════════════════════════════════════════
+(function init(){
+  var savedUrl = localStorage.getItem(K_URL);
+  if (savedUrl) {
+    API_URL = savedUrl;                          // FIX #1: always assign API_URL from storage
+    document.getElementById('urlDisplay').textContent = savedUrl;
+    document.getElementById('urlIn').value = savedUrl;
   }
-  
-  // Load cached transactions on startup
-  var cachedTx = getStorage(CACHE_KEY);
-  console.log('Cached transactions found:', cachedTx ? 'Yes' : 'No');
-  
-  if(cachedTx) {
-    try {
-      txCache = JSON.parse(cachedTx);
-      console.log('Loaded', txCache.length, 'cached transactions');
-    } catch(e) {
-      console.warn('Failed to parse cached transactions:', e);
-      txCache = [];
-      removeStorage(CACHE_KEY);
-    }
-  }
-  
-  var saved=getStorage(STORE_KEY);
-  if(saved){
-    document.getElementById('urlInput').value=saved;
-    launchApp(saved);
+
+  loadSalaryCacheFromStorage();
+
+  if (savedUrl && sessionValid()) {
+    // Valid session — go straight to app and load data
+    document.getElementById('setUser').textContent = CUR_USER;
+    showLoad('Loading your data…');
+    loadMonthFresh(curYr, curMon)
+      .then(function(){ showApp(); })
+      .catch(function(){
+        // Network issue — show login
+        showLogin();
+        showToast('Could not reach server — please login','bad',3000);
+      });
+  } else if (savedUrl) {
+    // URL saved but no valid session
+    showLogin();
   } else {
-    // Even without API URL, show cached data if available
-    if(txCache.length > 0) {
-      console.log('Showing', txCache.length, 'cached transactions without API');
-      showApp();
-      setSyn('err');
-      render();
-      showToast('Showing cached data - please set up connection', 'bad', 4000);
-    } else {
-      // Add some demo data for file:// protocol to show functionality
-      if (isFileProtocol) {
-        var currentMonth = mk(curYr, curMon);
-        txCache = [
-          {id: 'demo1', type: 'expense', amount: 250, desc: 'Grocery shopping', cat: 'Grocery', date: '2026-04-28', emoji: '🛒', month: currentMonth},
-          {id: 'demo2', type: 'expense', amount: 500, desc: 'Rent payment', cat: 'Rent', date: '2026-04-27', emoji: '🏠', month: currentMonth},
-          {id: 'demo3', type: 'income', amount: 2000, desc: 'Freelance work', cat: 'Salary', date: '2026-04-26', emoji: '💼', month: currentMonth},
-          {id: 'demo4', type: 'expense', amount: 150, desc: 'Dinner out', cat: 'Food', date: '2026-04-25', emoji: '🍔', month: currentMonth}
-        ];
-        setStorage(CACHE_KEY, JSON.stringify(txCache));
-        showApp();
-        setSyn('err');
-        render();
-        showToast('Demo mode: Add your API URL in settings to sync with Google Sheets', 'bad', 5000);
-      } else {
-        showSetup();
-      }
-    }
+    // First time — show setup
+    showSetup();
   }
 })();
 </script>

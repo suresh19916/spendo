@@ -1,12 +1,23 @@
-# 📊 Spendo — Expense Tracker
-### Google Apps Script + GitHub Pages Setup Guide
+# 📊 Spendo — Secure Expense Tracker
+### Google Apps Script + Authentication System
 
 ---
 
 ## What You'll Have After This Setup
-- A **mobile-friendly expense tracker** accessible from any phone browser
-- All your data **saved in your own Google Sheet** (private to you)
+- A **secure, mobile-friendly expense tracker** with user authentication
+- **Login system** that validates credentials and generates API keys
+- All your data **saved in your own Google Sheet** (private and secure)
+- **3-minute session expiry** for enhanced security
 - A **free public URL** via GitHub Pages — no server, no cost
+
+---
+
+## 🔐 NEW: Authentication Features
+- **User Login System**: Secure ID/Password authentication
+- **API Key Generation**: Temporary keys with 3-minute expiration  
+- **Session Management**: Auto-logout on expiry
+- **Multi-user Support**: Multiple users can have separate credentials
+- **Security**: No passwords stored in browser, only temporary tokens
 
 ---
 
@@ -87,6 +98,42 @@ https://YOUR_GITHUB_USERNAME.github.io/spendo/
 1. Open your GitHub Pages URL on your phone
 2. You'll see a **setup screen** asking for the Apps Script URL
 3. Paste the URL you copied in Step 2
+4. Click **Connect & Launch**
+
+---
+
+## STEP 5 — Set Up Login Users
+
+### 5a. Create Test Users (Automatic)
+1. Go back to your Google Apps Script editor
+2. Find the `createTestUsers` function in the function dropdown
+3. Click **Run** ▶️ to create default users:
+   - **ID**: `admin` **Password**: `admin123`
+   - **ID**: `user1` **Password**: `password123`
+   - **ID**: `demo` **Password**: `demo123`
+
+### 5b. Add Custom Users (Optional)
+To add your own users:
+1. Run the function: `addLoginUser("yourID", "yourPassword")`
+2. Or manually edit the "Login" sheet in your Google Sheet
+
+### 5c. First Login
+1. Return to your Spendo app
+2. Use any of the test credentials to login
+3. Your session will be valid for 3 minutes
+4. **Important**: Change the default passwords after testing!
+
+---
+
+## 🔒 Security Features
+
+- **3-Minute Sessions**: API keys automatically expire for security
+- **No Password Storage**: Passwords never stored in browser
+- **Secure API Keys**: Random 32-character tokens  
+- **Auto-Logout**: Forces re-authentication on expiry
+- **Session Validation**: Checks credentials on every request
+
+---
 4. Tap **Connect & Launch** ✅
 
 > **That's it!** Every transaction you add is instantly saved to your Google Sheet.
