@@ -29,15 +29,9 @@ body{
   overflow-x:hidden;position:relative;
 }
 ::-webkit-scrollbar{width:0;height:0}
-
-/* ═══════════════════════════════════════
-   TYPOGRAPHY
-═══════════════════════════════════════ */
 .syne{font-family:'Syne',sans-serif}
 
-/* ═══════════════════════════════════════
-   FORM ELEMENTS
-═══════════════════════════════════════ */
+/* ─── Fields ─── */
 .field{margin-bottom:.9rem}
 .field label{
   display:block;font-size:.72rem;color:var(--tx2);
@@ -58,9 +52,7 @@ body{
 }
 .field select option{background:var(--bg3)}
 
-/* ═══════════════════════════════════════
-   BUTTONS
-═══════════════════════════════════════ */
+/* ─── Buttons ─── */
 .btn{
   display:flex;align-items:center;justify-content:center;gap:.5rem;
   padding:.82rem 1.2rem;border-radius:var(--r2);border:none;
@@ -77,7 +69,7 @@ body{
    LOGIN SCREEN
 ═══════════════════════════════════════ */
 #login-screen{
-  display:none;/* shown via JS */
+  display:none;
   flex-direction:column;align-items:center;justify-content:center;
   min-height:100vh;min-height:100dvh;padding:1.25rem;
   background:var(--bg);position:relative;overflow:hidden;
@@ -91,15 +83,9 @@ body{
   width:100%;background:var(--sur);border:1.5px solid var(--bdr2);
   border-radius:var(--r3);padding:2rem 1.4rem;position:relative;z-index:1;
 }
-.login-logo{
-  font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;
-  color:var(--ac2);letter-spacing:-.03em;text-align:center;margin-bottom:.18rem;
-}
+.login-logo{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--ac2);letter-spacing:-.03em;text-align:center;margin-bottom:.18rem}
 .login-tag{color:var(--tx3);font-size:.8rem;text-align:center;margin-bottom:1.75rem}
-.note-box{
-  background:var(--acbg);border:1px solid rgba(91,110,245,.22);border-radius:var(--r2);
-  padding:.7rem .95rem;font-size:.76rem;color:var(--ac2);margin-bottom:1.4rem;line-height:1.55;
-}
+.note-box{background:var(--acbg);border:1px solid rgba(91,110,245,.22);border-radius:var(--r2);padding:.7rem .95rem;font-size:.76rem;color:var(--ac2);margin-bottom:1.4rem;line-height:1.55}
 .login-hint{font-size:.7rem;color:var(--tx3);text-align:center;margin-top:.9rem}
 .login-hint strong{color:var(--tx2)}
 .err-msg{color:var(--rd);font-size:.76rem;text-align:center;margin-top:.55rem;display:none;line-height:1.4}
@@ -108,12 +94,9 @@ body{
 /* ═══════════════════════════════════════
    APP SHELL
 ═══════════════════════════════════════ */
-#app{
-  display:none;/* shown via JS */
-  flex-direction:column;min-height:100vh;min-height:100dvh;
-}
+#app{display:none;flex-direction:column;min-height:100vh;min-height:100dvh}
 
-/* ── Top Bar ── */
+/* ─── Top Bar ─── */
 .topbar{
   background:var(--bg2);border-bottom:1px solid var(--bdr);
   padding:.58rem .9rem;display:flex;align-items:center;gap:.5rem;
@@ -130,29 +113,19 @@ body{
   background-repeat:no-repeat;background-position:right .42rem center;
 }
 .month-pick option{background:var(--bg3)}
-.timer-pill{
-  padding:.22rem .58rem;border-radius:20px;font-size:.68rem;font-weight:700;
-  white-space:nowrap;background:var(--ambg);border:1px solid rgba(240,160,32,.22);color:var(--am);
-}
+.timer-pill{padding:.22rem .58rem;border-radius:20px;font-size:.68rem;font-weight:700;white-space:nowrap;background:var(--ambg);border:1px solid rgba(240,160,32,.22);color:var(--am)}
 .timer-pill.red{background:var(--rdbg);border-color:rgba(240,92,92,.22);color:var(--rd)}
-.logout-btn{
-  background:none;border:1px solid var(--bdr2);border-radius:7px;
-  color:var(--tx3);font-size:.7rem;padding:.26rem .52rem;
-  cursor:pointer;font-family:inherit;flex-shrink:0;transition:all .14s;
-}
+.logout-btn{background:none;border:1px solid var(--bdr2);border-radius:7px;color:var(--tx3);font-size:.7rem;padding:.26rem .52rem;cursor:pointer;font-family:inherit;flex-shrink:0;transition:all .14s}
 .logout-btn:active{background:var(--sur2);color:var(--tx)}
 
-/* ── Scroll Content ── */
-.content{
-  flex:1;overflow-y:auto;
-  padding:.95rem .95rem calc(84px + var(--sb));
-}
+/* ─── Content ─── */
+.content{flex:1;overflow-y:auto;padding:.95rem .95rem calc(84px + var(--sb))}
 
-/* ── Greeting ── */
+/* ─── Greeting ─── */
 .greet-line{font-size:.76rem;color:var(--tx3);margin-bottom:.1rem}
 .greet-name{font-family:'Syne',sans-serif;font-size:1.28rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.95rem}
 
-/* ── Hero Balance Card ── */
+/* ─── Hero ─── */
 .hero{
   background:linear-gradient(138deg,#182066 0%,#0c1038 100%);
   border:1px solid rgba(91,110,245,.2);border-radius:var(--r3);
@@ -162,11 +135,7 @@ body{
 .hero::before{width:130px;height:130px;top:-45px;right:-45px;background:rgba(91,110,245,.16)}
 .hero::after{width:90px;height:90px;bottom:-55px;left:-25px;background:rgba(91,110,245,.09)}
 .hero-lbl{font-size:.65rem;color:rgba(255,255,255,.42);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.32rem;position:relative;z-index:1}
-.hero-val{
-  font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;
-  color:#fff;letter-spacing:-.03em;margin-bottom:.9rem;position:relative;z-index:1;
-  min-height:2.8rem;/* prevents layout jump while loading */
-}
+.hero-val{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;color:#fff;letter-spacing:-.03em;margin-bottom:.9rem;position:relative;z-index:1;min-height:2.8rem}
 .hero-val.neg{color:#ff8a8a}
 .hero-row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;position:relative;z-index:1}
 .hero-mini{background:rgba(255,255,255,.08);border-radius:11px;padding:.65rem .8rem}
@@ -175,11 +144,8 @@ body{
 .mini-val.g{color:#5ee8a8}
 .mini-val.r{color:#ff8e8e}
 
-/* ── Budget Card ── */
-.budget-card{
-  background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);
-  padding:.9rem 1rem;margin-bottom:.8rem;
-}
+/* ─── Budget Card ─── */
+.budget-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:.9rem 1rem;margin-bottom:.8rem}
 .budget-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem}
 .budget-lbl{font-size:.78rem;color:var(--tx2);font-weight:500}
 .budget-pct{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--am)}
@@ -189,121 +155,73 @@ body{
 .budget-fill.red{background:var(--rd)}
 .budget-sub{font-size:.7rem;color:var(--tx3);margin-top:.42rem;line-height:1.4}
 
-/* ── Section Head ── */
+/* ─── Section Head ─── */
 .sec{display:flex;align-items:center;margin-bottom:.6rem;margin-top:1rem}
 .sec-title{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;flex:1}
 
-/* ── Filter Pills ── */
+/* ─── Filter Pills ─── */
 .pills{display:flex;gap:.38rem;margin-bottom:.6rem;overflow-x:auto;padding-bottom:.05rem}
-.pill{
-  flex-shrink:0;padding:.3rem .78rem;border-radius:20px;
-  font-size:.74rem;font-weight:500;cursor:pointer;font-family:inherit;
-  border:1px solid var(--bdr2);background:transparent;color:var(--tx2);
-  transition:all .13s;white-space:nowrap;
-}
+.pill{flex-shrink:0;padding:.3rem .78rem;border-radius:20px;font-size:.74rem;font-weight:500;cursor:pointer;font-family:inherit;border:1px solid var(--bdr2);background:transparent;color:var(--tx2);transition:all .13s;white-space:nowrap}
 .pill.active{background:var(--acbg);border-color:rgba(91,110,245,.35);color:var(--ac2)}
 .pill.income.active{background:var(--grbg);border-color:rgba(45,201,138,.35);color:var(--gr)}
 .pill.expense.active{background:var(--rdbg);border-color:rgba(240,92,92,.35);color:var(--rd)}
 
-/* ── Transaction Cards ── */
+/* ─── Transaction Cards ─── */
 .tx-list{display:flex;flex-direction:column;gap:.42rem}
-.tx-card{
-  background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r2);
-  padding:.78rem .9rem;display:flex;align-items:flex-start;gap:.75rem;
-}
+.tx-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r2);padding:.78rem .9rem;display:flex;align-items:flex-start;gap:.75rem}
 .tx-card:active{background:var(--sur2)}
-.tx-ico{
-  width:38px;height:38px;border-radius:11px;
-  display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;
-}
+.tx-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
 .tx-ico.income{background:var(--grbg)}
 .tx-ico.expense{background:var(--rdbg)}
 .tx-body{flex:1;min-width:0}
 .tx-cat{font-weight:600;font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx-sub{font-size:.7rem;color:var(--tx3);margin-top:.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* NEW: user name tag shown in transaction card */
+.tx-user{display:inline-block;font-size:.65rem;font-weight:600;color:var(--ac2);background:var(--acbg);border-radius:5px;padding:.05rem .35rem;margin-right:.3rem}
 .tx-right{text-align:right;flex-shrink:0}
 .tx-amt{font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem}
 .tx-amt.income{color:var(--gr)}
 .tx-amt.expense{color:var(--rd)}
 .tx-acts{display:flex;gap:.28rem;margin-top:.28rem;justify-content:flex-end}
-.tx-act{
-  background:var(--bg4);border:none;cursor:pointer;
-  color:var(--tx3);font-size:.67rem;padding:.19rem .46rem;
-  border-radius:5px;font-family:inherit;font-weight:500;transition:all .13s;
-}
+.tx-act{background:var(--bg4);border:none;cursor:pointer;color:var(--tx3);font-size:.67rem;padding:.19rem .46rem;border-radius:5px;font-family:inherit;font-weight:500;transition:all .13s}
 .tx-act:active{background:var(--sur2);color:var(--tx)}
 .tx-act.del:active{background:var(--rdbg);color:var(--rd)}
 
-/* ── Category Cards ── */
-.cat-card{
-  background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r2);
-  padding:.78rem .9rem;display:flex;align-items:center;gap:.75rem;margin-bottom:.42rem;
-}
-.cat-ico{
-  width:36px;height:36px;border-radius:10px;background:var(--rdbg);
-  display:flex;align-items:center;justify-content:center;font-size:.92rem;flex-shrink:0;
-}
+/* ─── Category Cards ─── */
+.cat-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r2);padding:.78rem .9rem;display:flex;align-items:center;gap:.75rem;margin-bottom:.42rem}
+.cat-ico{width:36px;height:36px;border-radius:10px;background:var(--rdbg);display:flex;align-items:center;justify-content:center;font-size:.92rem;flex-shrink:0}
 .cat-body{flex:1;min-width:0}
 .cat-name{font-size:.82rem;font-weight:600;margin-bottom:.28rem}
 .cat-bar{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
 .cat-fill{height:100%;border-radius:2px;background:var(--ac);transition:width .5s ease}
 .cat-amt{font-family:'Syne',sans-serif;font-size:.86rem;font-weight:700;color:var(--tx2);flex-shrink:0}
 
-/* ── Empty State ── */
-.empty{
-  text-align:center;padding:2rem .5rem;color:var(--tx3);font-size:.83rem;
-  background:var(--sur);border-radius:var(--r);border:1px solid var(--bdr);
-}
+/* ─── Empty State ─── */
+.empty{text-align:center;padding:2rem .5rem;color:var(--tx3);font-size:.83rem;background:var(--sur);border-radius:var(--r);border:1px solid var(--bdr)}
 .empty-ico{font-size:1.75rem;margin-bottom:.38rem}
 
-/* ── Loading spinner (inline) ── */
-.spin{
-  display:inline-block;width:14px;height:14px;border-radius:50%;
-  border:2px solid rgba(91,110,245,.25);border-top-color:var(--ac);
-  animation:spin .65s linear infinite;flex-shrink:0;
-}
+/* ─── Spinner ─── */
+.spin{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid rgba(91,110,245,.25);border-top-color:var(--ac);animation:spin .65s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin-w{display:none;align-items:center}
 
 /* ═══════════════════════════════════════
    FAB
 ═══════════════════════════════════════ */
-.fab{
-  position:fixed;bottom:calc(1.15rem + var(--sb));left:50%;transform:translateX(-50%);
-  background:var(--ac);color:#fff;border:none;border-radius:50px;
-  padding:.82rem 1.55rem;font-family:inherit;font-size:.92rem;font-weight:700;
-  cursor:pointer;box-shadow:0 5px 22px rgba(91,110,245,.42);
-  display:flex;align-items:center;gap:.42rem;z-index:90;white-space:nowrap;
-  transition:opacity .15s;
-}
+.fab{position:fixed;bottom:calc(1.15rem + var(--sb));left:50%;transform:translateX(-50%);background:var(--ac);color:#fff;border:none;border-radius:50px;padding:.82rem 1.55rem;font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;box-shadow:0 5px 22px rgba(91,110,245,.42);display:flex;align-items:center;gap:.42rem;z-index:90;white-space:nowrap;transition:opacity .15s}
 .fab:active{opacity:.84}
 
 /* ═══════════════════════════════════════
-   BOTTOM SHEETS (modal)
+   BOTTOM SHEETS
 ═══════════════════════════════════════ */
-.backdrop{
-  position:fixed;inset:0;background:rgba(0,0,0,.68);z-index:200;
-  display:none;align-items:flex-end;justify-content:center;
-  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
-}
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.68);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .backdrop.open{display:flex}
-.sheet{
-  background:var(--sur);border:1.5px solid var(--bdr2);border-radius:22px 22px 0 0;
-  padding:0 1.2rem calc(1.5rem + var(--sb));
-  width:100%;max-width:430px;max-height:92vh;overflow-y:auto;
-  animation:shUp .25s cubic-bezier(.4,0,.2,1);
-}
+.sheet{background:var(--sur);border:1.5px solid var(--bdr2);border-radius:22px 22px 0 0;padding:0 1.2rem calc(1.5rem + var(--sb));width:100%;max-width:430px;max-height:92vh;overflow-y:auto;animation:shUp .25s cubic-bezier(.4,0,.2,1)}
 @keyframes shUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .sh-handle{width:34px;height:4px;background:var(--bdr2);border-radius:2px;margin:.7rem auto 1rem}
 .sh-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.08rem;margin-bottom:1.15rem;text-align:center}
-
-/* Type toggle */
 .type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.95rem}
-.type-btn{
-  padding:.7rem;border-radius:var(--r2);border:1.5px solid var(--bdr2);
-  background:transparent;color:var(--tx2);font-family:inherit;
-  font-weight:600;cursor:pointer;font-size:.86rem;transition:all .15s;
-}
+.type-btn{padding:.7rem;border-radius:var(--r2);border:1.5px solid var(--bdr2);background:transparent;color:var(--tx2);font-family:inherit;font-weight:600;cursor:pointer;font-size:.86rem;transition:all .15s}
 .type-btn.expense.active{background:var(--rdbg);border-color:rgba(240,92,92,.38);color:var(--rd)}
 .type-btn.income.active{background:var(--grbg);border-color:rgba(45,201,138,.38);color:var(--gr)}
 .sh-actions{display:grid;grid-template-columns:1fr 2fr;gap:.6rem;margin-top:.5rem}
@@ -311,42 +229,25 @@ body{
 /* ═══════════════════════════════════════
    TOASTS
 ═══════════════════════════════════════ */
-#toasts{
-  position:fixed;top:3.6rem;left:50%;transform:translateX(-50%);
-  z-index:500;display:flex;flex-direction:column;gap:.42rem;
-  width:calc(100% - 1.4rem);max-width:420px;pointer-events:none;
-}
-.toast{
-  background:var(--sur2);border:1px solid var(--bdr2);border-radius:11px;
-  padding:.68rem .92rem;font-size:.82rem;color:var(--tx);
-  display:flex;align-items:center;gap:.52rem;box-shadow:0 5px 18px rgba(0,0,0,.38);
-  animation:tIn .19s ease;
-}
+#toasts{position:fixed;top:3.6rem;left:50%;transform:translateX(-50%);z-index:500;display:flex;flex-direction:column;gap:.42rem;width:calc(100% - 1.4rem);max-width:420px;pointer-events:none}
+.toast{background:var(--sur2);border:1px solid var(--bdr2);border-radius:11px;padding:.68rem .92rem;font-size:.82rem;color:var(--tx);display:flex;align-items:center;gap:.52rem;box-shadow:0 5px 18px rgba(0,0,0,.38);animation:tIn .19s ease}
 @keyframes tIn{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:translateY(0)}}
 .toast.success{border-left:3px solid var(--gr)}
 .toast.error{border-left:3px solid var(--rd)}
 .t-dot{width:6px;height:6px;border-radius:50%;background:var(--ac);flex-shrink:0}
 .toast.success .t-dot{background:var(--gr)}
 .toast.error   .t-dot{background:var(--rd)}
-
-/* ── Button spinner (inside buttons) ── */
 .btn-spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.22);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0}
 </style>
 </head>
 <body>
 
-<!-- ════════════════════════════════
-     LOGIN
-════════════════════════════════ -->
+<!-- ════════════ LOGIN ════════════ -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">Spendo</div>
     <div class="login-tag">Monthly expense tracker</div>
-
-    <div class="note-box">
-      🔐 Sessions last <strong>30 minutes</strong>. Your Apps Script URL is saved — you only enter it once.
-    </div>
-
+    <div class="note-box">🔐 Sessions last <strong>30 minutes</strong>. Your Apps Script URL is saved — enter it once only.</div>
     <div class="field">
       <label>Apps Script Web App URL</label>
       <input type="url" id="l-url" placeholder="https://script.google.com/macros/s/…/exec"/>
@@ -359,7 +260,6 @@ body{
       <label>Password</label>
       <input type="password" id="l-pwd" placeholder="••••••••" autocomplete="current-password"/>
     </div>
-
     <button class="btn btn-primary" id="l-btn" onclick="doLogin()">Sign In</button>
     <div class="err-msg" id="l-err"></div>
     <div class="divider"></div>
@@ -367,35 +267,21 @@ body{
   </div>
 </div>
 
-<!-- ════════════════════════════════
-     RE-LOGIN (session expired)
-════════════════════════════════ -->
+<!-- ════════════ RE-LOGIN ════════════ -->
 <div class="backdrop" id="relogin-bd">
   <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-title">Session Expired ⏱</div>
-    <p style="font-size:.82rem;color:var(--tx2);text-align:center;margin-bottom:1.1rem;line-height:1.5">
-      Your 30-minute session ended.<br>Sign in again — no URL needed.
-    </p>
-    <div class="field">
-      <label>User ID</label>
-      <input type="text" id="r-uid" placeholder="admin" autocomplete="username"/>
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="r-pwd" placeholder="••••••••" autocomplete="current-password"/>
-    </div>
+    <p style="font-size:.82rem;color:var(--tx2);text-align:center;margin-bottom:1.1rem;line-height:1.5">Your 30-minute session ended.<br>Sign in again — no URL needed.</p>
+    <div class="field"><label>User ID</label><input type="text" id="r-uid" placeholder="admin" autocomplete="username"/></div>
+    <div class="field"><label>Password</label><input type="password" id="r-pwd" placeholder="••••••••" autocomplete="current-password"/></div>
     <button class="btn btn-primary" id="r-btn" onclick="doReLogin()">Sign In Again</button>
     <div class="err-msg" id="r-err"></div>
   </div>
 </div>
 
-<!-- ════════════════════════════════
-     APP
-════════════════════════════════ -->
+<!-- ════════════ APP ════════════ -->
 <div id="app">
-
-  <!-- Top bar -->
   <div class="topbar">
     <div class="topbar-logo">Spendo</div>
     <select class="month-pick" id="month-pick" onchange="changeMonth()"></select>
@@ -404,10 +290,9 @@ body{
     <button class="logout-btn" onclick="logout()">Logout</button>
   </div>
 
-  <!-- Scrollable content -->
   <div class="content">
-
     <div class="greet-line" id="greet-line">Good day</div>
+    <!-- CHANGE 1: greet-name shows Name from Login sheet, not User_ID -->
     <div class="greet-name" id="greet-name">Welcome</div>
 
     <!-- Hero balance -->
@@ -438,66 +323,45 @@ body{
 
     <!-- Top Categories -->
     <div class="sec"><div class="sec-title">Top Spending Categories</div></div>
-    <div id="cats-list">
-      <div class="empty"><div class="empty-ico">📊</div>No expense data yet</div>
-    </div>
+    <div id="cats-list"><div class="empty"><div class="empty-ico">📊</div>No expense data yet</div></div>
 
     <!-- Transactions -->
     <div class="sec">
       <div class="sec-title">Transactions</div>
-      <div class="spin-w" id="tx-spin" style="margin-left:.5rem">
-        <div class="spin"></div>
-      </div>
+      <div class="spin-w" id="tx-spin" style="margin-left:.5rem"><div class="spin"></div></div>
     </div>
     <div class="pills">
       <button class="pill active" data-f="All"     onclick="setFilter('All')">All</button>
       <button class="pill income"  data-f="Income"  onclick="setFilter('Income')">Income</button>
       <button class="pill expense" data-f="Expense" onclick="setFilter('Expense')">Expense</button>
     </div>
-    <div class="tx-list" id="tx-list">
-      <div class="empty"><div class="empty-ico">🧾</div>Loading…</div>
-    </div>
-
-  </div><!-- /content -->
+    <div class="tx-list" id="tx-list"><div class="empty"><div class="empty-ico">🧾</div>Loading…</div></div>
+  </div>
 
   <button class="fab" onclick="openAddModal()">＋ Add Transaction</button>
+</div>
 
-</div><!-- /app -->
-
-<!-- ════════════════════════════════
-     ADD / EDIT SHEET
-════════════════════════════════ -->
+<!-- ════════════ ADD/EDIT SHEET ════════════ -->
 <div class="backdrop" id="tx-bd">
   <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-title" id="sh-title">Add Transaction</div>
-
     <div class="type-toggle">
       <button class="type-btn expense active" id="tb-exp" onclick="setType('Expense')">💸 Expense</button>
       <button class="type-btn income"         id="tb-inc" onclick="setType('Income')">💰 Income</button>
     </div>
-
-    <div class="field">
-      <label>Date</label>
-      <input type="date" id="f-date"/>
-    </div>
+    <div class="field"><label>Date</label><input type="date" id="f-date"/></div>
     <div class="field">
       <label>Category</label>
       <div class="sel-wrap"><select id="f-cat"></select></div>
     </div>
-    <div class="field">
-      <label>Amount (₹)</label>
-      <input type="number" id="f-amt" placeholder="0" min="0" step="1" inputmode="decimal"/>
-    </div>
+    <div class="field"><label>Amount (₹)</label><input type="number" id="f-amt" placeholder="0" min="0" step="1" inputmode="decimal"/></div>
     <div class="field">
       <label>Description <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label>
       <textarea id="f-desc" placeholder="Brief note…"></textarea>
     </div>
-
-    <!-- hidden fields for edit mode -->
     <input type="hidden" id="f-id"/>
     <input type="hidden" id="f-month"/>
-
     <div class="sh-actions">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
       <button class="btn btn-primary" id="f-save" onclick="saveTransaction()">Save</button>
@@ -509,33 +373,40 @@ body{
 
 <script>
 "use strict";
-// ════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════
 //  CONSTANTS
-// ════════════════════════════════════════════════════════════
-const MONTHS   = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const EXP_CATS = ["Food & Dining","Transport","Shopping","Entertainment","Health",
-                  "Education","Utilities","Rent","Travel","Subscriptions","Groceries","Other"];
+// ════════════════════════════════════════
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// CHANGE 3: EMI and Chetty added to expense categories
+const EXP_CATS = [
+  "Food & Dining","Transport","Shopping","Entertainment","Health",
+  "Education","Utilities","Rent","Travel","Subscriptions","Groceries",
+  "EMI","Chetty","Other"
+];
 const INC_CATS = ["Salary","Freelance","Business","Investment","Gift","Bonus","Other"];
-const ICONS    = {
+
+const ICONS = {
   "Food & Dining":"🍽️","Transport":"🚗","Shopping":"🛍️","Entertainment":"🎬",
   "Health":"💊","Education":"📚","Utilities":"⚡","Rent":"🏠","Travel":"✈️",
   "Subscriptions":"📱","Groceries":"🛒","Salary":"💼","Freelance":"💻",
-  "Business":"📊","Investment":"📈","Gift":"🎁","Bonus":"🎯","Other":"📌","_":"💳"
+  "Business":"📊","Investment":"📈","Gift":"🎁","Bonus":"🎯",
+  "EMI":"🏦","Chetty":"🪙",   // CHANGE 3: icons for new categories
+  "Other":"📌","_":"💳"
 };
 
-// Storage keys
-// LS_URL  : Apps Script URL — persists forever in localStorage
-// LS_SESS : session data (apiKey, expiry, userId) — also localStorage so tab refresh keeps it
 const LS_URL  = "spendo_api_url";
 const LS_SESS = "spendo_session";
 
-// ════════════════════════════════════════════════════════════
-//  STATE  (single source of truth, never read directly from storage)
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
 const S = {
   url       : "",
   apiKey    : "",
   userId    : "",
+  userName  : "",   // CHANGE 1: display name from Login sheet "Name" column
   expiresAt : null,
   month     : MONTHS[new Date().getMonth()],
   txs       : [],
@@ -544,15 +415,13 @@ const S = {
   timerTick : null
 };
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  BOOT
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 window.addEventListener("load", () => {
-  // Always pre-fill saved URL — user never has to type it again
   const savedUrl = localStorage.getItem(LS_URL) || "";
   if (savedUrl) g("l-url").value = savedUrl;
 
-  // Attempt to restore a live session
   const sess = loadSession();
   if (sess && sess.apiKey && sess.url && new Date(sess.expiresAt) > new Date()) {
     Object.assign(S, sess);
@@ -573,12 +442,11 @@ function bootApp() {
   g("login-screen").style.display = "none";
   g("app").style.display          = "flex";
 
-  // Greeting
   const h = new Date().getHours();
   g("greet-line").textContent = h < 12 ? "Good morning ☀️" : h < 17 ? "Good afternoon 🌤️" : "Good evening 🌙";
-  g("greet-name").textContent = S.userId || "User";
+  // CHANGE 1: show Name (S.userName), not User_ID (S.userId)
+  g("greet-name").textContent = "Welcome, " + (S.userName || S.userId || "User");
 
-  // Month picker
   const pick = g("month-pick");
   pick.innerHTML = MONTHS.map(m =>
     `<option value="${m}"${m === S.month ? " selected" : ""}>${m}</option>`
@@ -590,18 +458,16 @@ function bootApp() {
   loadAll();
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  SESSION PERSISTENCE
-//  Both URL and session go to localStorage so they survive
-//  tab refresh. URL is stored separately so logout only wipes
-//  the session key, not the URL.
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 function saveSession(data) {
   Object.assign(S, data);
   localStorage.setItem(LS_SESS, JSON.stringify({
     url       : S.url,
     apiKey    : S.apiKey,
     userId    : S.userId,
+    userName  : S.userName,   // CHANGE 1: persist display name
     expiresAt : S.expiresAt,
     month     : S.month
   }));
@@ -614,21 +480,18 @@ function loadSession() {
   } catch (e) { return null; }
 }
 
-function clearSession() {
-  localStorage.removeItem(LS_SESS);
-}
+function clearSession() { localStorage.removeItem(LS_SESS); }
 
 function persistMonth() {
-  // Update only the month field in the stored session
   try {
     const sess = loadSession();
     if (sess) { sess.month = S.month; localStorage.setItem(LS_SESS, JSON.stringify(sess)); }
   } catch (e) {}
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  LOGIN
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 async function doLogin() {
   const url = g("l-url").value.trim();
   const uid = g("l-uid").value.trim();
@@ -641,9 +504,15 @@ async function doLogin() {
   try {
     const res = await apiFetch(url, { action:"login", userId:uid, password:pwd });
     if (res.success) {
-      // Persist URL permanently — never ask again
       localStorage.setItem(LS_URL, url);
-      saveSession({ url, apiKey:res.apiKey, userId:uid, expiresAt:res.expiresAt });
+      // CHANGE 1: save res.name (display name) into session
+      saveSession({
+        url,
+        apiKey    : res.apiKey,
+        userId    : uid,
+        userName  : res.name || uid,   // fallback to userId if name missing
+        expiresAt : res.expiresAt
+      });
       bootApp();
     } else {
       showErr("l-err", res.error || "Invalid credentials. Check User ID and Password.");
@@ -655,9 +524,9 @@ async function doLogin() {
   setBtn("l-btn", false, "Sign In");
 }
 
-// ════════════════════════════════════════════════════════════
-//  RE-LOGIN (session expired — URL already known)
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
+//  RE-LOGIN
+// ════════════════════════════════════════
 async function doReLogin() {
   const uid = g("r-uid").value.trim();
   const pwd = g("r-pwd").value;
@@ -667,13 +536,21 @@ async function doReLogin() {
   hideErr("r-err");
 
   try {
-    // S.url is still set from the previous session
     const res = await apiFetch(S.url, { action:"login", userId:uid, password:pwd });
     if (res.success) {
-      saveSession({ url:S.url, apiKey:res.apiKey, userId:uid, expiresAt:res.expiresAt });
+      // CHANGE 1: update userName on re-login too
+      saveSession({
+        url       : S.url,
+        apiKey    : res.apiKey,
+        userId    : uid,
+        userName  : res.name || uid,
+        expiresAt : res.expiresAt
+      });
       g("relogin-bd").classList.remove("open");
       g("r-uid").value = "";
       g("r-pwd").value = "";
+      // Refresh greeting with (possibly different) user name
+      g("greet-name").textContent = "Welcome, " + (S.userName || uid);
       startTimer();
       toast("Session renewed ✓", "success");
       loadAll();
@@ -690,13 +567,12 @@ async function doReLogin() {
 function logout() {
   clearInterval(S.timerTick);
   clearSession();
-  // Keep the URL in localStorage — only wipe session
   location.reload();
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  SESSION TIMER
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 function startTimer() {
   clearInterval(S.timerTick);
   S.timerTick = setInterval(() => {
@@ -711,17 +587,15 @@ function startTimer() {
       pill.textContent = "Expired";
       pill.className   = "timer-pill red";
       clearInterval(S.timerTick);
-      // Show re-login sheet — URL is remembered, user just types credentials
       g("relogin-bd").classList.add("open");
     }
   }, 1000);
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  DATA LOADING
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 async function loadAll() {
-  // Run both in parallel for speed
   await Promise.all([loadSummary(), loadTxs()]);
 }
 
@@ -731,7 +605,6 @@ async function loadSummary() {
     if (res.success) {
       renderSummary(res);
     } else {
-      // Show zeros rather than leaving placeholders
       renderSummary({ income:0, expense:0, balance:0, budgetUsed:0, topCategories:[] });
       toast("Dashboard error: " + (res.error || "unknown"), "error");
     }
@@ -763,43 +636,32 @@ async function loadTxs() {
 function changeMonth() {
   S.month = g("month-pick").value;
   persistMonth();
-  // Reset dashboard to loading state
   ["s-inc","s-exp","s-bal"].forEach(id => { g(id).textContent = "₹—"; });
-  g("s-pct").textContent     = "0%";
-  g("s-fill").style.width    = "0%";
-  g("s-sub").textContent     = "Fetching data…";
-  g("cats-list").innerHTML   = '<div class="empty"><div class="empty-ico">📊</div>Loading…</div>';
-  g("tx-list").innerHTML     = '<div class="empty"><div class="empty-ico">🧾</div>Loading…</div>';
+  g("s-pct").textContent   = "0%";
+  g("s-fill").style.width  = "0%";
+  g("s-sub").textContent   = "Fetching data…";
+  g("cats-list").innerHTML = '<div class="empty"><div class="empty-ico">📊</div>Loading…</div>';
+  g("tx-list").innerHTML   = '<div class="empty"><div class="empty-ico">🧾</div>Loading…</div>';
   loadAll();
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  RENDER — DASHBOARD
-//  FIX: reads income/expense/balance/budgetUsed/topCategories
-//  directly from the GAS response object (all keys confirmed)
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 function renderSummary(d) {
   const inc = parseFloat(d.income)  || 0;
   const exp = parseFloat(d.expense) || 0;
-  // Prefer server-computed balance; fall back to inc - exp
-  const bal = (d.balance !== undefined) ? parseFloat(d.balance) : (inc - exp);
-  // Prefer server-computed budgetUsed; fall back to local calc
-  const pct = (d.budgetUsed !== undefined)
-    ? parseFloat(d.budgetUsed)
+  const bal = (d.balance    !== undefined) ? parseFloat(d.balance)    : (inc - exp);
+  const pct = (d.budgetUsed !== undefined) ? parseFloat(d.budgetUsed)
     : (inc > 0 ? Math.min(Math.round((exp / inc) * 100), 999) : (exp > 0 ? 100 : 0));
 
-  // Income
   g("s-inc").textContent = fmtINR(inc);
-
-  // Amount Spent
   g("s-exp").textContent = fmtINR(exp);
 
-  // Net Balance
   const balEl = g("s-bal");
   balEl.textContent = fmtINR(bal);
   balEl.className   = "hero-val syne" + (bal < 0 ? " neg" : "");
 
-  // Budget Used %
   const pctSafe = Math.min(Math.max(Math.round(pct), 0), 999);
   const pctEl   = g("s-pct");
   pctEl.textContent = pctSafe + "%";
@@ -813,7 +675,6 @@ function renderSummary(d) {
     ? `Spent ${fmtINR(exp)} of ${fmtINR(inc)} total income`
     : "Add income transactions to see budget tracking";
 
-  // Top categories
   const cats  = Array.isArray(d.topCategories) ? d.topCategories : [];
   const catEl = g("cats-list");
   if (!cats.length) {
@@ -833,9 +694,10 @@ function renderSummary(d) {
   `).join("");
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  RENDER — TRANSACTIONS
-// ════════════════════════════════════════════════════════════
+//  CHANGE 2: show tx.name as a user tag in each card
+// ════════════════════════════════════════
 function renderTxs() {
   const el = g("tx-list");
   let list = [...(S.txs || [])];
@@ -847,27 +709,34 @@ function renderTxs() {
     return;
   }
 
-  el.innerHTML = list.map(tx => `
-    <div class="tx-card">
-      <div class="tx-ico ${tx.type.toLowerCase()}">${ICONS[tx.category] || ICONS["_"]}</div>
-      <div class="tx-body">
-        <div class="tx-cat">${esc(tx.category)}</div>
-        <div class="tx-sub">${esc(tx.description || "—")} · ${fmtDate(tx.date)}</div>
-      </div>
-      <div class="tx-right">
-        <div class="tx-amt ${tx.type.toLowerCase()}">${tx.type === "Income" ? "+" : "−"}${fmtINR(tx.amount)}</div>
-        <div class="tx-acts">
-          <button class="tx-act" onclick="editTx('${esc(tx.id)}')">✏ Edit</button>
-          <button class="tx-act del" onclick="delTx('${esc(tx.id)}')">✕ Del</button>
+  el.innerHTML = list.map(tx => {
+    // Build subtitle: user name tag + description + date
+    const userTag = tx.name
+      ? `<span class="tx-user">${esc(tx.name)}</span>`
+      : "";
+    const desc = tx.description ? esc(tx.description) : "—";
+    return `
+      <div class="tx-card">
+        <div class="tx-ico ${tx.type.toLowerCase()}">${ICONS[tx.category] || ICONS["_"]}</div>
+        <div class="tx-body">
+          <div class="tx-cat">${esc(tx.category)}</div>
+          <div class="tx-sub">${userTag}${desc} · ${fmtDate(tx.date)}</div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amt ${tx.type.toLowerCase()}">${tx.type === "Income" ? "+" : "−"}${fmtINR(tx.amount)}</div>
+          <div class="tx-acts">
+            <button class="tx-act" onclick="editTx('${esc(tx.id)}')">✏ Edit</button>
+            <button class="tx-act del" onclick="delTx('${esc(tx.id)}')">✕ Del</button>
+          </div>
         </div>
       </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  FILTER
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 function setFilter(f) {
   S.filter = f;
   document.querySelectorAll(".pill").forEach(p =>
@@ -876,24 +745,22 @@ function setFilter(f) {
   renderTxs();
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  MODAL — ADD / EDIT
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 function openAddModal() {
-  g("sh-title").textContent  = "Add Transaction";
-  g("f-save").textContent    = "Save";
-  g("f-date").value          = todayISO();
-  g("f-amt").value           = "";
-  g("f-desc").value          = "";
-  g("f-id").value            = "";
-  g("f-month").value         = "";
+  g("sh-title").textContent = "Add Transaction";
+  g("f-save").textContent   = "Save";
+  g("f-date").value         = todayISO();
+  g("f-amt").value          = "";
+  g("f-desc").value         = "";
+  g("f-id").value           = "";
+  g("f-month").value        = "";
   setType("Expense");
   g("tx-bd").classList.add("open");
 }
 
-function closeModal() {
-  g("tx-bd").classList.remove("open");
-}
+function closeModal() { g("tx-bd").classList.remove("open"); }
 
 function setType(t) {
   S.txType = t;
@@ -903,6 +770,7 @@ function setType(t) {
 }
 
 function fillCats(t) {
+  // CHANGE 3: EXP_CATS now includes EMI and Chetty
   const cats = t === "Income" ? INC_CATS : EXP_CATS;
   g("f-cat").innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join("");
 }
@@ -920,9 +788,7 @@ function editTx(id) {
   g("f-month").value        = S.month;
 
   setType(tx.type);
-  // Wait for fillCats to render options before setting value
   requestAnimationFrame(() => { g("f-cat").value = tx.category; });
-
   g("tx-bd").classList.add("open");
 }
 
@@ -935,10 +801,10 @@ async function delTx(id) {
   } catch (e) { toast("Error deleting", "error"); }
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  SAVE TRANSACTION
-//  FIX: apiKey is always injected by apiGET — never missing
-// ════════════════════════════════════════════════════════════
+//  CHANGE 2: userName (S.userName) sent with every add/update
+// ════════════════════════════════════════
 async function saveTransaction() {
   const date   = g("f-date").value;
   const cat    = g("f-cat").value;
@@ -958,13 +824,17 @@ async function saveTransaction() {
 
   const params = {
     action   : editId ? "updateTransaction" : "addTransaction",
-    date, type:S.txType, category:cat, amount, description:desc
+    date,
+    type     : S.txType,
+    category : cat,
+    amount,
+    description : desc,
+    userName : S.userName || S.userId   // CHANGE 2: always attach logged-in user's name
   };
   if (editId) params.id    = editId;
   if (editMo) params.month = editMo;
 
   try {
-    // apiGET automatically injects S.apiKey into every request
     const res = await apiGET(params);
     if (res.success) {
       toast(editId ? "Transaction updated!" : "Transaction added!", "success");
@@ -977,67 +847,49 @@ async function saveTransaction() {
     toast("Error saving transaction", "error");
   }
 
-  saveBtn.disabled  = false;
+  saveBtn.disabled    = false;
   saveBtn.textContent = editId ? "Update" : "Save";
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  API LAYER
-//
-//  ALL requests use GET with URL query params.
-//  This is the only reliable approach for Apps Script web apps
-//  without running into CORS preflight issues on POST.
-//
-//  apiGET   — authenticated call (auto-injects S.apiKey)
-//  apiFetch — raw call (used for login before key exists)
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 async function apiGET(params) {
-  // Guard: ensure we have a key before any authenticated call
   if (!S.apiKey) {
     toast("No active session. Please sign in.", "error");
     throw new Error("No apiKey in state");
   }
-  // Inject the key — this is the critical fix for "No API key provided"
   params.apiKey = S.apiKey;
   return apiFetch(S.url, params);
 }
 
 async function apiFetch(url, params) {
-  // Build clean query string — skip undefined/null/empty values
   const clean = {};
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== "") clean[k] = v;
   }
   const qs  = new URLSearchParams(clean).toString();
   const res = await fetch(`${url}?${qs}`, { redirect:"follow" });
-
   if (!res.ok) throw new Error("HTTP " + res.status);
-
   const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch (e) {
-    throw new Error("Non-JSON response: " + text.slice(0, 100));
-  }
+  try { return JSON.parse(text); }
+  catch (e) { throw new Error("Non-JSON response: " + text.slice(0, 100)); }
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  UTILITIES
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 function g(id) { return document.getElementById(id); }
 
+// CHANGE 4: removed the ">= 100000 → L" branch; always show exact number
 function fmtINR(n) {
   const v = parseFloat(n) || 0;
-  // Compact for very large numbers
-  if (v >= 10000000) return "₹" + (v / 10000000).toFixed(1) + "Cr";
-  if (v >= 100000)   return "₹" + (v / 100000).toFixed(1) + "L";
   return "₹" + v.toLocaleString("en-IN", { maximumFractionDigits: 0 });
 }
 
 function fmtDate(d) {
   if (!d) return "—";
   try {
-    // Handle both "2025-05-08" strings and Date objects from GAS
     const dt = new Date(d);
     if (isNaN(dt.getTime())) return String(d);
     return dt.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
@@ -1076,7 +928,6 @@ function hideErr(id)      { g(id).style.display = "none"; }
 function setBtn(id, loading, label) {
   const b = g(id);
   b.disabled = loading;
-  // Use textContent (not innerHTML) to avoid accidental XSS and element wiping
   if (loading) {
     b.innerHTML = `<div class="btn-spin"></div><span>${label || ""}</span>`;
   } else {
@@ -1084,11 +935,9 @@ function setBtn(id, loading, label) {
   }
 }
 
-// Tap outside sheet to close add/edit modal (but NOT re-login)
 g("tx-bd").addEventListener("click", e => {
   if (e.target === g("tx-bd")) closeModal();
 });
-// Re-login backdrop is intentionally NOT closeable by tapping outside
 </script>
 </body>
 </html>
