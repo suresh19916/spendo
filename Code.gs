@@ -1,15 +1,14 @@
 // ============================================================
-//  SPENDO – Google Apps Script Backend  v2.2
+//  SPENDO – Google Apps Script Backend  v2.3
 //  Deploy as: Web App → Execute as: Me → Who has access: Anyone
 //
 //  ALL actions use GET (e.parameter) — reliable cross-origin.
 //
-//  v2.2 changes
-//  ─ Login sheet: new "Name" column → login() returns name
-//  ─ Transaction sheets: new "Name" column at position 3
-//    Column order: ID | Date | Name | Type | Category | Amount | Description
-//  ─ addTransaction / updateTransaction / rowToObj / getSummary
-//    all updated for the 7-column layout
+//  v2.3 changes (on top of v2.2)
+//  ─ login() returns isAdmin:true when User_ID === "admin"
+//  ─ getSummary() now computes prevMonthBalance and netBalance
+//  ─ getSummary() + getTransactions() filter rows by userName
+//  ─ v2.4: getAdminReport() — monthly per-user summary + transactions
 // ============================================================
 
 const SHEET_LOGIN = "Login";
@@ -38,6 +37,7 @@ function handleRequest(e) {
       case "updateTransaction": return respond(updateTransaction(p));
       case "deleteTransaction": return respond(deleteTransaction(p));
       case "getSummary":        return respond(getSummary(p));
+      case "getAdminReport":    return respond(getAdminReport(p));   // v2.4 admin only
       default: return respond({ success: false, error: "Unknown action: " + action });
     }
   } catch (err) {
@@ -92,11 +92,15 @@ function login(p) {
       ? String(data[r][nameIdx]).trim()
       : userId;
 
+    // isAdmin: true only for the built-in "admin" User_ID
+    const isAdmin = (userId.toLowerCase() === "admin");
+
     return {
       success   : true,
       apiKey    : apiKey,
       expiresAt : expire.toISOString(),
-      name      : displayName   // NEW — consumed by frontend for greeting & transactions
+      name      : displayName,
+      isAdmin   : isAdmin    // v2.3 — controls data visibility in frontend + backend
     };
   }
   return { success: false, error: "Invalid User ID or Password." };
@@ -158,13 +162,18 @@ function getMonthSheet(ss, month, create) {
 }
 
 function getTransactions(p) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  const month = p.month || getCurrentMonth();
-  const sheet = getMonthSheet(ss, month, true);
-  const data  = sheet.getDataRange().getValues();
-  const rows  = [];
+  const ss       = SpreadsheetApp.getActiveSpreadsheet();
+  const month    = p.month    || getCurrentMonth();
+  // userName filter: empty string means "show all" (admin); any other value = filter by name
+  const userFilter = String(p.userName || "").trim();
+  const sheet    = getMonthSheet(ss, month, true);
+  const data     = sheet.getDataRange().getValues();
+  const rows     = [];
   for (let r = 1; r < data.length; r++) {
-    if (data[r][0]) rows.push(rowToObj(data[r]));
+    if (!data[r][0]) continue;
+    // v2.3 user filter — col 2 is Name
+    if (userFilter && String(data[r][2]).trim() !== userFilter) continue;
+    rows.push(rowToObj(data[r]));
   }
   return { success: true, transactions: rows, month: month };
 }
@@ -239,8 +248,12 @@ function deleteTransaction(p) {
 }
 
 function getSummary(p) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  const month = p.month || getCurrentMonth();
+  const ss         = SpreadsheetApp.getActiveSpreadsheet();
+  const month      = p.month || getCurrentMonth();
+  // v2.3 user filter: empty = admin (see all), non-empty = filter by name
+  const userFilter = String(p.userName || "").trim();
+
+  // ── Current month ──────────────────────────────────────────
   const sheet = getMonthSheet(ss, month, true);
   const data  = sheet.getDataRange().getValues();
 
@@ -250,7 +263,8 @@ function getSummary(p) {
   for (let r = 1; r < data.length; r++) {
     const row = data[r];
     if (!row[0]) continue;
-    // v2.2 column indices: type=3, category=4, amount=5
+    // v2.3: apply userName filter (col 2 = Name)
+    if (userFilter && String(row[2]).trim() !== userFilter) continue;
     const type   = String(row[3]).trim();
     const cat    = String(row[4]).trim();
     const amount = parseFloat(row[5]) || 0;
@@ -259,31 +273,105 @@ function getSummary(p) {
     if (type === "Expense") catMap[cat] = (catMap[cat] || 0) + amount;
   }
 
+  // ── Previous month balance ─────────────────────────────────
+  // Find the index of the current month, then step back one
+  const curIdx  = MONTHS.indexOf(month);
+  const prevIdx = (curIdx - 1 + 12) % 12;          // wraps Jan → Dec
+  const prevMonth = MONTHS[prevIdx];
+
+  let prevIncome = 0, prevExpense = 0;
+  const prevSheet = ss.getSheetByName(prevMonth);   // don't auto-create — may not exist
+  if (prevSheet) {
+    const prevData = prevSheet.getDataRange().getValues();
+    for (let r = 1; r < prevData.length; r++) {
+      const row = prevData[r];
+      if (!row[0]) continue;
+      if (userFilter && String(row[2]).trim() !== userFilter) continue;
+      const type   = String(row[3]).trim();
+      const amount = parseFloat(row[5]) || 0;
+      if (type === "Income")  prevIncome  += amount;
+      if (type === "Expense") prevExpense += amount;
+    }
+  }
+
+  const prevMonthBalance = prevIncome - prevExpense;   // can be negative
+  const currentBalance   = income - expense;
+  const netBalance       = prevMonthBalance + currentBalance;
+
+  // ── Budget % (based on current month only) ─────────────────
   const topCategories = Object.entries(catMap)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(function(e) { return { name: e[0], amount: e[1] }; });
 
-  const balance    = income - expense;
   const budget     = p.budget ? parseFloat(p.budget) : income;
   const budgetUsed = budget > 0
     ? Math.round((expense / budget) * 100)
     : (expense > 0 ? 100 : 0);
 
   return {
-    success       : true,
-    month         : month,
-    income        : income,
-    expense       : expense,
-    balance       : balance,
-    budgetUsed    : budgetUsed,
-    topCategories : topCategories
+    success          : true,
+    month            : month,
+    income           : income,           // current month income
+    expense          : expense,          // current month expense
+    balance          : currentBalance,   // current month only (income − expense)
+    prevMonth        : prevMonth,        // e.g. "Apr"
+    prevMonthBalance : prevMonthBalance, // prev month income − prev month expense
+    netBalance       : netBalance,       // prevMonthBalance + currentBalance
+    budgetUsed       : budgetUsed,
+    topCategories    : topCategories
   };
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Helpers
+//  Admin Report  (v2.4)
+//  Returns per-user income/expense/balance summary + full
+//  transaction list for a given month.  Admin-only by convention
+//  (API key is validated above; frontend restricts the button).
 // ─────────────────────────────────────────────────────────────
+
+function getAdminReport(p) {
+  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const month = p.month || getCurrentMonth();
+  const sheet = getMonthSheet(ss, month, true);
+  const data  = sheet.getDataRange().getValues();
+
+  // Map: name → { income, expense, transactions[] }
+  const userMap = {};
+
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    if (!row[0]) continue;
+    const name   = String(row[2] || "Unknown").trim();
+    const type   = String(row[3]).trim();
+    const amount = parseFloat(row[5]) || 0;
+
+    if (!userMap[name]) {
+      userMap[name] = { name: name, income: 0, expense: 0, transactions: [] };
+    }
+
+    if (type === "Income")  userMap[name].income  += amount;
+    if (type === "Expense") userMap[name].expense += amount;
+
+    userMap[name].transactions.push(rowToObj(row));
+  }
+
+  // Sort transactions newest-first within each user
+  const users = Object.values(userMap).map(function(u) {
+    u.balance      = u.income - u.expense;
+    u.transactions = u.transactions.sort(function(a, b) {
+      return new Date(b.date) - new Date(a.date);
+    });
+    return u;
+  });
+
+  // Sort users alphabetically
+  users.sort(function(a, b) { return a.name.localeCompare(b.name); });
+
+  return { success: true, month: month, users: users };
+}
+
+
 
 // v2.2: maps 7-column row to object
 function rowToObj(row) {
@@ -325,10 +413,12 @@ function setupSpreadsheet() {
   if (!ss.getSheetByName(SHEET_LOGIN)) createLoginSheet(ss);
   MONTHS.forEach(function(m) { getMonthSheet(ss, m, true); });
   SpreadsheetApp.getUi().alert(
-    "✅ Spendo v2.2 setup complete!\n\n" +
+    "✅ Spendo v2.3 setup complete!\n\n" +
     "Login sheet columns: User_ID | Name | Password | API_Key | Expire_Date\n\n" +
     "Default credentials:\n  User ID  : admin\n  Password : admin123\n\n" +
     "Add user names in the 'Name' column for each user.\n" +
-    "Change passwords before sharing."
+    "Change passwords before sharing.\n\n" +
+    "Admin (User_ID = admin) can see all users' transactions.\n" +
+    "All other users see only their own transactions."
   );
 }

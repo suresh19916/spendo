@@ -86,8 +86,6 @@ body{
 .login-logo{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--ac2);letter-spacing:-.03em;text-align:center;margin-bottom:.18rem}
 .login-tag{color:var(--tx3);font-size:.8rem;text-align:center;margin-bottom:1.75rem}
 .note-box{background:var(--acbg);border:1px solid rgba(91,110,245,.22);border-radius:var(--r2);padding:.7rem .95rem;font-size:.76rem;color:var(--ac2);margin-bottom:1.4rem;line-height:1.55}
-.login-hint{font-size:.7rem;color:var(--tx3);text-align:center;margin-top:.9rem}
-.login-hint strong{color:var(--tx2)}
 .err-msg{color:var(--rd);font-size:.76rem;text-align:center;margin-top:.55rem;display:none;line-height:1.4}
 .divider{height:1px;background:var(--bdr);margin:.8rem 0}
 
@@ -102,7 +100,6 @@ body{
   padding:.58rem .9rem;display:flex;align-items:center;gap:.5rem;
   position:sticky;top:0;z-index:100;
 }
-.topbar-logo{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:var(--ac2);letter-spacing:-.02em;flex-shrink:0}
 .topbar-spacer{flex:1}
 .month-pick{
   background:var(--sur);border:1px solid var(--bdr2);border-radius:8px;
@@ -143,6 +140,27 @@ body{
 .mini-val{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;min-height:1.3rem}
 .mini-val.g{color:#5ee8a8}
 .mini-val.r{color:#ff8e8e}
+
+/* v2.3 — balance status badge */
+.bal-status{
+  display:inline-flex;align-items:center;gap:.3rem;
+  font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:.22rem .65rem;border-radius:20px;margin-bottom:.85rem;position:relative;z-index:1;
+}
+.bal-status.pos{background:rgba(45,201,138,.18);color:#5ee8a8;border:1px solid rgba(45,201,138,.25)}
+.bal-status.neg{background:rgba(240,92,92,.18);color:#ff9090;border:1px solid rgba(240,92,92,.25)}
+.bal-status:empty{display:none}
+/* v2.3 — prev month carry-over row inside hero */
+.prev-bal-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,.06);border-radius:10px;padding:.55rem .8rem;
+  margin-top:.65rem;position:relative;z-index:1;
+}
+.prev-bal-lbl{font-size:.68rem;color:rgba(255,255,255,.38);letter-spacing:.02em}
+.prev-bal-val{font-size:.92rem;font-weight:700;color:rgba(255,255,255,.75)}
+.prev-bal-val.neg{color:#ff9090}
+.prev-bal-val.pos{color:#5ee8a8}
+.mini-sub{font-size:.62rem;color:rgba(255,255,255,.3);margin-top:.1rem}
 
 /* ─── Budget Card ─── */
 .budget-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:.9rem 1rem;margin-bottom:.8rem}
@@ -238,6 +256,65 @@ body{
 .toast.success .t-dot{background:var(--gr)}
 .toast.error   .t-dot{background:var(--rd)}
 .btn-spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.22);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0}
+
+/* ════ v2.4 — Logo & Branding ════ */
+.login-logo-wrap{display:flex;flex-direction:column;align-items:center;gap:.55rem;margin-bottom:.4rem}
+.login-logo-text{font-family:'Syne',sans-serif;font-size:1.85rem;font-weight:800;background:linear-gradient(135deg,var(--ac2),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.04em}
+.topbar-logo{display:flex;align-items:center;gap:.45rem;flex-shrink:0}
+.topbar-logo span{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:var(--ac2);letter-spacing:-.02em}
+
+/* ════ v2.4 — Reports button ════ */
+.report-btn{background:var(--acbg);border:1px solid rgba(91,110,245,.28);border-radius:8px;color:var(--ac2);font-size:.7rem;font-weight:700;padding:.26rem .55rem;cursor:pointer;font-family:inherit;flex-shrink:0;white-space:nowrap;transition:all .14s}
+.report-btn:active{background:rgba(91,110,245,.22)}
+
+/* ════ v2.4 — Back button ════ */
+.back-btn{background:none;border:1px solid var(--bdr2);border-radius:8px;color:var(--tx2);padding:.28rem .45rem;cursor:pointer;display:flex;align-items:center;transition:all .14s;flex-shrink:0}
+.back-btn:active{background:var(--sur2)}
+
+/* ════ v2.4 — Report screen ════ */
+.rpt-heading{margin-bottom:.85rem}
+.rpt-heading-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--tx);margin-bottom:.15rem}
+.rpt-heading-sub{font-size:.72rem;color:var(--tx3)}
+
+.rpt-back-user{display:inline-flex;align-items:center;gap:.35rem;background:none;border:none;color:var(--ac2);font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;padding:0;margin-bottom:.5rem}
+.rpt-back-user:active{opacity:.7}
+
+/* User summary cards */
+.rpt-user-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r2);padding:.9rem 1rem;margin-bottom:.5rem;cursor:pointer;transition:background .14s}
+.rpt-user-card:active{background:var(--sur2)}
+.rpt-user-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+.rpt-user-nm{font-weight:700;font-size:.93rem;color:var(--tx);flex:1}
+.rpt-user-bal{font-family:'Syne',sans-serif;font-weight:800;font-size:.95rem}
+.rpt-user-bal.pos{color:var(--gr)}
+.rpt-user-bal.neg{color:var(--rd)}
+.rpt-user-meta{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+.rpt-meta-box{background:var(--bg3);border-radius:8px;padding:.48rem .65rem}
+.rpt-meta-lbl{font-size:.6rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.12rem}
+.rpt-meta-val{font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700}
+.rpt-meta-val.g{color:var(--gr)}
+.rpt-meta-val.r{color:var(--rd)}
+
+/* Summary strip inside user detail */
+.rpt-summary-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.45rem;margin-bottom:.3rem}
+.rpt-strip-box{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r2);padding:.6rem .65rem;text-align:center}
+.rpt-strip-lbl{font-size:.6rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.15rem}
+.rpt-strip-val{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:800}
+.rpt-strip-val.g{color:var(--gr)}
+.rpt-strip-val.r{color:var(--rd)}
+.rpt-strip-val.b{color:var(--ac2)}
+
+/* Report transaction rows */
+.rpt-tx-list{display:flex;flex-direction:column;gap:.38rem;margin-top:.2rem}
+.rpt-tx-row{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r2);padding:.7rem .85rem;display:flex;align-items:flex-start;gap:.65rem}
+.rpt-tx-ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0}
+.rpt-tx-ico.income{background:var(--grbg)}
+.rpt-tx-ico.expense{background:var(--rdbg)}
+.rpt-tx-body{flex:1;min-width:0}
+.rpt-tx-cat{font-weight:600;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rpt-tx-sub{font-size:.67rem;color:var(--tx3);margin-top:.08rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rpt-tx-amt{font-family:'Syne',sans-serif;font-weight:700;font-size:.86rem;flex-shrink:0;text-align:right;padding-top:.1rem}
+.rpt-tx-amt.income{color:var(--gr)}
+.rpt-tx-amt.expense{color:var(--rd)}
 </style>
 </head>
 <body>
@@ -245,16 +322,25 @@ body{
 <!-- ════════════ LOGIN ════════════ -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo">Spendo</div>
+    <!-- v2.4: Spendo SVG logo -->
+    <div class="login-logo-wrap">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="48" height="48" rx="14" fill="url(#lg1)"/>
+        <path d="M14 20c0-2.2 1.8-4 4-4h4c2.2 0 4 1.8 4 4v2c0 1.1-.9 2-2 2h-4c-2.2 0-4 1.8-4 4v2c0 2.2 1.8 4 4 4h6c2.2 0 4-1.8 4-4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="34" cy="16" r="3" fill="#7c8dff" opacity=".9"/>
+        <defs><linearGradient id="lg1" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#4a5cf0"/><stop offset="1" stop-color="#7b5cf0"/></linearGradient></defs>
+      </svg>
+      <div class="login-logo-text">Spendo</div>
+    </div>
     <div class="login-tag">Monthly expense tracker</div>
-    <div class="note-box">🔐 Sessions last <strong>30 minutes</strong>. Your Apps Script URL is saved — enter it once only.</div>
+    <div class="note-box">🔐 Sessions last <strong>30 minutes</strong>. Your Apps Script URL is saved once — never re-entered.</div>
     <div class="field">
       <label>Apps Script Web App URL</label>
       <input type="url" id="l-url" placeholder="https://script.google.com/macros/s/…/exec"/>
     </div>
     <div class="field">
       <label>User ID</label>
-      <input type="text" id="l-uid" placeholder="admin" autocomplete="username"/>
+      <input type="text" id="l-uid" placeholder="Enter your User ID" autocomplete="username"/>
     </div>
     <div class="field">
       <label>Password</label>
@@ -262,8 +348,6 @@ body{
     </div>
     <button class="btn btn-primary" id="l-btn" onclick="doLogin()">Sign In</button>
     <div class="err-msg" id="l-err"></div>
-    <div class="divider"></div>
-    <div class="login-hint">Default: <strong>admin</strong> / <strong>admin123</strong></div>
   </div>
 </div>
 
@@ -283,9 +367,20 @@ body{
 <!-- ════════════ APP ════════════ -->
 <div id="app">
   <div class="topbar">
-    <div class="topbar-logo">Spendo</div>
+    <!-- v2.4: branded SVG logo in topbar -->
+    <div class="topbar-logo">
+      <svg width="22" height="22" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0">
+        <rect width="48" height="48" rx="14" fill="url(#tl1)"/>
+        <path d="M14 20c0-2.2 1.8-4 4-4h4c2.2 0 4 1.8 4 4v2c0 1.1-.9 2-2 2h-4c-2.2 0-4 1.8-4 4v2c0 2.2 1.8 4 4 4h6c2.2 0 4-1.8 4-4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="34" cy="16" r="3" fill="#7c8dff" opacity=".9"/>
+        <defs><linearGradient id="tl1" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#4a5cf0"/><stop offset="1" stop-color="#7b5cf0"/></linearGradient></defs>
+      </svg>
+      <span>Spendo</span>
+    </div>
     <select class="month-pick" id="month-pick" onchange="changeMonth()"></select>
     <div class="topbar-spacer"></div>
+    <!-- v2.4: Reports button — admin only, shown/hidden in bootApp -->
+    <button class="report-btn" id="report-btn" onclick="showReport()" style="display:none">📊 Reports</button>
     <div class="timer-pill" id="timer-pill">—</div>
     <button class="logout-btn" onclick="logout()">Logout</button>
   </div>
@@ -299,15 +394,23 @@ body{
     <div class="hero">
       <div class="hero-lbl">Net Balance</div>
       <div class="hero-val syne" id="s-bal">₹—</div>
+      <!-- v2.3: balance status badge (Positive / Negative) -->
+      <div class="bal-status" id="s-bal-status"></div>
       <div class="hero-row">
         <div class="hero-mini">
-          <div class="mini-lbl">💰 Total Income</div>
+          <div class="mini-lbl">💰 This Month</div>
           <div class="mini-val g syne" id="s-inc">₹—</div>
+          <div class="mini-sub" id="s-inc-sub"></div>
         </div>
         <div class="hero-mini">
           <div class="mini-lbl">💸 Amount Spent</div>
           <div class="mini-val r syne" id="s-exp">₹—</div>
         </div>
+      </div>
+      <!-- v2.3: previous month balance row -->
+      <div class="prev-bal-row" id="prev-bal-row">
+        <div class="prev-bal-lbl">↩ <span id="s-prev-month-name">—</span> Balance carried</div>
+        <div class="prev-bal-val syne" id="s-prev-bal">₹—</div>
       </div>
     </div>
 
@@ -369,6 +472,53 @@ body{
   </div>
 </div>
 
+<!-- ════════════ REPORT SCREEN (admin only) ════════════ -->
+<div id="report-screen" style="display:none;flex-direction:column;min-height:100vh;min-height:100dvh">
+  <!-- Report topbar -->
+  <div class="topbar">
+    <button class="back-btn" onclick="hideReport()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </button>
+    <div class="topbar-logo"><span>Reports</span></div>
+    <div class="topbar-spacer"></div>
+    <select class="month-pick" id="rpt-month-pick" onchange="loadReport()"></select>
+  </div>
+
+  <!-- Report content -->
+  <div class="content" id="rpt-content" style="padding-bottom:1.5rem">
+    <!-- Summary view (user cards list) -->
+    <div id="rpt-summary-view">
+      <div class="rpt-heading">
+        <div class="rpt-heading-title" id="rpt-heading-title">Monthly User Summary</div>
+        <div class="rpt-heading-sub" id="rpt-heading-sub">Tap a user to see full details</div>
+      </div>
+      <div id="rpt-user-list">
+        <div class="empty"><div class="empty-ico">📊</div>Select a month to load the report</div>
+      </div>
+    </div>
+
+    <!-- Detail view (single user transactions) -->
+    <div id="rpt-detail-view" style="display:none">
+      <div class="rpt-heading">
+        <button class="rpt-back-user" onclick="backToSummary()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          All Users
+        </button>
+        <div class="rpt-heading-title" id="rpt-user-name">User</div>
+      </div>
+
+      <!-- User summary strip -->
+      <div class="rpt-summary-strip" id="rpt-strip"></div>
+
+      <!-- Category filter pills -->
+      <div class="pills" id="rpt-cat-pills" style="margin-top:.65rem"></div>
+
+      <!-- Transaction table -->
+      <div class="rpt-tx-list" id="rpt-tx-list"></div>
+    </div>
+  </div>
+</div>
+
 <div id="toasts"></div>
 
 <script>
@@ -379,11 +529,11 @@ body{
 // ════════════════════════════════════════
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-// CHANGE 3: EMI and Chetty added to expense categories
+// Categories — v2.3 adds Fruits, Petrol, Snacks
 const EXP_CATS = [
   "Food & Dining","Transport","Shopping","Entertainment","Health",
   "Education","Utilities","Rent","Travel","Subscriptions","Groceries",
-  "EMI","Chetty","Other"
+  "EMI","Chetty","Fruits","Petrol","Snacks","Other"
 ];
 const INC_CATS = ["Salary","Freelance","Business","Investment","Gift","Bonus","Other"];
 
@@ -392,7 +542,8 @@ const ICONS = {
   "Health":"💊","Education":"📚","Utilities":"⚡","Rent":"🏠","Travel":"✈️",
   "Subscriptions":"📱","Groceries":"🛒","Salary":"💼","Freelance":"💻",
   "Business":"📊","Investment":"📈","Gift":"🎁","Bonus":"🎯",
-  "EMI":"🏦","Chetty":"🪙",   // CHANGE 3: icons for new categories
+  "EMI":"🏦","Chetty":"🪙",
+  "Fruits":"🍎","Petrol":"⛽","Snacks":"🍿",   // v2.3
   "Other":"📌","_":"💳"
 };
 
@@ -406,7 +557,8 @@ const S = {
   url       : "",
   apiKey    : "",
   userId    : "",
-  userName  : "",   // CHANGE 1: display name from Login sheet "Name" column
+  userName  : "",
+  isAdmin   : false,   // v2.3 — true only for User_ID === "admin"
   expiresAt : null,
   month     : MONTHS[new Date().getMonth()],
   txs       : [],
@@ -444,13 +596,19 @@ function bootApp() {
 
   const h = new Date().getHours();
   g("greet-line").textContent = h < 12 ? "Good morning ☀️" : h < 17 ? "Good afternoon 🌤️" : "Good evening 🌙";
-  // CHANGE 1: show Name (S.userName), not User_ID (S.userId)
   g("greet-name").textContent = "Welcome, " + (S.userName || S.userId || "User");
+
+  // v2.4: show Reports button only for admin
+  g("report-btn").style.display = S.isAdmin ? "block" : "none";
 
   const pick = g("month-pick");
   pick.innerHTML = MONTHS.map(m =>
     `<option value="${m}"${m === S.month ? " selected" : ""}>${m}</option>`
   ).join("");
+
+  // Sync report month picker too
+  const rptPick = g("rpt-month-pick");
+  rptPick.innerHTML = pick.innerHTML;
 
   g("f-date").value = todayISO();
   fillCats("Expense");
@@ -467,7 +625,8 @@ function saveSession(data) {
     url       : S.url,
     apiKey    : S.apiKey,
     userId    : S.userId,
-    userName  : S.userName,   // CHANGE 1: persist display name
+    userName  : S.userName,
+    isAdmin   : S.isAdmin,   // v2.3
     expiresAt : S.expiresAt,
     month     : S.month
   }));
@@ -505,12 +664,12 @@ async function doLogin() {
     const res = await apiFetch(url, { action:"login", userId:uid, password:pwd });
     if (res.success) {
       localStorage.setItem(LS_URL, url);
-      // CHANGE 1: save res.name (display name) into session
       saveSession({
         url,
         apiKey    : res.apiKey,
         userId    : uid,
-        userName  : res.name || uid,   // fallback to userId if name missing
+        userName  : res.name    || uid,
+        isAdmin   : !!res.isAdmin,   // v2.3
         expiresAt : res.expiresAt
       });
       bootApp();
@@ -543,7 +702,8 @@ async function doReLogin() {
         url       : S.url,
         apiKey    : res.apiKey,
         userId    : uid,
-        userName  : res.name || uid,
+        userName  : res.name    || uid,
+        isAdmin   : !!res.isAdmin,   // v2.3
         expiresAt : res.expiresAt
       });
       g("relogin-bd").classList.remove("open");
@@ -599,13 +759,160 @@ async function loadAll() {
   await Promise.all([loadSummary(), loadTxs()]);
 }
 
-async function loadSummary() {
+// ════════════════════════════════════════
+//  REPORT MODULE  (admin only — v2.4)
+// ════════════════════════════════════════
+const R = {
+  users        : [],   // full report data for selected month
+  activeUser   : null, // user object currently in detail view
+  catFilter    : "All" // category filter in detail view
+};
+
+function showReport() {
+  g("app").style.display           = "none";
+  g("report-screen").style.display = "flex";
+  // Sync report month picker to main month picker value
+  g("rpt-month-pick").value = S.month;
+  loadReport();
+}
+
+function hideReport() {
+  g("report-screen").style.display = "none";
+  g("app").style.display           = "flex";
+}
+
+async function loadReport() {
+  const month = g("rpt-month-pick").value || S.month;
+  g("rpt-heading-title").textContent = month + " — User Summary";
+  g("rpt-heading-sub").textContent   = "Tap a user to see full transaction details";
+  g("rpt-user-list").innerHTML = '<div class="empty"><div class="empty-ico">⏳</div>Loading report…</div>';
+  backToSummary();   // always start on summary view
+
   try {
-    const res = await apiGET({ action:"getSummary", month:S.month });
+    const res = await apiGET({ action:"getAdminReport", month });
+    if (res.success) {
+      R.users = res.users || [];
+      renderReportSummary();
+    } else {
+      g("rpt-user-list").innerHTML = `<div class="empty"><div class="empty-ico">⚠️</div>${esc(res.error || "Failed to load report")}</div>`;
+    }
+  } catch(e) {
+    g("rpt-user-list").innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div>Connection error</div>';
+  }
+}
+
+function renderReportSummary() {
+  const el = g("rpt-user-list");
+  if (!R.users.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">📭</div>No transactions found for this month</div>';
+    return;
+  }
+  el.innerHTML = R.users.map((u, i) => {
+    const balCls = u.balance >= 0 ? "pos" : "neg";
+    return `
+      <div class="rpt-user-card" onclick="openUserDetail(${i})">
+        <div class="rpt-user-row">
+          <div class="rpt-user-nm">👤 ${esc(u.name)}</div>
+          <div class="rpt-user-bal ${balCls}">${u.balance >= 0 ? "+" : ""}${fmtINR(u.balance)}</div>
+          <span style="color:var(--tx3);font-size:.8rem;margin-left:.4rem">›</span>
+        </div>
+        <div class="rpt-user-meta">
+          <div class="rpt-meta-box">
+            <div class="rpt-meta-lbl">💰 Total Income</div>
+            <div class="rpt-meta-val g">${fmtINR(u.income)}</div>
+          </div>
+          <div class="rpt-meta-box">
+            <div class="rpt-meta-lbl">💸 Total Expenses</div>
+            <div class="rpt-meta-val r">${fmtINR(u.expense)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function openUserDetail(idx) {
+  R.activeUser = R.users[idx];
+  R.catFilter  = "All";
+  const u = R.activeUser;
+
+  // Switch views
+  g("rpt-summary-view").style.display = "none";
+  g("rpt-detail-view").style.display  = "block";
+  g("rpt-user-name").textContent = u.name;
+
+  // Summary strip
+  const balCls = u.balance >= 0 ? "g" : "r";
+  g("rpt-strip").innerHTML = `
+    <div class="rpt-strip-box">
+      <div class="rpt-strip-lbl">Income</div>
+      <div class="rpt-strip-val g">${fmtINR(u.income)}</div>
+    </div>
+    <div class="rpt-strip-box">
+      <div class="rpt-strip-lbl">Expenses</div>
+      <div class="rpt-strip-val r">${fmtINR(u.expense)}</div>
+    </div>
+    <div class="rpt-strip-box">
+      <div class="rpt-strip-lbl">Balance</div>
+      <div class="rpt-strip-val ${balCls}">${u.balance >= 0 ? "+" : ""}${fmtINR(u.balance)}</div>
+    </div>
+  `;
+
+  // Build category filter pills
+  const cats = ["All", ...new Set(u.transactions.map(t => t.category))].sort((a,b) => a === "All" ? -1 : a.localeCompare(b));
+  g("rpt-cat-pills").innerHTML = cats.map(c =>
+    `<button class="pill${c === "All" ? " active" : ""}" onclick="setRptFilter('${esc(c)}')" data-rc="${esc(c)}">${esc(c)}</button>`
+  ).join("");
+
+  renderReportDetail();
+}
+
+function backToSummary() {
+  R.activeUser = null;
+  g("rpt-summary-view").style.display = "block";
+  g("rpt-detail-view").style.display  = "none";
+}
+
+function setRptFilter(cat) {
+  R.catFilter = cat;
+  document.querySelectorAll("#rpt-cat-pills .pill").forEach(p =>
+    p.classList.toggle("active", p.dataset.rc === cat)
+  );
+  renderReportDetail();
+}
+
+function renderReportDetail() {
+  const u   = R.activeUser;
+  const el  = g("rpt-tx-list");
+  let txs   = [...u.transactions];
+  if (R.catFilter !== "All") txs = txs.filter(t => t.category === R.catFilter);
+  txs.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  if (!txs.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">🧾</div>No transactions in this category</div>';
+    return;
+  }
+  el.innerHTML = txs.map(tx => `
+    <div class="rpt-tx-row">
+      <div class="rpt-tx-ico ${tx.type.toLowerCase()}">${ICONS[tx.category] || ICONS["_"]}</div>
+      <div class="rpt-tx-body">
+        <div class="rpt-tx-cat">${esc(tx.category)} <span style="font-size:.65rem;color:var(--tx3);font-weight:400">${esc(tx.type)}</span></div>
+        <div class="rpt-tx-sub">${esc(tx.description || "—")} · ${fmtDate(tx.date)}</div>
+      </div>
+      <div class="rpt-tx-amt ${tx.type.toLowerCase()}">${tx.type === "Income" ? "+" : "−"}${fmtINR(tx.amount)}</div>
+    </div>
+  `).join("");
+}
+
+async function loadSummary() {
+  // v2.3: admin passes empty userName (sees all); regular users pass their name
+  const userParam = S.isAdmin ? "" : (S.userName || S.userId);
+  try {
+    const res = await apiGET({ action:"getSummary", month:S.month, userName:userParam });
     if (res.success) {
       renderSummary(res);
     } else {
-      renderSummary({ income:0, expense:0, balance:0, budgetUsed:0, topCategories:[] });
+      renderSummary({ income:0, expense:0, balance:0, prevMonthBalance:0, netBalance:0, budgetUsed:0, topCategories:[] });
       toast("Dashboard error: " + (res.error || "unknown"), "error");
     }
   } catch (e) {
@@ -615,9 +922,11 @@ async function loadSummary() {
 }
 
 async function loadTxs() {
+  // v2.3: admin passes empty userName (sees all); regular users pass their name
+  const userParam = S.isAdmin ? "" : (S.userName || S.userId);
   g("tx-spin").style.display = "flex";
   try {
-    const res = await apiGET({ action:"getTransactions", month:S.month });
+    const res = await apiGET({ action:"getTransactions", month:S.month, userName:userParam });
     if (res.success) {
       S.txs = res.transactions || [];
       renderTxs();
@@ -636,7 +945,10 @@ async function loadTxs() {
 function changeMonth() {
   S.month = g("month-pick").value;
   persistMonth();
-  ["s-inc","s-exp","s-bal"].forEach(id => { g(id).textContent = "₹—"; });
+  ["s-inc","s-exp","s-bal","s-prev-bal"].forEach(id => { g(id).textContent = "₹—"; });
+  g("s-bal-status").textContent = "";
+  g("s-bal-status").className   = "bal-status";
+  g("s-prev-month-name").textContent = "—";
   g("s-pct").textContent   = "0%";
   g("s-fill").style.width  = "0%";
   g("s-sub").textContent   = "Fetching data…";
@@ -646,22 +958,50 @@ function changeMonth() {
 }
 
 // ════════════════════════════════════════
-//  RENDER — DASHBOARD
+//  RENDER — DASHBOARD  (v2.3)
 // ════════════════════════════════════════
 function renderSummary(d) {
-  const inc = parseFloat(d.income)  || 0;
-  const exp = parseFloat(d.expense) || 0;
-  const bal = (d.balance    !== undefined) ? parseFloat(d.balance)    : (inc - exp);
+  const inc  = parseFloat(d.income)  || 0;
+  const exp  = parseFloat(d.expense) || 0;
+
+  // v2.3: use netBalance (prev + current) for the hero; fall back gracefully
+  const prevBal  = (d.prevMonthBalance !== undefined) ? parseFloat(d.prevMonthBalance) : 0;
+  const netBal   = (d.netBalance       !== undefined) ? parseFloat(d.netBalance)       : (inc - exp + prevBal);
+  const curBal   = inc - exp;   // current month only (for budget sub-line)
+
   const pct = (d.budgetUsed !== undefined) ? parseFloat(d.budgetUsed)
     : (inc > 0 ? Math.min(Math.round((exp / inc) * 100), 999) : (exp > 0 ? 100 : 0));
 
+  // ── Current month income / expense ──────────────────────────
   g("s-inc").textContent = fmtINR(inc);
   g("s-exp").textContent = fmtINR(exp);
 
+  // ── Net balance (hero figure) ────────────────────────────────
   const balEl = g("s-bal");
-  balEl.textContent = fmtINR(bal);
-  balEl.className   = "hero-val syne" + (bal < 0 ? " neg" : "");
+  balEl.textContent = fmtINR(netBal);
+  balEl.className   = "hero-val syne" + (netBal < 0 ? " neg" : "");
 
+  // ── Positive / Negative status badge ────────────────────────
+  const statusEl = g("s-bal-status");
+  if (netBal > 0) {
+    statusEl.textContent = "▲ Positive Balance";
+    statusEl.className   = "bal-status pos";
+  } else if (netBal < 0) {
+    statusEl.textContent = "▼ Negative Balance";
+    statusEl.className   = "bal-status neg";
+  } else {
+    statusEl.textContent = "";
+    statusEl.className   = "bal-status";
+  }
+
+  // ── Previous month balance row ───────────────────────────────
+  const prevName = d.prevMonth || "";
+  g("s-prev-month-name").textContent = prevName;
+  const prevEl = g("s-prev-bal");
+  prevEl.textContent = (prevBal >= 0 ? "+" : "") + fmtINR(prevBal);
+  prevEl.className   = "prev-bal-val syne" + (prevBal < 0 ? " neg" : " pos");
+
+  // ── Budget bar ───────────────────────────────────────────────
   const pctSafe = Math.min(Math.max(Math.round(pct), 0), 999);
   const pctEl   = g("s-pct");
   pctEl.textContent = pctSafe + "%";
@@ -672,9 +1012,10 @@ function renderSummary(d) {
   fillEl.className   = "budget-fill" + (pctSafe >= 90 ? " red" : "");
 
   g("s-sub").textContent = inc > 0
-    ? `Spent ${fmtINR(exp)} of ${fmtINR(inc)} total income`
+    ? `Spent ${fmtINR(exp)} of ${fmtINR(inc)} income · This month: ${curBal >= 0 ? "+" : ""}${fmtINR(curBal)}`
     : "Add income transactions to see budget tracking";
 
+  // ── Top categories ───────────────────────────────────────────
   const cats  = Array.isArray(d.topCategories) ? d.topCategories : [];
   const catEl = g("cats-list");
   if (!cats.length) {
