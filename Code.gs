@@ -250,10 +250,9 @@ function deleteTransaction(p) {
 function getSummary(p) {
   const ss         = SpreadsheetApp.getActiveSpreadsheet();
   const month      = p.month || getCurrentMonth();
-  // v2.3 user filter: empty = admin (see all), non-empty = filter by name
   const userFilter = String(p.userName || "").trim();
 
-  // ── Current month ──────────────────────────────────────────
+  // ── Current month ───────────────────────────────────────────
   const sheet = getMonthSheet(ss, month, true);
   const data  = sheet.getDataRange().getValues();
 
@@ -263,7 +262,6 @@ function getSummary(p) {
   for (let r = 1; r < data.length; r++) {
     const row = data[r];
     if (!row[0]) continue;
-    // v2.3: apply userName filter (col 2 = Name)
     if (userFilter && String(row[2]).trim() !== userFilter) continue;
     const type   = String(row[3]).trim();
     const cat    = String(row[4]).trim();
@@ -273,32 +271,42 @@ function getSummary(p) {
     if (type === "Expense") catMap[cat] = (catMap[cat] || 0) + amount;
   }
 
-  // ── Previous month balance ─────────────────────────────────
-  // Find the index of the current month, then step back one
-  const curIdx  = MONTHS.indexOf(month);
-  const prevIdx = (curIdx - 1 + 12) % 12;          // wraps Jan → Dec
-  const prevMonth = MONTHS[prevIdx];
+  // ── Cumulative carried balance (ALL months before current) ──
+  // Walk Jan → month-before-current, sum each month's net,
+  // skip months with no sheet or no data.
+  const curIdx         = MONTHS.indexOf(month);
+  const monthlyBreakdown = [];   // [{month, balance}] for popup
+  let   carriedBalance = 0;
 
-  let prevIncome = 0, prevExpense = 0;
-  const prevSheet = ss.getSheetByName(prevMonth);   // don't auto-create — may not exist
-  if (prevSheet) {
-    const prevData = prevSheet.getDataRange().getValues();
-    for (let r = 1; r < prevData.length; r++) {
-      const row = prevData[r];
+  for (let i = 0; i < curIdx; i++) {
+    const mName  = MONTHS[i];
+    const mSheet = ss.getSheetByName(mName);
+    if (!mSheet) continue;
+
+    const mData = mSheet.getDataRange().getValues();
+    let mInc = 0, mExp = 0, hasData = false;
+
+    for (let r = 1; r < mData.length; r++) {
+      const row = mData[r];
       if (!row[0]) continue;
       if (userFilter && String(row[2]).trim() !== userFilter) continue;
       const type   = String(row[3]).trim();
       const amount = parseFloat(row[5]) || 0;
-      if (type === "Income")  prevIncome  += amount;
-      if (type === "Expense") prevExpense += amount;
+      if (type === "Income")  { mInc += amount; hasData = true; }
+      if (type === "Expense") { mExp += amount; hasData = true; }
+    }
+
+    if (hasData) {
+      const mBal = mInc - mExp;
+      carriedBalance += mBal;
+      monthlyBreakdown.push({ month: mName, balance: mBal });
     }
   }
 
-  const prevMonthBalance = prevIncome - prevExpense;   // can be negative
-  const currentBalance   = income - expense;
-  const netBalance       = prevMonthBalance + currentBalance;
+  const currentBalance = income - expense;
+  const netBalance     = carriedBalance + currentBalance;
 
-  // ── Budget % (based on current month only) ─────────────────
+  // ── Budget % (current month only) ──────────────────────────
   const topCategories = Object.entries(catMap)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
@@ -312,12 +320,12 @@ function getSummary(p) {
   return {
     success          : true,
     month            : month,
-    income           : income,           // current month income
-    expense          : expense,          // current month expense
-    balance          : currentBalance,   // current month only (income − expense)
-    prevMonth        : prevMonth,        // e.g. "Apr"
-    prevMonthBalance : prevMonthBalance, // prev month income − prev month expense
-    netBalance       : netBalance,       // prevMonthBalance + currentBalance
+    income           : income,
+    expense          : expense,
+    balance          : currentBalance,
+    carriedBalance   : carriedBalance,   // sum of ALL months before current
+    monthlyBreakdown : monthlyBreakdown, // array for popup detail view
+    netBalance       : netBalance,
     budgetUsed       : budgetUsed,
     topCategories    : topCategories
   };

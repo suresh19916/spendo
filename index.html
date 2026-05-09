@@ -94,11 +94,18 @@ body{
 ═══════════════════════════════════════ */
 #app{display:none;flex-direction:column;min-height:100vh;min-height:100dvh}
 
-/* ─── Top Bar ─── */
+/* ─── Top Bar — two-row layout (v2.5) ─── */
 .topbar{
   background:var(--bg2);border-bottom:1px solid var(--bdr);
-  padding:.58rem .9rem;display:flex;align-items:center;gap:.5rem;
   position:sticky;top:0;z-index:100;
+  display:flex;flex-direction:column;
+}
+.topbar-row1{
+  padding:.55rem .9rem;display:flex;align-items:center;
+  border-bottom:1px solid var(--bdr);
+}
+.topbar-row2{
+  padding:.4rem .9rem;display:flex;align-items:center;gap:.45rem;
 }
 .topbar-spacer{flex:1}
 .month-pick{
@@ -141,26 +148,38 @@ body{
 .mini-val.g{color:#5ee8a8}
 .mini-val.r{color:#ff8e8e}
 
-/* v2.3 — balance status badge */
-.bal-status{
-  display:inline-flex;align-items:center;gap:.3rem;
-  font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-  padding:.22rem .65rem;border-radius:20px;margin-bottom:.85rem;position:relative;z-index:1;
-}
-.bal-status.pos{background:rgba(45,201,138,.18);color:#5ee8a8;border:1px solid rgba(45,201,138,.25)}
-.bal-status.neg{background:rgba(240,92,92,.18);color:#ff9090;border:1px solid rgba(240,92,92,.25)}
-.bal-status:empty{display:none}
-/* v2.3 — prev month carry-over row inside hero */
+/* v2.3/v2.5 — cumulative carried balance row (clickable) */
 .prev-bal-row{
   display:flex;align-items:center;justify-content:space-between;
   background:rgba(255,255,255,.06);border-radius:10px;padding:.55rem .8rem;
   margin-top:.65rem;position:relative;z-index:1;
+  cursor:pointer;transition:background .15s;
 }
-.prev-bal-lbl{font-size:.68rem;color:rgba(255,255,255,.38);letter-spacing:.02em}
+.prev-bal-row:active{background:rgba(255,255,255,.1)}
+.prev-bal-lbl{font-size:.68rem;color:rgba(255,255,255,.42);letter-spacing:.02em;display:flex;align-items:center;gap:.35rem}
+.prev-bal-tap{font-size:.6rem;color:rgba(255,255,255,.28);font-style:italic}
 .prev-bal-val{font-size:.92rem;font-weight:700;color:rgba(255,255,255,.75)}
 .prev-bal-val.neg{color:#ff9090}
 .prev-bal-val.pos{color:#5ee8a8}
 .mini-sub{font-size:.62rem;color:rgba(255,255,255,.3);margin-top:.1rem}
+
+/* v2.5 — carry breakdown popup rows */
+.carry-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.7rem 0;border-bottom:1px solid var(--bdr);
+}
+.carry-row:last-child{border-bottom:none}
+.carry-month{font-size:.9rem;font-weight:600;color:var(--tx)}
+.carry-amt{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:700}
+.carry-amt.pos{color:var(--gr)}
+.carry-amt.neg{color:var(--rd)}
+.carry-total{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.75rem .9rem;background:var(--acbg);border-radius:var(--r2);
+  margin-top:.65rem;border:1px solid rgba(91,110,245,.2);
+}
+.carry-total-lbl{font-size:.78rem;font-weight:600;color:var(--ac2)}
+.carry-total-val{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--ac2)}
 
 /* ─── Budget Card ─── */
 .budget-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:.9rem 1rem;margin-bottom:.8rem}
@@ -367,22 +386,26 @@ body{
 <!-- ════════════ APP ════════════ -->
 <div id="app">
   <div class="topbar">
-    <!-- v2.4: branded SVG logo in topbar -->
-    <div class="topbar-logo">
-      <svg width="22" height="22" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0">
-        <rect width="48" height="48" rx="14" fill="url(#tl1)"/>
-        <path d="M14 20c0-2.2 1.8-4 4-4h4c2.2 0 4 1.8 4 4v2c0 1.1-.9 2-2 2h-4c-2.2 0-4 1.8-4 4v2c0 2.2 1.8 4 4 4h6c2.2 0 4-1.8 4-4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="34" cy="16" r="3" fill="#7c8dff" opacity=".9"/>
-        <defs><linearGradient id="tl1" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#4a5cf0"/><stop offset="1" stop-color="#7b5cf0"/></linearGradient></defs>
-      </svg>
-      <span>Spendo</span>
+    <!-- Row 1: Logo only -->
+    <div class="topbar-row1">
+      <div class="topbar-logo">
+        <svg width="22" height="22" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0">
+          <rect width="48" height="48" rx="14" fill="url(#tl1)"/>
+          <path d="M14 20c0-2.2 1.8-4 4-4h4c2.2 0 4 1.8 4 4v2c0 1.1-.9 2-2 2h-4c-2.2 0-4 1.8-4 4v2c0 2.2 1.8 4 4 4h6c2.2 0 4-1.8 4-4" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="34" cy="16" r="3" fill="#7c8dff" opacity=".9"/>
+          <defs><linearGradient id="tl1" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#4a5cf0"/><stop offset="1" stop-color="#7b5cf0"/></linearGradient></defs>
+        </svg>
+        <span>Spendo</span>
+      </div>
     </div>
-    <select class="month-pick" id="month-pick" onchange="changeMonth()"></select>
-    <div class="topbar-spacer"></div>
-    <!-- v2.4: Reports button — admin only, shown/hidden in bootApp -->
-    <button class="report-btn" id="report-btn" onclick="showReport()" style="display:none">📊 Reports</button>
-    <div class="timer-pill" id="timer-pill">—</div>
-    <button class="logout-btn" onclick="logout()">Logout</button>
+    <!-- Row 2: Month selector, Reports (admin), Session timer, Logout -->
+    <div class="topbar-row2">
+      <select class="month-pick" id="month-pick" onchange="changeMonth()"></select>
+      <div class="topbar-spacer"></div>
+      <button class="report-btn" id="report-btn" onclick="showReport()" style="display:none">📊 Reports</button>
+      <div class="timer-pill" id="timer-pill">—</div>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
   </div>
 
   <div class="content">
@@ -394,8 +417,6 @@ body{
     <div class="hero">
       <div class="hero-lbl">Net Balance</div>
       <div class="hero-val syne" id="s-bal">₹—</div>
-      <!-- v2.3: balance status badge (Positive / Negative) -->
-      <div class="bal-status" id="s-bal-status"></div>
       <div class="hero-row">
         <div class="hero-mini">
           <div class="mini-lbl">💰 This Month</div>
@@ -407,9 +428,12 @@ body{
           <div class="mini-val r syne" id="s-exp">₹—</div>
         </div>
       </div>
-      <!-- v2.3: previous month balance row -->
-      <div class="prev-bal-row" id="prev-bal-row">
-        <div class="prev-bal-lbl">↩ <span id="s-prev-month-name">—</span> Balance carried</div>
+      <!-- v2.5: clickable cumulative carried balance row -->
+      <div class="prev-bal-row" id="prev-bal-row" onclick="openCarryPopup()">
+        <div class="prev-bal-lbl">
+          ↩ Carried Balance
+          <span class="prev-bal-tap">tap for details</span>
+        </div>
         <div class="prev-bal-val syne" id="s-prev-bal">₹—</div>
       </div>
     </div>
@@ -472,16 +496,37 @@ body{
   </div>
 </div>
 
+<!-- ════════════ CARRY BREAKDOWN POPUP ════════════ -->
+<div class="backdrop" id="carry-bd">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title">Balance Carried Forward</div>
+    <p style="font-size:.78rem;color:var(--tx3);text-align:center;margin-bottom:1rem;line-height:1.5">Month-wise balance accumulated before <span id="carry-cur-month" style="color:var(--ac2);font-weight:600"></span></p>
+    <div id="carry-breakdown-list"></div>
+    <div class="carry-total" id="carry-total-row" style="display:none">
+      <span class="carry-total-lbl">Total Carried Balance</span>
+      <span class="carry-total-val" id="carry-total-val">₹0</span>
+    </div>
+    <div style="margin-top:1rem">
+      <button class="btn btn-ghost" onclick="closeCarryPopup()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ REPORT SCREEN (admin only) ════════════ -->
 <div id="report-screen" style="display:none;flex-direction:column;min-height:100vh;min-height:100dvh">
-  <!-- Report topbar -->
+  <!-- Report topbar — two rows to match main topbar -->
   <div class="topbar">
-    <button class="back-btn" onclick="hideReport()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-    </button>
-    <div class="topbar-logo"><span>Reports</span></div>
-    <div class="topbar-spacer"></div>
-    <select class="month-pick" id="rpt-month-pick" onchange="loadReport()"></select>
+    <div class="topbar-row1">
+      <button class="back-btn" onclick="hideReport()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <div class="topbar-logo" style="margin-left:.5rem"><span>Reports</span></div>
+    </div>
+    <div class="topbar-row2">
+      <select class="month-pick" id="rpt-month-pick" onchange="loadReport()"></select>
+      <div class="topbar-spacer"></div>
+    </div>
   </div>
 
   <!-- Report content -->
@@ -760,6 +805,45 @@ async function loadAll() {
 }
 
 // ════════════════════════════════════════
+//  CARRY BREAKDOWN POPUP  (v2.5)
+// ════════════════════════════════════════
+function openCarryPopup() {
+  g("carry-cur-month").textContent = _carryMonth;
+  const listEl  = g("carry-breakdown-list");
+  const totalEl = g("carry-total-row");
+  const totValEl = g("carry-total-val");
+
+  if (!_carryBreakdown.length) {
+    listEl.innerHTML = '<div class="empty" style="padding:1.5rem .5rem"><div class="empty-ico">📅</div>No carried balance — this may be the first month with data</div>';
+    totalEl.style.display = "none";
+  } else {
+    listEl.innerHTML = _carryBreakdown.map(item => {
+      const cls = item.balance >= 0 ? "pos" : "neg";
+      const sign = item.balance >= 0 ? "+" : "";
+      return `
+        <div class="carry-row">
+          <span class="carry-month">${esc(item.month)}</span>
+          <span class="carry-amt ${cls}">${sign}${fmtINR(item.balance)}</span>
+        </div>
+      `;
+    }).join("");
+
+    // Total row
+    const total = _carryBreakdown.reduce((sum, item) => sum + item.balance, 0);
+    const totCls = total >= 0 ? "pos" : "neg";
+    totValEl.textContent = (total >= 0 ? "+" : "") + fmtINR(total);
+    totValEl.className   = "carry-total-val " + totCls;
+    totalEl.style.display = "flex";
+  }
+
+  g("carry-bd").classList.add("open");
+}
+
+function closeCarryPopup() {
+  g("carry-bd").classList.remove("open");
+}
+
+// ════════════════════════════════════════
 //  REPORT MODULE  (admin only — v2.4)
 // ════════════════════════════════════════
 const R = {
@@ -946,9 +1030,6 @@ function changeMonth() {
   S.month = g("month-pick").value;
   persistMonth();
   ["s-inc","s-exp","s-bal","s-prev-bal"].forEach(id => { g(id).textContent = "₹—"; });
-  g("s-bal-status").textContent = "";
-  g("s-bal-status").className   = "bal-status";
-  g("s-prev-month-name").textContent = "—";
   g("s-pct").textContent   = "0%";
   g("s-fill").style.width  = "0%";
   g("s-sub").textContent   = "Fetching data…";
@@ -958,50 +1039,44 @@ function changeMonth() {
 }
 
 // ════════════════════════════════════════
-//  RENDER — DASHBOARD  (v2.3)
+//  RENDER — DASHBOARD  (v2.5)
 // ════════════════════════════════════════
+
+// Module-level store for carry breakdown (populated by renderSummary, read by popup)
+let _carryBreakdown = [];
+let _carryMonth     = "";
+
 function renderSummary(d) {
   const inc  = parseFloat(d.income)  || 0;
   const exp  = parseFloat(d.expense) || 0;
 
-  // v2.3: use netBalance (prev + current) for the hero; fall back gracefully
-  const prevBal  = (d.prevMonthBalance !== undefined) ? parseFloat(d.prevMonthBalance) : 0;
-  const netBal   = (d.netBalance       !== undefined) ? parseFloat(d.netBalance)       : (inc - exp + prevBal);
-  const curBal   = inc - exp;   // current month only (for budget sub-line)
+  // v2.5: use cumulative carriedBalance (all months before current)
+  const carried = (d.carriedBalance !== undefined) ? parseFloat(d.carriedBalance) : 0;
+  const netBal  = (d.netBalance     !== undefined) ? parseFloat(d.netBalance)     : (inc - exp + carried);
+  const curBal  = inc - exp;
 
   const pct = (d.budgetUsed !== undefined) ? parseFloat(d.budgetUsed)
     : (inc > 0 ? Math.min(Math.round((exp / inc) * 100), 999) : (exp > 0 ? 100 : 0));
 
-  // ── Current month income / expense ──────────────────────────
+  // Store breakdown for popup
+  _carryBreakdown = Array.isArray(d.monthlyBreakdown) ? d.monthlyBreakdown : [];
+  _carryMonth     = d.month || S.month;
+
+  // ── Income / Expense
   g("s-inc").textContent = fmtINR(inc);
   g("s-exp").textContent = fmtINR(exp);
 
-  // ── Net balance (hero figure) ────────────────────────────────
+  // ── Net balance (hero figure — no badge, just colour)
   const balEl = g("s-bal");
   balEl.textContent = fmtINR(netBal);
   balEl.className   = "hero-val syne" + (netBal < 0 ? " neg" : "");
 
-  // ── Positive / Negative status badge ────────────────────────
-  const statusEl = g("s-bal-status");
-  if (netBal > 0) {
-    statusEl.textContent = "▲ Positive Balance";
-    statusEl.className   = "bal-status pos";
-  } else if (netBal < 0) {
-    statusEl.textContent = "▼ Negative Balance";
-    statusEl.className   = "bal-status neg";
-  } else {
-    statusEl.textContent = "";
-    statusEl.className   = "bal-status";
-  }
-
-  // ── Previous month balance row ───────────────────────────────
-  const prevName = d.prevMonth || "";
-  g("s-prev-month-name").textContent = prevName;
+  // ── Carried balance row
   const prevEl = g("s-prev-bal");
-  prevEl.textContent = (prevBal >= 0 ? "+" : "") + fmtINR(prevBal);
-  prevEl.className   = "prev-bal-val syne" + (prevBal < 0 ? " neg" : " pos");
+  prevEl.textContent = (carried >= 0 ? "+" : "") + fmtINR(carried);
+  prevEl.className   = "prev-bal-val syne" + (carried < 0 ? " neg" : " pos");
 
-  // ── Budget bar ───────────────────────────────────────────────
+  // ── Budget bar
   const pctSafe = Math.min(Math.max(Math.round(pct), 0), 999);
   const pctEl   = g("s-pct");
   pctEl.textContent = pctSafe + "%";
@@ -1015,7 +1090,7 @@ function renderSummary(d) {
     ? `Spent ${fmtINR(exp)} of ${fmtINR(inc)} income · This month: ${curBal >= 0 ? "+" : ""}${fmtINR(curBal)}`
     : "Add income transactions to see budget tracking";
 
-  // ── Top categories ───────────────────────────────────────────
+  // ── Top categories
   const cats  = Array.isArray(d.topCategories) ? d.topCategories : [];
   const catEl = g("cats-list");
   if (!cats.length) {
@@ -1278,6 +1353,9 @@ function setBtn(id, loading, label) {
 
 g("tx-bd").addEventListener("click", e => {
   if (e.target === g("tx-bd")) closeModal();
+});
+g("carry-bd").addEventListener("click", e => {
+  if (e.target === g("carry-bd")) closeCarryPopup();
 });
 </script>
 </body>
