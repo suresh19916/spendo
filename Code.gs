@@ -37,7 +37,8 @@ function handleRequest(e) {
       case "updateTransaction": return respond(updateTransaction(p));
       case "deleteTransaction": return respond(deleteTransaction(p));
       case "getSummary":        return respond(getSummary(p));
-      case "getAdminReport":    return respond(getAdminReport(p));   // v2.4 admin only
+      case "getAdminReport":          return respond(getAdminReport(p));
+      case "getMonthlySummaryReport": return respond(getMonthlySummaryReport(p)); // v2.6
       default: return respond({ success: false, error: "Unknown action: " + action });
     }
   } catch (err) {
@@ -147,16 +148,17 @@ function getMonthSheet(ss, month, create) {
   let sheet = ss.getSheetByName(month);
   if (!sheet && create) {
     sheet = ss.insertSheet(month);
-    // NEW header includes Name at position 3
-    sheet.appendRow(["ID", "Date", "Name", "Type", "Category", "Amount", "Description"]);
+    // v2.6: 8-column header — CreatedAt added at position 8
+    sheet.appendRow(["ID", "Date", "Name", "Type", "Category", "Amount", "Description", "CreatedAt"]);
     sheet.setFrozenRows(1);
-    sheet.setColumnWidth(1, 110); // ID
-    sheet.setColumnWidth(2, 100); // Date
-    sheet.setColumnWidth(3, 120); // Name
-    sheet.setColumnWidth(4,  80); // Type
-    sheet.setColumnWidth(5, 140); // Category
-    sheet.setColumnWidth(6,  90); // Amount
-    sheet.setColumnWidth(7, 200); // Description
+    sheet.setColumnWidth(1, 110);
+    sheet.setColumnWidth(2, 100);
+    sheet.setColumnWidth(3, 120);
+    sheet.setColumnWidth(4,  80);
+    sheet.setColumnWidth(5, 140);
+    sheet.setColumnWidth(6,  90);
+    sheet.setColumnWidth(7, 200);
+    sheet.setColumnWidth(8, 180);
   }
   return sheet;
 }
@@ -179,23 +181,32 @@ function getTransactions(p) {
 }
 
 function addTransaction(p) {
-  const ss      = SpreadsheetApp.getActiveSpreadsheet();
-  const dateStr = p.date || new Date().toISOString().split("T")[0];
-  const date    = new Date(dateStr);
-  const month   = isNaN(date.getTime()) ? getCurrentMonth() : MONTHS[date.getMonth()];
-  const sheet   = getMonthSheet(ss, month, true);
-  const id      = Utilities.getUuid().substring(0, 8);
-  const amount  = parseFloat(p.amount) || 0;
+  const ss       = SpreadsheetApp.getActiveSpreadsheet();
+  // FIX: parse the incoming date string and store as formatted YYYY-MM-DD.
+  // Using Utilities.formatDate prevents GAS from storing a Date object,
+  // which would serialise differently in rowToObj and break Today filter.
+  var rawDate    = String(p.date || "").trim();
+  var dateObj    = rawDate ? new Date(rawDate) : new Date();
+  var tz         = Session.getScriptTimeZone();
+  var dateStr    = !isNaN(dateObj.getTime())
+    ? Utilities.formatDate(dateObj, tz, "yyyy-MM-dd")
+    : Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
 
-  // 7-column row — Name (p.userName) at index 2
+  var month      = MONTHS[!isNaN(dateObj.getTime()) ? dateObj.getMonth() : new Date().getMonth()];
+  var sheet      = getMonthSheet(ss, month, true);
+  var id         = Utilities.getUuid().substring(0, 8);
+  var amount     = parseFloat(p.amount) || 0;
+
+  // 8-column row
   sheet.appendRow([
     id,
-    dateStr,
-    p.userName    || "",     // NEW: logged-in user's display name
+    dateStr,                     // always "YYYY-MM-DD" string — never a Date object
+    p.userName    || "",
     p.type        || "Expense",
     p.category    || "Other",
     amount,
-    p.description || ""
+    p.description || "",
+    new Date().toISOString()     // CreatedAt — used for 24-hr edit/delete lock
   ]);
 
   return { success: true, id: id, month: month };
@@ -216,15 +227,19 @@ function updateTransaction(p) {
       ? p.userName.trim()
       : String(data[r][2] || "");
 
-    // 7-column update
-    sheet.getRange(r + 1, 1, 1, 7).setValues([[
+    // Preserve existing CreatedAt — never overwrite on edit
+    const createdAt = data[r][7] ? String(data[r][7]) : new Date().toISOString();
+
+    // 8-column update
+    sheet.getRange(r + 1, 1, 1, 8).setValues([[
       p.id,
       p.date        || data[r][1],
-      nameVal,                         // col 3: Name
+      nameVal,
       p.type        || data[r][3],
       p.category    || data[r][4],
       parseFloat(p.amount) || 0,
-      p.description !== undefined ? p.description : data[r][6]
+      p.description !== undefined ? p.description : data[r][6],
+      createdAt
     ]]);
     return { success: true };
   }
@@ -378,19 +393,96 @@ function getAdminReport(p) {
 
   return { success: true, month: month, users: users };
 }
+// ─────────────────────────────────────────────────────────────
+//  Monthly Summary Report  (v2.6 — admin only)
+//  Consolidated all-users income, expense, balance + category
+//  breakdown for the selected month.
+// ─────────────────────────────────────────────────────────────
+
+function getMonthlySummaryReport(p) {
+  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const month = p.month || getCurrentMonth();
+  const sheet = getMonthSheet(ss, month, true);
+  const data  = sheet.getDataRange().getValues();
+
+  let income = 0, expense = 0;
+  // catUserMap: { catName: { total: num, users: { userName: num } } }
+  const catUserMap = {};
+
+  for (let r = 1; r < data.length; r++) {
+    const row    = data[r];
+    if (!row[0]) continue;
+    const type   = String(row[3]).trim();
+    const cat    = String(row[4]).trim();
+    const amount = parseFloat(row[5]) || 0;
+    const name   = String(row[2] || "Unknown").trim();
+
+    if (type === "Income")  income  += amount;
+    if (type === "Expense") {
+      expense += amount;
+      if (!catUserMap[cat]) catUserMap[cat] = { total: 0, users: {} };
+      catUserMap[cat].total += amount;
+      catUserMap[cat].users[name] = (catUserMap[cat].users[name] || 0) + amount;
+    }
+  }
+
+  // Build categories array with per-user breakdown sorted by amount desc
+  const categories = Object.entries(catUserMap)
+    .map(function(entry) {
+      const catName = entry[0];
+      const data    = entry[1];
+      const users   = Object.entries(data.users)
+        .map(function(u) { return { name: u[0], amount: u[1] }; })
+        .sort(function(a, b) { return b.amount - a.amount; });
+      return { name: catName, amount: data.total, users: users };
+    })
+    .sort(function(a, b) { return b.amount - a.amount; });
+
+  return {
+    success    : true,
+    month      : month,
+    income     : income,
+    expense    : expense,
+    balance    : income - expense,
+    categories : categories   // each item now includes users[] for drill-down
+  };
+}
 
 
-
-// v2.2: maps 7-column row to object
 function rowToObj(row) {
+  // FIX: row[1] from Google Sheets can be a Date object, not a string.
+  // Use Utilities.formatDate for reliable YYYY-MM-DD output.
+  var dateStr = "";
+  if (row[1]) {
+    try {
+      // If it's already a proper date object, format it
+      if (Object.prototype.toString.call(row[1]) === "[object Date]") {
+        dateStr = Utilities.formatDate(row[1], Session.getScriptTimeZone(), "yyyy-MM-dd");
+      } else {
+        // String — strip any time component
+        dateStr = String(row[1]).split("T")[0].trim();
+        // If it still looks like a JS date toString(), parse and reformat
+        if (dateStr.length > 10) {
+          var parsed = new Date(row[1]);
+          if (!isNaN(parsed.getTime())) {
+            dateStr = Utilities.formatDate(parsed, Session.getScriptTimeZone(), "yyyy-MM-dd");
+          }
+        }
+      }
+    } catch(e) {
+      dateStr = String(row[1]).split("T")[0];
+    }
+  }
+
   return {
     id          : String(row[0]),
-    date        : row[1] ? String(row[1]).split("T")[0] : "",
-    name        : String(row[2] || ""),   // NEW
+    date        : dateStr,
+    name        : String(row[2] || ""),
     type        : String(row[3]),
     category    : String(row[4]),
     amount      : parseFloat(row[5]) || 0,
-    description : String(row[6] || "")
+    description : String(row[6] || ""),
+    createdAt   : row[7] ? String(row[7]) : ""
   };
 }
 

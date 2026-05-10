@@ -334,6 +334,89 @@ body{
 .rpt-tx-amt{font-family:'Syne',sans-serif;font-weight:700;font-size:.86rem;flex-shrink:0;text-align:right;padding-top:.1rem}
 .rpt-tx-amt.income{color:var(--gr)}
 .rpt-tx-amt.expense{color:var(--rd)}
+
+/* ════ v2.6 — 24-hr lock badge ════ */
+.tx-lock{
+  display:inline-flex;align-items:center;gap:.2rem;
+  font-size:.64rem;color:var(--tx3);background:var(--bg4);
+  border-radius:5px;padding:.15rem .4rem;margin-top:.3rem;
+  border:1px solid var(--bdr);
+}
+
+/* ════ v2.6 — Monthly Summary Report ════ */
+.rpt-type-pick{
+  background:var(--sur);border:1px solid var(--bdr2);border-radius:8px;
+  padding:.32rem .55rem;padding-right:1.4rem;color:var(--tx);
+  font-family:inherit;font-size:.8rem;cursor:pointer;
+  outline:none;appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238a93b2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right .45rem center;
+}
+.rpt-type-pick option{background:var(--bg3)}
+
+/* Monthly summary stat boxes */
+.ms-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:1rem}
+.ms-stat{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r2);padding:.7rem .65rem;text-align:center}
+.ms-stat-lbl{font-size:.6rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.2rem}
+.ms-stat-val{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800}
+.ms-stat-val.g{color:var(--gr)}
+.ms-stat-val.r{color:var(--rd)}
+.ms-stat-val.b{color:var(--ac2)}
+
+/* Category breakdown link */
+.ms-cat-link{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--acbg);border:1px solid rgba(91,110,245,.22);border-radius:var(--r2);
+  padding:.72rem .9rem;cursor:pointer;transition:background .14s;margin-bottom:.8rem;
+}
+.ms-cat-link:active{background:rgba(91,110,245,.2)}
+.ms-cat-link-txt{font-size:.85rem;font-weight:600;color:var(--ac2)}
+.ms-cat-link-arrow{color:var(--ac2);font-size:1rem}
+
+/* Category breakdown rows */
+.ms-cat-row{
+  display:flex;align-items:center;gap:.75rem;
+  background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r2);
+  padding:.72rem .9rem;margin-bottom:.42rem;
+}
+.ms-cat-ico{width:34px;height:34px;border-radius:9px;background:var(--rdbg);display:flex;align-items:center;justify-content:center;font-size:.88rem;flex-shrink:0}
+.ms-cat-body{flex:1;min-width:0}
+.ms-cat-name{font-size:.85rem;font-weight:600;margin-bottom:.28rem}
+.ms-cat-bar{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.ms-cat-fill{height:100%;border-radius:2px;background:var(--rd)}
+.ms-cat-amt{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;color:var(--rd);flex-shrink:0}
+
+/* ════ v2.7 — Category user drill-down ════ */
+.ms-user-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.68rem .9rem;background:var(--sur);border:1px solid var(--bdr);
+  border-radius:var(--r2);margin-bottom:.42rem;
+}
+.ms-user-nm{font-size:.88rem;font-weight:600;color:var(--tx);display:flex;align-items:center;gap:.55rem}
+.ms-user-avatar{
+  width:28px;height:28px;border-radius:50%;background:var(--acbg);
+  border:1px solid rgba(91,110,245,.25);display:flex;align-items:center;
+  justify-content:center;font-size:.75rem;font-weight:700;color:var(--ac2);flex-shrink:0;
+}
+.ms-user-amt{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:700;color:var(--rd)}
+.ms-cat-total-strip{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--rdbg);border:1px solid rgba(240,92,92,.18);border-radius:var(--r2);
+  padding:.6rem .9rem;margin-bottom:.75rem;
+}
+.ms-cat-total-lbl{font-size:.78rem;font-weight:600;color:var(--rd)}
+.ms-cat-total-val{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:var(--rd)}
+
+/* ════ v2.7 — Date filter pills row ════ */
+.tx-filter-section{margin-bottom:.55rem}
+.filter-row-label{font-size:.65rem;color:var(--tx3);font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.3rem}
+.date-pills{display:flex;gap:.38rem;margin-bottom:.4rem;overflow-x:auto;padding-bottom:.05rem}
+.date-pill{
+  flex-shrink:0;padding:.28rem .75rem;border-radius:20px;font-size:.74rem;font-weight:500;
+  cursor:pointer;font-family:inherit;border:1px solid var(--bdr2);background:transparent;
+  color:var(--tx2);transition:all .13s;white-space:nowrap;
+}
+.date-pill.active{background:var(--ambg);border-color:rgba(240,160,32,.38);color:var(--am)}
 </style>
 </head>
 <body>
@@ -457,10 +540,20 @@ body{
       <div class="sec-title">Transactions</div>
       <div class="spin-w" id="tx-spin" style="margin-left:.5rem"><div class="spin"></div></div>
     </div>
-    <div class="pills">
-      <button class="pill active" data-f="All"     onclick="setFilter('All')">All</button>
-      <button class="pill income"  data-f="Income"  onclick="setFilter('Income')">Income</button>
-      <button class="pill expense" data-f="Expense" onclick="setFilter('Expense')">Expense</button>
+
+    <!-- v2.7: Date filter (Today default / This Month) -->
+    <div class="tx-filter-section">
+      <div class="filter-row-label">Date Range</div>
+      <div class="date-pills">
+        <button class="date-pill active" data-df="today"  onclick="setDateFilter('today')">📅 Today</button>
+        <button class="date-pill"        data-df="month"  onclick="setDateFilter('month')">🗓 This Month</button>
+      </div>
+      <div class="filter-row-label" style="margin-top:.25rem">Type</div>
+      <div class="pills">
+        <button class="pill active" data-f="All"     onclick="setFilter('All')">All</button>
+        <button class="pill income"  data-f="Income"  onclick="setFilter('Income')">Income</button>
+        <button class="pill expense" data-f="Expense" onclick="setFilter('Expense')">Expense</button>
+      </div>
     </div>
     <div class="tx-list" id="tx-list"><div class="empty"><div class="empty-ico">🧾</div>Loading…</div></div>
   </div>
@@ -524,6 +617,11 @@ body{
       <div class="topbar-logo" style="margin-left:.5rem"><span>Reports</span></div>
     </div>
     <div class="topbar-row2">
+      <!-- v2.6: report type selector -->
+      <select class="rpt-type-pick" id="rpt-type-pick" onchange="onRptTypeChange()">
+        <option value="user">User Report</option>
+        <option value="monthly">Monthly Summary</option>
+      </select>
       <select class="month-pick" id="rpt-month-pick" onchange="loadReport()"></select>
       <div class="topbar-spacer"></div>
     </div>
@@ -531,36 +629,88 @@ body{
 
   <!-- Report content -->
   <div class="content" id="rpt-content" style="padding-bottom:1.5rem">
-    <!-- Summary view (user cards list) -->
-    <div id="rpt-summary-view">
-      <div class="rpt-heading">
-        <div class="rpt-heading-title" id="rpt-heading-title">Monthly User Summary</div>
-        <div class="rpt-heading-sub" id="rpt-heading-sub">Tap a user to see full details</div>
+
+    <!-- ── User Report views ── -->
+    <div id="rpt-user-report">
+      <!-- Summary view (user cards list) -->
+      <div id="rpt-summary-view">
+        <div class="rpt-heading">
+          <div class="rpt-heading-title" id="rpt-heading-title">Monthly User Summary</div>
+          <div class="rpt-heading-sub" id="rpt-heading-sub">Tap a user to see full details</div>
+        </div>
+        <div id="rpt-user-list">
+          <div class="empty"><div class="empty-ico">📊</div>Select a month to load the report</div>
+        </div>
       </div>
-      <div id="rpt-user-list">
-        <div class="empty"><div class="empty-ico">📊</div>Select a month to load the report</div>
+
+      <!-- Detail view (single user transactions) -->
+      <div id="rpt-detail-view" style="display:none">
+        <div class="rpt-heading">
+          <button class="rpt-back-user" onclick="backToSummary()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            All Users
+          </button>
+          <div class="rpt-heading-title" id="rpt-user-name">User</div>
+        </div>
+        <div class="rpt-summary-strip" id="rpt-strip"></div>
+        <div class="pills" id="rpt-cat-pills" style="margin-top:.65rem"></div>
+        <div class="rpt-tx-list" id="rpt-tx-list"></div>
       </div>
     </div>
 
-    <!-- Detail view (single user transactions) -->
-    <div id="rpt-detail-view" style="display:none">
-      <div class="rpt-heading">
-        <button class="rpt-back-user" onclick="backToSummary()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-          All Users
-        </button>
-        <div class="rpt-heading-title" id="rpt-user-name">User</div>
+    <!-- ── Monthly Summary Report views (v2.6) ── -->
+    <div id="rpt-monthly-report" style="display:none">
+      <!-- Summary view -->
+      <div id="ms-summary-view">
+        <div class="rpt-heading">
+          <div class="rpt-heading-title" id="ms-heading-title">Monthly Summary</div>
+          <div class="rpt-heading-sub">All users consolidated · Tap the card to see category breakdown</div>
+        </div>
+        <!-- Stat boxes: Income / Expenses / Balance -->
+        <div class="ms-stats" id="ms-stats">
+          <div class="ms-stat"><div class="ms-stat-lbl">💰 Income</div><div class="ms-stat-val g" id="ms-inc">₹—</div></div>
+          <div class="ms-stat"><div class="ms-stat-lbl">💸 Expenses</div><div class="ms-stat-val r" id="ms-exp">₹—</div></div>
+          <div class="ms-stat"><div class="ms-stat-lbl">Net Balance</div><div class="ms-stat-val b" id="ms-bal">₹—</div></div>
+        </div>
+        <!-- Category breakdown link -->
+        <div class="ms-cat-link" onclick="showMsCatBreakdown()">
+          <span class="ms-cat-link-txt">📂 View Category Breakdown</span>
+          <span class="ms-cat-link-arrow">›</span>
+        </div>
+        <div id="ms-loading" style="display:none;text-align:center;padding:1.5rem;color:var(--tx3)">Loading…</div>
       </div>
 
-      <!-- User summary strip -->
-      <div class="rpt-summary-strip" id="rpt-strip"></div>
+      <!-- Category breakdown view -->
+      <div id="ms-cat-view" style="display:none">
+        <div class="rpt-heading">
+          <button class="rpt-back-user" onclick="backToMsSummary()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Summary
+          </button>
+          <div class="rpt-heading-title" id="ms-cat-heading">Category Breakdown</div>
+        </div>
+        <div id="ms-cat-list"></div>
+      </div>
 
-      <!-- Category filter pills -->
-      <div class="pills" id="rpt-cat-pills" style="margin-top:.65rem"></div>
-
-      <!-- Transaction table -->
-      <div class="rpt-tx-list" id="rpt-tx-list"></div>
+      <!-- v2.7: User drill-down view (shown when a category is tapped) -->
+      <div id="ms-user-view" style="display:none">
+        <div class="rpt-heading">
+          <button class="rpt-back-user" onclick="backToCatBreakdown()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Categories
+          </button>
+          <div class="rpt-heading-title" id="ms-user-view-title">User Breakdown</div>
+        </div>
+        <!-- Category total strip -->
+        <div class="ms-cat-total-strip" id="ms-cat-total-strip">
+          <span class="ms-cat-total-lbl" id="ms-cat-total-lbl">Category Total</span>
+          <span class="ms-cat-total-val" id="ms-cat-total-val">₹—</span>
+        </div>
+        <!-- Per-user rows -->
+        <div id="ms-user-list"></div>
+      </div>
     </div>
+
   </div>
 </div>
 
@@ -599,17 +749,18 @@ const LS_SESS = "spendo_session";
 //  STATE
 // ════════════════════════════════════════
 const S = {
-  url       : "",
-  apiKey    : "",
-  userId    : "",
-  userName  : "",
-  isAdmin   : false,   // v2.3 — true only for User_ID === "admin"
-  expiresAt : null,
-  month     : MONTHS[new Date().getMonth()],
-  txs       : [],
-  filter    : "All",
-  txType    : "Expense",
-  timerTick : null
+  url        : "",
+  apiKey     : "",
+  userId     : "",
+  userName   : "",
+  isAdmin    : false,
+  expiresAt  : null,
+  month      : MONTHS[new Date().getMonth()],
+  txs        : [],
+  filter     : "All",
+  dateFilter : "today",   // v2.7: "today" | "month" — default shows today only
+  txType     : "Expense",
+  timerTick  : null
 };
 
 // ════════════════════════════════════════
@@ -866,11 +1017,27 @@ function hideReport() {
 }
 
 async function loadReport() {
+  const type = g("rpt-type-pick").value;
+  if (type === "monthly") {
+    await loadMonthlySummaryReport();
+  } else {
+    await loadUserReport();
+  }
+}
+
+function onRptTypeChange() {
+  const type = g("rpt-type-pick").value;
+  g("rpt-user-report").style.display    = type === "user"    ? "block" : "none";
+  g("rpt-monthly-report").style.display = type === "monthly" ? "block" : "none";
+  loadReport();
+}
+
+async function loadUserReport() {
   const month = g("rpt-month-pick").value || S.month;
   g("rpt-heading-title").textContent = month + " — User Summary";
   g("rpt-heading-sub").textContent   = "Tap a user to see full transaction details";
   g("rpt-user-list").innerHTML = '<div class="empty"><div class="empty-ico">⏳</div>Loading report…</div>';
-  backToSummary();   // always start on summary view
+  backToSummary();
 
   try {
     const res = await apiGET({ action:"getAdminReport", month });
@@ -883,6 +1050,139 @@ async function loadReport() {
   } catch(e) {
     g("rpt-user-list").innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div>Connection error</div>';
   }
+}
+
+// ── Monthly Summary Report (v2.6) ──────────────────────────
+let _msData = null; // store loaded data for cat-breakdown view
+
+async function loadMonthlySummaryReport() {
+  const month = g("rpt-month-pick").value || S.month;
+  g("ms-heading-title").textContent = month + " — Monthly Summary";
+  g("ms-cat-heading").textContent   = month + " — Category Breakdown";
+  // Reset to summary sub-view
+  backToMsSummary();
+  // Show loading placeholders
+  g("ms-inc").textContent = "₹—";
+  g("ms-exp").textContent = "₹—";
+  g("ms-bal").textContent = "₹—";
+
+  try {
+    const res = await apiGET({ action:"getMonthlySummaryReport", month });
+    if (res.success) {
+      _msData = res;
+      renderMsSummary(res);
+    } else {
+      toast("Summary report error: " + (res.error || "unknown"), "error");
+    }
+  } catch(e) {
+    toast("Failed to load monthly summary", "error");
+  }
+}
+
+function renderMsSummary(d) {
+  const inc = parseFloat(d.income)  || 0;
+  const exp = parseFloat(d.expense) || 0;
+  const bal = parseFloat(d.balance) || (inc - exp);
+  g("ms-inc").textContent = fmtINR(inc);
+  g("ms-exp").textContent = fmtINR(exp);
+  const balEl = g("ms-bal");
+  balEl.textContent = fmtINR(bal);
+  balEl.className   = "ms-stat-val" + (bal < 0 ? " r" : " b");
+}
+
+function showMsCatBreakdown() {
+  if (!_msData || !_msData.categories) return;
+  g("ms-summary-view").style.display = "none";
+  g("ms-cat-view").style.display     = "block";
+  g("ms-user-view").style.display    = "none";
+
+  const cats   = _msData.categories || [];
+  const catEl  = g("ms-cat-list");
+  if (!cats.length) {
+    catEl.innerHTML = '<div class="empty"><div class="empty-ico">📂</div>No expense categories found</div>';
+    return;
+  }
+  const maxAmt = cats[0].amount || 1;
+  // Each row is clickable → drills into user breakdown (v2.7)
+  catEl.innerHTML = cats.map((c, idx) => `
+    <div class="ms-cat-row" onclick="openMsUserDrilldown(${idx})" style="cursor:pointer">
+      <div class="ms-cat-ico">${ICONS[c.name] || "📌"}</div>
+      <div class="ms-cat-body">
+        <div class="ms-cat-name">${esc(c.name)}</div>
+        <div class="ms-cat-bar"><div class="ms-cat-fill" style="width:${((c.amount / maxAmt) * 100).toFixed(1)}%"></div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.3rem;flex-shrink:0">
+        <div class="ms-cat-amt">${fmtINR(c.amount)}</div>
+        <span style="color:var(--tx3);font-size:.8rem">›</span>
+      </div>
+    </div>
+  `).join("");
+}
+
+// v2.7: open user-wise breakdown for a clicked category
+function openMsUserDrilldown(idx) {
+  if (!_msData || !_msData.categories) return;
+  const cat = _msData.categories[idx];
+  if (!cat) return;
+
+  g("ms-cat-view").style.display  = "none";
+  g("ms-user-view").style.display = "block";
+
+  g("ms-user-view-title").textContent = cat.name + " — Users";
+  g("ms-cat-total-lbl").textContent   = cat.name + " Total";
+  g("ms-cat-total-val").textContent   = fmtINR(cat.amount);
+
+  const listEl = g("ms-user-list");
+
+  // FIX Bug 2: cat.users is undefined when the deployed Apps Script is the
+  // old version that didn't include per-user breakdown.
+  // Distinguish between: (a) field missing → redeploy needed,
+  //                      (b) field present but empty array → no data.
+  if (cat.users === undefined || cat.users === null) {
+    listEl.innerHTML = `
+      <div class="empty">
+        <div class="empty-ico">🔄</div>
+        <div style="margin-bottom:.4rem;font-weight:600;color:var(--tx2)">Script needs redeployment</div>
+        <div style="font-size:.75rem;line-height:1.5;color:var(--tx3)">
+          Please redeploy your Apps Script web app as a new deployment to enable user-wise category breakdown.
+        </div>
+      </div>`;
+    return;
+  }
+
+  const users = Array.isArray(cat.users) ? cat.users : [];
+  if (!users.length) {
+    listEl.innerHTML = '<div class="empty"><div class="empty-ico">👤</div>No user data for this category</div>';
+    return;
+  }
+
+  listEl.innerHTML = users.map(u => {
+    const initial = esc(u.name).charAt(0).toUpperCase();
+    const pct     = cat.amount > 0 ? ((u.amount / cat.amount) * 100).toFixed(0) : 0;
+    return `
+      <div class="ms-user-row">
+        <div class="ms-user-nm">
+          <div class="ms-user-avatar">${initial}</div>
+          <div>
+            <div style="font-size:.86rem;font-weight:600">${esc(u.name)}</div>
+            <div style="font-size:.66rem;color:var(--tx3);margin-top:.05rem">${pct}% of category</div>
+          </div>
+        </div>
+        <div class="ms-user-amt">${fmtINR(u.amount)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function backToCatBreakdown() {
+  g("ms-user-view").style.display = "none";
+  g("ms-cat-view").style.display  = "block";
+}
+
+function backToMsSummary() {
+  g("ms-summary-view").style.display = "block";
+  g("ms-cat-view").style.display     = "none";
+  g("ms-user-view").style.display    = "none";
 }
 
 function renderReportSummary() {
@@ -1111,26 +1411,60 @@ function renderSummary(d) {
 }
 
 // ════════════════════════════════════════
-//  RENDER — TRANSACTIONS
-//  CHANGE 2: show tx.name as a user tag in each card
+//  RENDER — TRANSACTIONS  (v2.6: 24-hr lock)
 // ════════════════════════════════════════
+const MS24 = 24 * 60 * 60 * 1000; // 24 hours in ms
+
+function isTxLocked(tx) {
+  // Admin is never locked
+  if (S.isAdmin) return false;
+  // If no createdAt stamp (legacy rows), treat as unlocked
+  if (!tx.createdAt) return false;
+  const created = new Date(tx.createdAt);
+  if (isNaN(created.getTime())) return false;
+  return (Date.now() - created.getTime()) > MS24;
+}
+
 function renderTxs() {
-  const el = g("tx-list");
-  let list = [...(S.txs || [])];
+  const el   = g("tx-list");
+  const today = todayISO();
+  let list   = [...(S.txs || [])];
+
+  // v2.7: date filter — apply FIRST before type filter
+  if (S.dateFilter === "today") {
+    list = list.filter(t => {
+      // Normalise: handle "2025-05-08T..." and plain "2025-05-08"
+      const txDay = t.date ? String(t.date).split("T")[0] : "";
+      return txDay === today;
+    });
+  }
+  // S.dateFilter === "month" → no additional filtering (month is already scoped by picker)
+
+  // Type filter
   if (S.filter !== "All") list = list.filter(t => t.type === S.filter);
+
   list.sort((a, b) => new Date(b.date) - new Date(a.date));
 
   if (!list.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-ico">🧾</div>No transactions found</div>';
+    const emptyMsg = S.dateFilter === "today"
+      ? "No transactions today — switch to 'This Month' to see older entries"
+      : "No transactions found";
+    el.innerHTML = `<div class="empty"><div class="empty-ico">🧾</div>${emptyMsg}</div>`;
     return;
   }
 
   el.innerHTML = list.map(tx => {
-    // Build subtitle: user name tag + description + date
     const userTag = tx.name
       ? `<span class="tx-user">${esc(tx.name)}</span>`
       : "";
     const desc = tx.description ? esc(tx.description) : "—";
+    const locked = isTxLocked(tx);
+    const actionHtml = locked
+      ? `<div class="tx-lock">🔒 Locked after 24h</div>`
+      : `<div class="tx-acts">
+           <button class="tx-act" onclick="editTx('${esc(tx.id)}')">✏ Edit</button>
+           <button class="tx-act del" onclick="delTx('${esc(tx.id)}')">✕ Del</button>
+         </div>`;
     return `
       <div class="tx-card">
         <div class="tx-ico ${tx.type.toLowerCase()}">${ICONS[tx.category] || ICONS["_"]}</div>
@@ -1140,10 +1474,7 @@ function renderTxs() {
         </div>
         <div class="tx-right">
           <div class="tx-amt ${tx.type.toLowerCase()}">${tx.type === "Income" ? "+" : "−"}${fmtINR(tx.amount)}</div>
-          <div class="tx-acts">
-            <button class="tx-act" onclick="editTx('${esc(tx.id)}')">✏ Edit</button>
-            <button class="tx-act del" onclick="delTx('${esc(tx.id)}')">✕ Del</button>
-          </div>
+          ${actionHtml}
         </div>
       </div>
     `;
@@ -1151,12 +1482,23 @@ function renderTxs() {
 }
 
 // ════════════════════════════════════════
-//  FILTER
+//  FILTER — TYPE
 // ════════════════════════════════════════
 function setFilter(f) {
   S.filter = f;
   document.querySelectorAll(".pill").forEach(p =>
     p.classList.toggle("active", p.dataset.f === f)
+  );
+  renderTxs();
+}
+
+// ════════════════════════════════════════
+//  FILTER — DATE  (v2.7)
+// ════════════════════════════════════════
+function setDateFilter(f) {
+  S.dateFilter = f;
+  document.querySelectorAll(".date-pill").forEach(p =>
+    p.classList.toggle("active", p.dataset.df === f)
   );
   renderTxs();
 }
@@ -1195,6 +1537,12 @@ function editTx(id) {
   const tx = S.txs.find(t => t.id === id);
   if (!tx) return;
 
+  // v2.6: 24-hr lock check
+  if (isTxLocked(tx)) {
+    toast("This transaction is locked — only Admin can edit after 24 hours", "error");
+    return;
+  }
+
   g("sh-title").textContent = "Edit Transaction";
   g("f-save").textContent   = "Update";
   g("f-date").value         = normDate(tx.date);
@@ -1209,6 +1557,12 @@ function editTx(id) {
 }
 
 async function delTx(id) {
+  // v2.6: 24-hr lock check
+  const tx = S.txs.find(t => t.id === id);
+  if (tx && isTxLocked(tx)) {
+    toast("This transaction is locked — only Admin can delete after 24 hours", "error");
+    return;
+  }
   if (!confirm("Delete this transaction?")) return;
   try {
     const res = await apiGET({ action:"deleteTransaction", id, month:S.month });
@@ -1297,7 +1651,6 @@ async function apiFetch(url, params) {
 // ════════════════════════════════════════
 function g(id) { return document.getElementById(id); }
 
-// CHANGE 4: removed the ">= 100000 → L" branch; always show exact number
 function fmtINR(n) {
   const v = parseFloat(n) || 0;
   return "₹" + v.toLocaleString("en-IN", { maximumFractionDigits: 0 });
@@ -1316,13 +1669,29 @@ function normDate(d) {
   if (!d) return todayISO();
   if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
   try {
+    // Use local date parts to avoid UTC shift
     const dt = new Date(d);
-    if (!isNaN(dt.getTime())) return dt.toISOString().split("T")[0];
+    if (!isNaN(dt.getTime())) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, "0");
+      const day = String(dt.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
   } catch (e) {}
   return todayISO();
 }
 
-function todayISO() { return new Date().toISOString().split("T")[0]; }
+// FIX Bug 1: use LOCAL date components — not UTC.
+// new Date().toISOString() returns UTC time. For IST users (UTC+5:30)
+// this returns "tomorrow's" date after 6:30 PM local time, causing the
+// Today filter to match nothing. We build the date from local components.
+function todayISO() {
+  const now = new Date();
+  const y   = now.getFullYear();
+  const m   = String(now.getMonth() + 1).padStart(2, "0");
+  const d   = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
 function esc(s) {
   return String(s || "")
