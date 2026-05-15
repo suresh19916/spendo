@@ -65,22 +65,32 @@ function login(p) {
   const headers = data[0];
 
   // Column indices — resolved dynamically so column order in sheet doesn't matter
-  const uidIdx  = headers.indexOf("User_ID");
-  const nameIdx = headers.indexOf("Name");       // NEW in v2.2
-  const pwIdx   = headers.indexOf("Password");
-  const keyIdx  = headers.indexOf("API_Key");
-  const expIdx  = headers.indexOf("Expire_Date");
+  const uidIdx    = headers.indexOf("User_ID");
+  const nameIdx   = headers.indexOf("Name");
+  const pwIdx     = headers.indexOf("Password");
+  const keyIdx    = headers.indexOf("API_Key");
+  const expIdx    = headers.indexOf("Expire_Date");
+  const urlIdx    = headers.indexOf("Script_URL");    // v2.9: optional URL validation column
 
   if (uidIdx < 0 || pwIdx < 0 || keyIdx < 0 || expIdx < 0) {
     return { success: false, error: "Login sheet columns missing. Re-run setupSpreadsheet()." };
   }
 
-  const userId   = String(p.userId   || "").trim();
-  const password = String(p.password || "").trim();
+  const userId    = String(p.userId    || "").trim();
+  const password  = String(p.password  || "").trim();
+  const scriptUrl = String(p.scriptUrl || "").trim();  // v2.9: URL sent by client for validation
 
   for (let r = 1; r < data.length; r++) {
     if (String(data[r][uidIdx]).trim() !== userId)   continue;
     if (String(data[r][pwIdx]).trim()  !== password) continue;
+
+    // v2.9: validate Script_URL if the column exists and the cell has a value
+    if (urlIdx >= 0 && scriptUrl) {
+      const sheetUrl = String(data[r][urlIdx] || "").trim();
+      if (sheetUrl && sheetUrl !== scriptUrl) {
+        return { success: false, error: "Invalid Script URL. Please contact your administrator." };
+      }
+    }
 
     // Credentials match — generate key with 30-min expiry
     const apiKey = generateKey();
@@ -101,7 +111,7 @@ function login(p) {
       apiKey    : apiKey,
       expiresAt : expire.toISOString(),
       name      : displayName,
-      isAdmin   : isAdmin    // v2.3 — controls data visibility in frontend + backend
+      isAdmin   : isAdmin
     };
   }
   return { success: false, error: "Invalid User ID or Password." };
@@ -496,15 +506,16 @@ function getCurrentMonth() {
 
 function createLoginSheet(ss) {
   const sheet = ss.insertSheet(SHEET_LOGIN);
-  // v2.2: header includes "Name" between "User_ID" and "Password"
-  sheet.appendRow(["User_ID", "Name", "Password", "API_Key", "Expire_Date"]);
-  sheet.appendRow(["admin", "Admin", "admin123", "", ""]);   // ← change after deploy
+  // v2.9: header includes Script_URL for URL-based login validation
+  sheet.appendRow(["User_ID", "Name", "Password", "API_Key", "Expire_Date", "Script_URL"]);
+  sheet.appendRow(["admin", "Admin", "admin123", "", "", ""]);   // ← change after deploy
   sheet.setFrozenRows(1);
   sheet.setColumnWidth(1, 120); // User_ID
   sheet.setColumnWidth(2, 140); // Name
   sheet.setColumnWidth(3, 120); // Password
   sheet.setColumnWidth(4, 280); // API_Key
   sheet.setColumnWidth(5, 200); // Expire_Date
+  sheet.setColumnWidth(6, 320); // Script_URL
   return sheet;
 }
 
@@ -513,12 +524,12 @@ function setupSpreadsheet() {
   if (!ss.getSheetByName(SHEET_LOGIN)) createLoginSheet(ss);
   MONTHS.forEach(function(m) { getMonthSheet(ss, m, true); });
   SpreadsheetApp.getUi().alert(
-    "✅ Spendo v2.3 setup complete!\n\n" +
-    "Login sheet columns: User_ID | Name | Password | API_Key | Expire_Date\n\n" +
+    "✅ Spendo v2.9 setup complete!\n\n" +
+    "Login sheet columns: User_ID | Name | Password | API_Key | Expire_Date | Script_URL\n\n" +
+    "The Script_URL column is optional — fill it with your deployed web app URL\n" +
+    "to restrict logins to only that specific deployment.\n\n" +
     "Default credentials:\n  User ID  : admin\n  Password : admin123\n\n" +
-    "Add user names in the 'Name' column for each user.\n" +
-    "Change passwords before sharing.\n\n" +
-    "Admin (User_ID = admin) can see all users' transactions.\n" +
-    "All other users see only their own transactions."
+    "Change passwords before sharing.\n" +
+    "Admin (User_ID = admin) can see all users' transactions."
   );
 }
