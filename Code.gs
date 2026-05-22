@@ -1,17 +1,20 @@
 // ============================================================
-//  SPENDO – Google Apps Script Backend  v2.3
+//  SPENDO – Google Apps Script Backend  v3.0
 //  Deploy as: Web App → Execute as: Me → Who has access: Anyone
 //
 //  ALL actions use GET (e.parameter) — reliable cross-origin.
 //
-//  v2.3 changes (on top of v2.2)
-//  ─ login() returns isAdmin:true when User_ID === "admin"
-//  ─ getSummary() now computes prevMonthBalance and netBalance
-//  ─ getSummary() + getTransactions() filter rows by userName
-//  ─ v2.4: getAdminReport() — monthly per-user summary + transactions
+//  v3.0 changes (Saving module)
+//  ─ New "Saving" sheet for saving transactions
+//  ─ addSavingTransaction(): add saving entry
+//  ─ getSavingSummary(): total saved, spent from saving, remaining
+//  ─ getSavingTransactions(): list saving transactions
+//  ─ Salary→Saving overflow: when salary balance exhausted, expense
+//    deducted from saving and logged in both sheets
 // ============================================================
 
-const SHEET_LOGIN = "Login";
+const SHEET_LOGIN  = "Login";
+const SHEET_SAVING = "Saving";
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 // ─────────────────────────────────────────────────────────────
@@ -39,6 +42,12 @@ function handleRequest(e) {
       case "getSummary":        return respond(getSummary(p));
       case "getAdminReport":          return respond(getAdminReport(p));
       case "getMonthlySummaryReport": return respond(getMonthlySummaryReport(p)); // v2.6
+      // v3.0 — Saving module
+      case "addSavingTransaction":       return respond(addSavingTransaction(p));
+      case "getSavingSummary":             return respond(getSavingSummary(p));
+      case "getSavingTransactions":        return respond(getSavingTransactions(p));
+      case "getAdminSavingReport":         return respond(getAdminSavingReport(p));
+      case "recoverSavingFromSalary":      return respond(recoverSavingFromSalary(p));
       default: return respond({ success: false, error: "Unknown action: " + action });
     }
   } catch (err) {
@@ -501,6 +510,413 @@ function getCurrentMonth() {
 }
 
 // ─────────────────────────────────────────────────────────────
+//  Saving Module  (v3.0)
+//
+//  Saving Sheet column layout (10 columns):
+//  0: ID  1: Date  2: UserName  3: Bank  4: TxType
+//  5: Amount  6: Remark  7: AmountDeductedFromSaving
+//  8: RemainingSavingBalance  9: CreatedAt
+//
+//  TxType values:
+//    "Saving"   — user deposits into saving
+//    "Expense"  — deduction from saving (overflow from salary)
+// ─────────────────────────────────────────────────────────────
+
+function getSavingSheet(ss) {
+  let sheet = ss.getSheetByName(SHEET_SAVING);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_SAVING);
+    sheet.appendRow([
+      "ID", "Date", "UserName", "Bank", "TxType",
+      "Amount", "Remark", "AmountDeductedFromSaving",
+      "RemainingSavingBalance", "CreatedAt", "Category"
+    ]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(1,  110); // ID
+    sheet.setColumnWidth(2,  100); // Date
+    sheet.setColumnWidth(3,  120); // UserName
+    sheet.setColumnWidth(4,  120); // Bank
+    sheet.setColumnWidth(5,   90); // TxType
+    sheet.setColumnWidth(6,  100); // Amount
+    sheet.setColumnWidth(7,  180); // Remark
+    sheet.setColumnWidth(8,  200); // AmountDeductedFromSaving
+    sheet.setColumnWidth(9,  200); // RemainingSavingBalance
+    sheet.setColumnWidth(10, 180); // CreatedAt
+    sheet.setColumnWidth(11, 140); // Category
+  }
+  return sheet;
+}
+
+function savingRowToObj(row) {
+  var dateStr = "";
+  if (row[1]) {
+    try {
+      if (Object.prototype.toString.call(row[1]) === "[object Date]") {
+        dateStr = Utilities.formatDate(row[1], Session.getScriptTimeZone(), "yyyy-MM-dd");
+      } else {
+        dateStr = String(row[1]).split("T")[0].trim();
+        if (dateStr.length > 10) {
+          var parsed = new Date(row[1]);
+          if (!isNaN(parsed.getTime())) {
+            dateStr = Utilities.formatDate(parsed, Session.getScriptTimeZone(), "yyyy-MM-dd");
+          }
+        }
+      }
+    } catch(e) { dateStr = String(row[1]).split("T")[0]; }
+  }
+  return {
+    id                      : String(row[0]),
+    date                    : dateStr,
+    userName                : String(row[2] || ""),
+    bank                    : String(row[3] || ""),
+    txType                  : String(row[4] || "Saving"),
+    amount                  : parseFloat(row[5]) || 0,
+    remark                  : String(row[6] || ""),
+    amountDeductedFromSaving: parseFloat(row[7]) || 0,
+    remainingSavingBalance  : parseFloat(row[8]) || 0,
+    createdAt               : row[9] ? String(row[9]) : "",
+    category                : String(row[10] || "")
+  };
+}
+
+// Compute current saving balance for a user from the Saving sheet
+// TxType "Recovery" restores saving balance (auto-recovered when salary income arrives)
+function computeSavingBalance(ss, userName) {
+  const sheet = getSavingSheet(ss);
+  const data  = sheet.getDataRange().getValues();
+  let total   = 0;
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    if (!row[0]) continue;
+    const rowUser = String(row[2] || "").trim();
+    if (rowUser !== userName) continue;
+    const txType = String(row[4] || "").trim();
+    const amount = parseFloat(row[5]) || 0;
+    const deducted = parseFloat(row[7]) || 0;
+    if (txType === "Saving") {
+      total += amount;
+    } else if (txType === "Expense") {
+      total -= deducted;
+    } else if (txType === "Recovery") {
+      total += amount;   // Salary recovery restores saving balance
+    }
+  }
+  return total;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Salary → Saving Recovery  (v3.1 fix)
+//
+//  When salary income is added after saving was used to cover
+//  overflow expenses, this function auto-recovers (restores) the
+//  saving deductions up to the new salary income amount.
+//
+//  Logic:
+//    unrecovered = Σ Expense.deducted − Σ Recovery.amount
+//    recoveryAmount = min(salaryIncome, unrecovered)
+//    → Append a "Recovery" row to the Saving sheet for recoveryAmount
+// ─────────────────────────────────────────────────────────────
+function recoverSavingFromSalary(p) {
+  const ss       = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet    = getSavingSheet(ss);
+  const data     = sheet.getDataRange().getValues();
+  const userName = String(p.userName || "").trim();
+  const salaryIncome = parseFloat(p.amount) || 0;
+
+  if (salaryIncome <= 0) return { success: true, recovered: 0 };
+
+  // Sum all unrecovered saving expenses
+  var totalExpenses   = 0;
+  var totalRecoveries = 0;
+  for (var r = 1; r < data.length; r++) {
+    var row = data[r];
+    if (!row[0]) continue;
+    if (String(row[2] || "").trim() !== userName) continue;
+    var txType  = String(row[4] || "").trim();
+    var deducted = parseFloat(row[7]) || 0;
+    var amount   = parseFloat(row[5]) || 0;
+    if (txType === "Expense")  totalExpenses   += deducted;
+    if (txType === "Recovery") totalRecoveries += amount;
+  }
+
+  var unrecovered = Math.max(0, totalExpenses - totalRecoveries);
+  if (unrecovered <= 0) return { success: true, recovered: 0 };
+
+  var recoveryAmount = Math.min(salaryIncome, unrecovered);
+  if (recoveryAmount <= 0) return { success: true, recovered: 0 };
+
+  var tz      = Session.getScriptTimeZone();
+  var dateStr = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
+  var id      = Utilities.getUuid().substring(0, 8);
+
+  // Compute new saving balance after recovery
+  var prevBalance = computeSavingBalance(ss, userName);
+  var newBalance  = prevBalance + recoveryAmount;
+
+  // Append Recovery row (same 11-column layout as other saving rows)
+  sheet.appendRow([
+    id,
+    dateStr,
+    userName,
+    "—",                                      // Bank — not applicable
+    "Recovery",                               // TxType
+    recoveryAmount,                           // Amount (restored to saving)
+    "Auto-recovered from salary income",      // Remark
+    0,                                        // AmountDeductedFromSaving (none — this is a credit)
+    newBalance,                               // RemainingSavingBalance
+    new Date().toISOString(),                 // CreatedAt
+    "Salary"                                  // Category
+  ]);
+
+  return {
+    success           : true,
+    recovered         : recoveryAmount,
+    unrecoveredBefore : unrecovered,
+    newSavingBalance  : newBalance
+  };
+}
+
+// Add a saving deposit or record an expense deducted from saving
+function addSavingTransaction(p) {
+  const ss       = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet    = getSavingSheet(ss);
+  const userName = String(p.userName || "").trim();
+
+  var rawDate  = String(p.date || "").trim();
+  var dateObj  = rawDate ? new Date(rawDate) : new Date();
+  var tz       = Session.getScriptTimeZone();
+  var dateStr  = !isNaN(dateObj.getTime())
+    ? Utilities.formatDate(dateObj, tz, "yyyy-MM-dd")
+    : Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
+
+  var id       = Utilities.getUuid().substring(0, 8);
+  var amount   = parseFloat(p.amount) || 0;
+  var txType   = String(p.txType || "Saving").trim(); // "Saving" or "Expense"
+  var bank     = String(p.bank   || "").trim();
+  var remark   = String(p.remark || "").trim();
+  var category = String(p.category || "").trim();
+
+  // Compute balance before this transaction
+  var prevBalance = computeSavingBalance(ss, userName);
+  var deducted    = 0;
+  var newBalance  = prevBalance;
+
+  if (txType === "Saving") {
+    newBalance = prevBalance + amount;
+    deducted   = 0;
+  } else if (txType === "Expense") {
+    deducted   = amount;
+    newBalance = prevBalance - amount;
+  }
+
+  sheet.appendRow([
+    id,
+    dateStr,
+    userName,
+    bank,
+    txType,
+    amount,
+    remark,
+    deducted,
+    newBalance,
+    new Date().toISOString(),
+    category
+  ]);
+
+  return { success: true, id: id, remainingSavingBalance: newBalance };
+}
+
+function getSavingSummary(p) {
+  const ss          = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet       = getSavingSheet(ss);
+  const data        = sheet.getDataRange().getValues();
+  const userName    = String(p.userName || "").trim();
+  const filterMonth = p.month ? String(p.month).trim() : null; // e.g. "May"
+  const filterMonthIdx = filterMonth ? MONTHS.indexOf(filterMonth) : -1;
+
+  var totalSaving   = 0;  // deposits in selected month only (Saving type)
+  var totalSpent    = 0;  // gross deductions in selected month only
+  var totalRecovery = 0;  // recoveries in selected month only
+  var cumSaving     = 0;  // all-time Saving deposits up to and including selected month
+  var cumSpent      = 0;  // all-time gross deductions
+  var cumRecovery   = 0;  // all-time recoveries (tracked separately — NOT added to cumSaving)
+  const catMap      = {}; // category → total expense deducted (month-only)
+
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    if (!row[0]) continue;
+    const rowUser = String(row[2] || "").trim();
+    if (userName && rowUser !== userName) continue;
+
+    // Parse date to determine which month this row belongs to
+    var dateStr = "";
+    if (row[1]) {
+      try {
+        if (Object.prototype.toString.call(row[1]) === "[object Date]") {
+          dateStr = Utilities.formatDate(row[1], Session.getScriptTimeZone(), "yyyy-MM-dd");
+        } else {
+          dateStr = String(row[1]).split("T")[0].trim();
+        }
+      } catch(e) { dateStr = String(row[1]).split("T")[0]; }
+    }
+    const txDate     = dateStr ? new Date(dateStr) : null;
+    const txMonthIdx = (txDate && !isNaN(txDate.getTime())) ? txDate.getMonth() : -1;
+
+    const txType   = String(row[4] || "").trim();
+    const amount   = parseFloat(row[5]) || 0;
+    const deducted = parseFloat(row[7]) || 0;
+    const category = String(row[10] || "Other").trim() || "Other";
+
+    // Cumulative balance: count all rows up to and including filterMonth
+    // Recovery is tracked separately — NOT added to cumSaving to avoid inflating Total Saved
+    const inOrBefore = (filterMonthIdx < 0) || (txMonthIdx >= 0 && txMonthIdx <= filterMonthIdx);
+    if (inOrBefore) {
+      if (txType === "Saving")        cumSaving   += amount;
+      else if (txType === "Expense")  cumSpent    += deducted;
+      else if (txType === "Recovery") cumRecovery += amount;  // reduces effective deduction; NOT added to savings
+    }
+
+    // Month-specific totals: only rows in the exact selected month
+    const inMonth = (filterMonthIdx < 0) || (txMonthIdx === filterMonthIdx);
+    if (inMonth) {
+      if (txType === "Saving") {
+        totalSaving += amount;
+      } else if (txType === "Expense") {
+        totalSpent  += deducted;
+        catMap[category] = (catMap[category] || 0) + deducted;
+      } else if (txType === "Recovery") {
+        totalRecovery += amount;  // month-specific recovery tracked separately
+      }
+    }
+  }
+
+  // Adjust category breakdown to reflect only UNRECOVERED amounts.
+  // Recovery rows are not category-specific, so we apply a proportional
+  // scale-down across all categories:
+  //   scaleFactor = netMonthDeducted / grossMonthDeducted
+  // If everything is recovered, all categories collapse to 0 and are hidden.
+  var netMonthDeducted = Math.max(0, totalSpent - totalRecovery);
+  var adjustedCatMap   = {};
+  if (totalSpent > 0) {
+    var scaleFactor = netMonthDeducted / totalSpent;
+    Object.keys(catMap).forEach(function(cat) {
+      var adjusted = Math.round(catMap[cat] * scaleFactor);
+      if (adjusted > 0) adjustedCatMap[cat] = adjusted;
+    });
+  }
+
+  // Build category breakdown array sorted by amount desc (net amounts only)
+  const categoryBreakdown = Object.entries(adjustedCatMap)
+    .map(function(e) { return { name: e[0], amount: e[1] }; })
+    .sort(function(a, b) { return b.amount - a.amount; });
+
+  // Net deducted = gross deductions − recoveries; remaining = savings − net deducted
+  var netCumSpent = Math.max(0, cumSpent - cumRecovery);
+  var remaining   = cumSaving - netCumSpent;
+
+  return {
+    success               : true,
+    month                 : filterMonth,
+    totalSavingAmount     : totalSaving,
+    amountSpentFromSaving : Math.max(0, totalSpent - totalRecovery),  // net deducted this month
+    recoveryAmount        : totalRecovery,   // month-specific recovery (shown separately on dashboard)
+    remainingSavingBalance: remaining,
+    categoryBreakdown     : categoryBreakdown
+  };
+}
+
+function getAdminSavingReport(p) {
+  const ss          = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet       = getSavingSheet(ss);
+  const data        = sheet.getDataRange().getValues();
+  const filterMonth = p.month ? String(p.month).trim() : null;
+  const filterMonthIdx = filterMonth ? MONTHS.indexOf(filterMonth) : -1;
+
+  // Map: userName → { totalSaving, totalSpent, remainingBalance, transactions[] }
+  const userMap = {};
+  const allTxs  = [];
+
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    if (!row[0]) continue;
+    const obj  = savingRowToObj(row);
+    const name = obj.userName || "Unknown";
+
+    // Month filter
+    if (filterMonthIdx >= 0) {
+      const txDate = obj.date ? new Date(obj.date) : null;
+      if (!txDate || isNaN(txDate.getTime()) || txDate.getMonth() !== filterMonthIdx) continue;
+    }
+
+    if (!userMap[name]) {
+      userMap[name] = { name: name, totalSaving: 0, totalSpent: 0, totalRecovery: 0, remainingBalance: 0, transactions: [] };
+    }
+
+    if (obj.txType === "Saving") {
+      userMap[name].totalSaving += obj.amount;
+    } else if (obj.txType === "Expense") {
+      userMap[name].totalSpent += obj.amountDeductedFromSaving;
+    } else if (obj.txType === "Recovery") {
+      // Recovery reduces effective deduction — tracked separately, NOT added to totalSaving
+      userMap[name].totalRecovery += obj.amount;
+    }
+    userMap[name].transactions.push(obj);
+    allTxs.push(obj);
+  }
+
+  const users = Object.values(userMap).map(function(u) {
+    u.remainingBalance = u.totalSaving - u.totalSpent + (u.totalRecovery || 0);
+    u.transactions = u.transactions.sort(function(a, b) {
+      return new Date(b.date) - new Date(a.date);
+    });
+    return u;
+  });
+  users.sort(function(a, b) { return a.name.localeCompare(b.name); });
+  allTxs.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+
+  return { success: true, users: users, transactions: allTxs };
+}
+
+function getSavingTransactions(p) {
+  const ss          = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet       = getSavingSheet(ss);
+  const data        = sheet.getDataRange().getValues();
+  const userName    = String(p.userName || "").trim();
+  const filterMonth = p.month ? String(p.month).trim() : null;
+  const filterMonthIdx = filterMonth ? MONTHS.indexOf(filterMonth) : -1;
+  const rows        = [];
+
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    if (!row[0]) continue;
+    const rowUser = String(row[2] || "").trim();
+    if (userName && rowUser !== userName) continue;
+
+    // Month filter
+    if (filterMonthIdx >= 0) {
+      var dateStr = "";
+      if (row[1]) {
+        try {
+          if (Object.prototype.toString.call(row[1]) === "[object Date]") {
+            dateStr = Utilities.formatDate(row[1], Session.getScriptTimeZone(), "yyyy-MM-dd");
+          } else {
+            dateStr = String(row[1]).split("T")[0].trim();
+          }
+        } catch(e) { dateStr = String(row[1]).split("T")[0]; }
+      }
+      const txDate = dateStr ? new Date(dateStr) : null;
+      if (!txDate || isNaN(txDate.getTime()) || txDate.getMonth() !== filterMonthIdx) continue;
+    }
+
+    rows.push(savingRowToObj(row));
+  }
+
+  // Newest first
+  rows.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+  return { success: true, transactions: rows, month: filterMonth };
+}
+
+// ─────────────────────────────────────────────────────────────
 //  One-time setup  (run from Apps Script editor)
 // ─────────────────────────────────────────────────────────────
 
@@ -521,11 +937,13 @@ function createLoginSheet(ss) {
 
 function setupSpreadsheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  if (!ss.getSheetByName(SHEET_LOGIN)) createLoginSheet(ss);
+  if (!ss.getSheetByName(SHEET_LOGIN))  createLoginSheet(ss);
+  if (!ss.getSheetByName(SHEET_SAVING)) getSavingSheet(ss);
   MONTHS.forEach(function(m) { getMonthSheet(ss, m, true); });
   SpreadsheetApp.getUi().alert(
-    "✅ Spendo v2.9 setup complete!\n\n" +
-    "Login sheet columns: User_ID | Name | Password | API_Key | Expire_Date | Script_URL\n\n" +
+    "✅ Spendo v3.0 setup complete!\n\n" +
+    "Login sheet columns: User_ID | Name | Password | API_Key | Expire_Date | Script_URL\n" +
+    "Saving sheet: ID | Date | UserName | Bank | TxType | Amount | Remark | AmountDeductedFromSaving | RemainingSavingBalance | CreatedAt\n\n" +
     "The Script_URL column is optional — fill it with your deployed web app URL\n" +
     "to restrict logins to only that specific deployment.\n\n" +
     "Default credentials:\n  User ID  : admin\n  Password : admin123\n\n" +
