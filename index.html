@@ -427,10 +427,26 @@ body{
 .date-pill.active{background:var(--ambg);border-color:rgba(240,160,32,.38);color:var(--am)}
 
 /* ════ v3.0 — Salary / Saving Tabs ════ */
+.module-tabs-row{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem}
+.module-tabs-row .module-tabs{flex:1;margin-bottom:0}
 .module-tabs{
   display:grid;grid-template-columns:1fr 1fr;gap:.45rem;
   margin-bottom:1rem;
 }
+
+/* ── Eye toggle button ── */
+.eye-toggle-btn{
+  flex-shrink:0;background:var(--sur);border:1.5px solid var(--bdr2);
+  border-radius:var(--r2);color:var(--tx2);padding:.55rem .65rem;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.eye-toggle-btn:active{background:var(--sur2)}
+.eye-toggle-btn.hidden-mode{
+  background:var(--acbg);border-color:rgba(45,201,138,.35);color:var(--ac2);
+}
+
+/* ── Amount masking handled via JS text replacement ── */
 .module-tab{
   padding:.62rem;border-radius:var(--r2);border:1.5px solid var(--bdr2);
   background:transparent;color:var(--tx2);font-family:inherit;font-size:.88rem;
@@ -684,9 +700,16 @@ body{
     <div class="greet-name" id="greet-name">Welcome</div>
 
     <!-- v3.0 — Salary / Saving tabs -->
-    <div class="module-tabs">
-      <button class="module-tab active" id="tab-salary"  onclick="switchTab('salary')">💼 Salary</button>
-      <button class="module-tab saving" id="tab-saving"  onclick="switchTab('saving')">🏦 Saving</button>
+    <div class="module-tabs-row">
+      <div class="module-tabs">
+        <button class="module-tab active" id="tab-salary"  onclick="switchTab('salary')">💼 Salary</button>
+        <button class="module-tab saving" id="tab-saving"  onclick="switchTab('saving')">🏦 Saving</button>
+      </div>
+      <!-- Eye toggle: hide/show all amounts -->
+      <button class="eye-toggle-btn" id="eye-toggle" onclick="toggleAmounts()" title="Show / Hide amounts">
+        <svg id="eye-icon-open" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg id="eye-icon-closed" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>
     </div>
 
     <!-- ── SALARY SECTION ── -->
@@ -1055,7 +1078,7 @@ const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov
 const EXP_CATS = [
   "Food & Dining","Transport","Shopping","Entertainment","Health",
   "Education","Utilities","Rent","Travel","Subscriptions","Groceries",
-  "BankEMI","Chetty","Fruits","Internet","Petrol","Snacks","LoadAmount","CreditCard","Other"
+  "BankEMI","Chetty","Fruits","Internet","Petrol","Snacks","LoadAmount","CreditCard","MobileRecharge","Chicken","Other"
 ];
 const INC_CATS = ["Salary","Freelance","Business","Investment","Gift","Bonus","Home","LoadAmount","Other"];
 
@@ -1066,7 +1089,7 @@ const ICONS = {
   "Business":"📊","Investment":"📈","Gift":"🎁","Bonus":"🎯",
   "BankEMI":"🏦","Chetty":"🪙",
   "Fruits":"🍎","Internet":"🌐","Petrol":"⛽","Snacks":"🍿",
-  "Home":"🏡","LoadAmount":"💰","CreditCard":"💳",
+  "Home":"🏡","LoadAmount":"💰","CreditCard":"💳","MobileRecharge":"📱","Chicken":"🐔",
   "Other":"📌","_":"💳"
 };
 
@@ -1091,7 +1114,9 @@ const S = {
   txType     : "Expense",
   timerTick  : null,
   // v3.0 — active tab: "salary" | "saving"
-  activeTab  : "salary"
+  activeTab  : "salary",
+  // eye-toggle: hide/show amounts
+  amountsHidden: false
 };
 
 // ════════════════════════════════════════
@@ -1303,6 +1328,7 @@ async function loadAll() {
   g("sal-loading-banner").classList.add("active");
   await Promise.all([loadSummary(), loadTxs()]);
   g("sal-loading-banner").classList.remove("active");
+  if (S.amountsHidden) maskAmounts(true);
 }
 
 // ════════════════════════════════════════
@@ -1337,6 +1363,39 @@ function onFabClick() {
   } else {
     openAddModal();
   }
+}
+
+// ════════════════════════════════════════
+//  EYE TOGGLE — hide / show all amounts
+// ════════════════════════════════════════
+const AMOUNT_SELECTORS = [
+  ".hero-val",".mini-val",".prev-bal-val","#sv-deducted-val",
+  ".saving-hero-val",".saving-stat-val",".tx-amt",".sv-tx-amt",
+  ".cat-amt",".sv-cat-amt",".budget-pct","#s-sub"
+];
+function maskAmounts(hide) {
+  AMOUNT_SELECTORS.forEach(sel => {
+    document.querySelectorAll(sel).forEach(el => {
+      if (hide) {
+        if (!el.hasAttribute("data-orig")) el.setAttribute("data-orig", el.textContent);
+        el.textContent = "*******";
+      } else {
+        if (el.hasAttribute("data-orig")) {
+          el.textContent = el.getAttribute("data-orig");
+          el.removeAttribute("data-orig");
+        }
+      }
+    });
+  });
+}
+function toggleAmounts() {
+  S.amountsHidden = !S.amountsHidden;
+  document.body.classList.toggle("amounts-hidden", S.amountsHidden);
+  maskAmounts(S.amountsHidden);
+  const btn = g("eye-toggle");
+  btn.classList.toggle("hidden-mode", S.amountsHidden);
+  g("eye-icon-open").style.display   = S.amountsHidden ? "none" : "";
+  g("eye-icon-closed").style.display = S.amountsHidden ? ""     : "none";
 }
 
   // ════════════════════════════════════════
@@ -1454,6 +1513,7 @@ async function loadSavingData() {
   g("sv-loading-banner").classList.remove("active");
   g("sv-data-wrap").classList.remove("loading");
   g("sv-spin").style.display = "none";
+  if (S.amountsHidden) maskAmounts(true);
 }
 
 function renderSavingCatSummary(cats) {
@@ -1476,6 +1536,7 @@ function renderSavingCatSummary(cats) {
       </div>
     `;
   }).join("");
+  if (S.amountsHidden) maskAmounts(true);
 }
 
 function renderSavingTxs(txs) {
@@ -1530,6 +1591,7 @@ function renderSavingTxs(txs) {
       </div>
     `;
   }).join("");
+  if (S.amountsHidden) maskAmounts(true);
 }
 
 // ════════════════════════════════════════
@@ -2288,6 +2350,7 @@ function renderSummary(d) {
       <div class="cat-amt">${fmtINR(c.amount)}</div>
     </div>
   `).join("");
+  if (S.amountsHidden) maskAmounts(true);
 }
 
 // ════════════════════════════════════════
@@ -2359,6 +2422,7 @@ function renderTxs() {
       </div>
     `;
   }).join("");
+  if (S.amountsHidden) maskAmounts(true);
 }
 
 // ════════════════════════════════════════
