@@ -180,6 +180,7 @@ body{
 }
 .carry-total-lbl{font-size:.78rem;font-weight:600;color:var(--ac2)}
 .carry-total-val{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--ac2)}
+.carry-zero-badge{display:block;font-size:.68rem;font-weight:500;color:var(--ac2);opacity:.7;margin-top:.1rem}
 
 /* ─── Budget Card ─── */
 .budget-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:.9rem 1rem;margin-bottom:.8rem}
@@ -1682,18 +1683,27 @@ function openCarryPopup() {
     totalEl.style.display = "none";
   } else {
     listEl.innerHTML = _carryBreakdown.map(item => {
-      const cls = item.balance >= 0 ? "pos" : "neg";
-      const sign = item.balance >= 0 ? "+" : "";
+      // item.carried is Math.max(0, item.balance) — what was actually forwarded.
+      // Show actual balance for transparency; badge negative months as "₹0 carried".
+      const carried  = (item.carried !== undefined) ? item.carried : Math.max(0, item.balance);
+      const cls      = item.balance >= 0 ? "pos" : "neg";
+      const sign     = item.balance >= 0 ? "+" : "";
+      const badge    = item.balance < 0
+        ? `<span class="carry-zero-badge">₹0 carried · covered by savings</span>`
+        : "";
       return `
         <div class="carry-row">
           <span class="carry-month">${esc(item.month)}</span>
-          <span class="carry-amt ${cls}">${sign}${fmtINR(item.balance)}</span>
+          <span class="carry-amt ${cls}">${sign}${fmtINR(item.balance)}${badge}</span>
         </div>
       `;
     }).join("");
 
-    // Total row
-    const total = _carryBreakdown.reduce((sum, item) => sum + item.balance, 0);
+    // Total uses only clamped (carried) amounts — matches backend carriedBalance.
+    const total  = _carryBreakdown.reduce((sum, item) => {
+      const c = (item.carried !== undefined) ? item.carried : Math.max(0, item.balance);
+      return sum + c;
+    }, 0);
     const totCls = total >= 0 ? "pos" : "neg";
     totValEl.textContent = (total >= 0 ? "+" : "") + fmtINR(total);
     totValEl.className   = "carry-total-val " + totCls;

@@ -308,9 +308,12 @@ function getSummary(p) {
   // ── Cumulative carried balance (ALL months before current) ──
   // Walk Jan → month-before-current, sum each month's net,
   // skip months with no sheet or no data.
-  const curIdx         = MONTHS.indexOf(month);
-  const monthlyBreakdown = [];   // [{month, balance}] for popup
-  let   carriedBalance = 0;
+  // Business rule: only positive monthly balances carry forward.
+  // A negative month (expenses > income) is covered by savings at that
+  // time; that deficit must NOT reduce the next month's opening balance.
+  const curIdx           = MONTHS.indexOf(month);
+  const monthlyBreakdown = [];   // [{month, balance, carried}] for popup
+  let   carriedBalance   = 0;
 
   for (let i = 0; i < curIdx; i++) {
     const mName  = MONTHS[i];
@@ -331,9 +334,10 @@ function getSummary(p) {
     }
 
     if (hasData) {
-      const mBal = mInc - mExp;
-      carriedBalance += mBal;
-      monthlyBreakdown.push({ month: mName, balance: mBal });
+      const mBal    = mInc - mExp;
+      const carried = Math.max(0, mBal); // negative months contribute ₹0
+      carriedBalance += carried;
+      monthlyBreakdown.push({ month: mName, balance: mBal, carried: carried });
     }
   }
 
