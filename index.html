@@ -1092,10 +1092,6 @@ const S = {
   masterDataMonth: null, // v3.4: remembers last month picked in the Master Data screen
   txs        : [],
   lastSummary: null,
-  txSavingDeductionById: {},
-  savingDeductionByDateCat: {},
-  categorySavingDeduction: {},
-  savingSalaryAmountById: {},
   filter     : "All",
   dateFilter : "today",   // v2.7: "today" | "month" — default shows today only
   txType     : "Expense",
@@ -2091,23 +2087,12 @@ async function loadTxs() {
   const userParam = S.isAdmin ? "" : (S.userName || S.userId);
   g("tx-spin").style.display = "flex";
   try {
-    const [res, svRes] = await Promise.all([
-      apiGET({ action:"getTransactions", month:S.month, userName:userParam }),
-      apiGET({ action:"getSavingTransactions", month:S.month, userName:userParam })
-    ]);
+    const res = await apiGET({ action:"getTransactions", month:S.month, userName:userParam });
     if (res.success) {
       S.txs = res.transactions || [];
-      const savingTxs = (svRes && svRes.success) ? (svRes.transactions || []) : [];
-      const maps = buildSavingDeductionMaps(S.txs, savingTxs);
-      S.txSavingDeductionById    = maps.byId;
-      S.categorySavingDeduction  = maps.byCategory;
-      S.savingDeductionByDateCat = maps.byDateCat;
       renderTxs();
     } else {
       S.txs = [];
-      S.txSavingDeductionById    = {};
-      S.categorySavingDeduction  = {};
-      S.savingDeductionByDateCat = {};
       renderTxs();
       toast(res.error || "Failed to load transactions", "error");
     }
@@ -2211,25 +2196,16 @@ function renderSummary(d) {
     return;
   }
   const maxAmt = cats[0].amount || 1;
-  catEl.innerHTML = cats.map(c => {
-    const fromSaving = parseFloat(S.categorySavingDeduction[c.name]) || 0;
-    const fromSalary = Math.max(0, c.amount - fromSaving);
-    const splitNote = (fromSaving > 0 && fromSaving < c.amount)
-      ? `<div class="cat-split">(${fmtINR(fromSalary)} from Salary & ${fmtINR(fromSaving)} from Saving)</div>`
-      : "";
-
-    return `
+  catEl.innerHTML = cats.map(c => `
     <div class="cat-card">
       <div class="cat-ico">${ICONS[c.name] || "📌"}</div>
       <div class="cat-body">
         <div class="cat-name">${esc(c.name)}</div>
-        ${splitNote}
         <div class="cat-bar"><div class="cat-fill" style="width:${((c.amount / maxAmt) * 100).toFixed(1)}%"></div></div>
       </div>
       <div class="cat-amt">${fmtINR(c.amount)}</div>
     </div>
-  `;
-  }).join("");
+  `).join("");
   if (S.amountsHidden) maskAmounts(true);
 }
 
@@ -2281,21 +2257,6 @@ function renderTxs() {
       ? `<span class="tx-user">${esc(tx.name)}</span>`
       : "";
     const desc = tx.description ? esc(tx.description) : "—";
-    let fromSaving = 0;
-    if (tx.type === "Expense") {
-      // Primary: ID-based link (new transactions)
-      fromSaving = Math.max(0, parseFloat(S.txSavingDeductionById[tx.id]) || 0);
-      // Fallback: date + category match (works for all existing data)
-      if (!fromSaving) {
-        const dateKey = String(tx.date || "").split("T")[0];
-        const dcKey   = `${dateKey}|${tx.category}`;
-        fromSaving = Math.max(0, parseFloat((S.savingDeductionByDateCat || {})[dcKey]) || 0);
-      }
-    }
-    const fromSalary = Math.max(0, tx.amount - fromSaving);
-    const splitNote = (tx.type === "Expense" && fromSaving > 0 && fromSaving < tx.amount)
-      ? `<div class="tx-split">(${fmtINR(fromSalary)} from Salary & ${fmtINR(fromSaving)} from Saving)</div>`
-      : "";
     const locked = isTxLocked(tx);
     const actionHtml = locked
       ? `<div class="tx-lock">🔒 Locked after 24h</div>`
@@ -2309,7 +2270,6 @@ function renderTxs() {
         <div class="tx-body">
           <div class="tx-cat">${esc(tx.category)}</div>
           <div class="tx-sub">${userTag}${desc} · ${fmtDate(tx.date)}</div>
-          ${splitNote}
         </div>
         <div class="tx-right">
           <div class="tx-amt ${tx.type.toLowerCase()}">${tx.type === "Income" ? "+" : "−"}${fmtINR(tx.amount)}</div>
@@ -2591,107 +2551,6 @@ function todayISO() {
   const m   = String(now.getMonth() + 1).padStart(2, "0");
   const d   = String(now.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
-}
-
-function parseLinkedSalaryTxId(remark) {
-  const text = String(remark || "");
-  const m = text.match(/\[SAL_TX:([a-zA-Z0-9_-]+)\]/);
-  return m ? m[1] : "";
-}
-
-function buildSalaryAmountMap(salaryTxs) {
-  const byId = {};
-  (salaryTxs || []).forEach(tx => {
-    if (!tx || tx.type !== "Expense") return;
-    const id = String(tx.id || "");
-    if (!id) return;
-    byId[id] = Math.max(0, parseFloat(tx.amount) || 0);
-  });
-  return byId;
-}
-
-// Build a date+category → total salary expense amount map
-// Used as fallback when no [SAL_TX:] ID link exists in saving remark
-function buildSalaryByDateCat(salaryTxs) {
-  const map = {};
-  (salaryTxs || []).forEach(tx => {
-    if (!tx || tx.type !== "Expense") return;
-    const dateKey = String(tx.date || "").split("T")[0];
-    const cat     = String(tx.category || "").trim();
-    if (!dateKey || !cat) return;
-    const key = `${dateKey}|${cat}`;
-    map[key] = (map[key] || 0) + (parseFloat(tx.amount) || 0);
-  });
-  return map;
-}
-
-function buildSavingDeductionMaps(salaryTxs, savingTxs) {
-  const byId      = {};
-  const byCategory = {};
-  const byDateCat  = {};  // date+category → deducted; fallback for old data
-
-  (savingTxs || []).forEach(tx => {
-    if (tx.txType !== "Expense") return;
-
-    const deducted = Math.max(0, parseFloat(tx.amountDeductedFromSaving || tx.amount) || 0);
-    if (!deducted) return;
-
-    const cat = String(tx.category || "Other").trim() || "Other";
-    byCategory[cat] = (byCategory[cat] || 0) + deducted;
-
-    // Date+category fallback index
-    const dateKey = String(tx.date || "").split("T")[0];
-    if (dateKey && cat && cat !== "Other") {
-      const dcKey = `${dateKey}|${cat}`;
-      byDateCat[dcKey] = (byDateCat[dcKey] || 0) + deducted;
-    }
-
-    const linkedId = parseLinkedSalaryTxId(tx.remark);
-    if (linkedId) byId[linkedId] = (byId[linkedId] || 0) + deducted;
-  });
-
-  (salaryTxs || []).forEach(tx => {
-    if (!tx || tx.type !== "Expense") return;
-    const linkedDeducted = Math.max(0, parseFloat(byId[tx.id]) || 0);
-    if (linkedDeducted > tx.amount) byId[tx.id] = tx.amount;
-  });
-
-  return { byId, byCategory, byDateCat };
-}
-
-function buildSavingSplitCategorySummary(savingTxs, salaryAmtById, salaryByDateCat) {
-  const catMap = {};
-
-  (savingTxs || []).forEach(tx => {
-    if (!tx || tx.txType !== "Expense") return;
-
-    const category   = String(tx.category || "Other").trim() || "Other";
-    const savingPart = Math.max(0, parseFloat(tx.amountDeductedFromSaving || tx.amount) || 0);
-
-    // Resolve linked salary total: ID link first, then date+category fallback
-    let linkedTotal = 0;
-    const linkedId = parseLinkedSalaryTxId(tx.remark);
-    if (linkedId) {
-      linkedTotal = Math.max(0, parseFloat((salaryAmtById || {})[linkedId]) || 0);
-    }
-    if (!linkedTotal && tx.date && tx.category) {
-      const dateKey = String(tx.date || "").split("T")[0];
-      const dcKey   = `${dateKey}|${tx.category}`;
-      linkedTotal = Math.max(0, parseFloat((salaryByDateCat || {})[dcKey]) || 0);
-    }
-
-    const totalAmount = linkedTotal > savingPart ? linkedTotal : savingPart;
-    const salaryPart  = Math.max(0, totalAmount - savingPart);
-
-    if (!catMap[category]) {
-      catMap[category] = { name: category, amount: 0, fromSalary: 0, fromSaving: 0 };
-    }
-    catMap[category].amount     += totalAmount;
-    catMap[category].fromSalary += salaryPart;
-    catMap[category].fromSaving += savingPart;
-  });
-
-  return Object.values(catMap).sort((a, b) => b.amount - a.amount);
 }
 
 function esc(s) {
