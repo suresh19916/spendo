@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-<title>Spendo</title>
+<title>📈 SB Monthly Ledger</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════
@@ -101,9 +101,15 @@ body{
   display:flex;flex-direction:column;
 }
 .topbar-row1{
-  padding:.55rem .9rem;display:flex;align-items:center;
-  border-bottom:1px solid var(--bdr);
+  padding:.7rem .9rem .6rem;display:flex;flex-direction:column;align-items:center;
+  gap:.2rem;border-bottom:1px solid var(--bdr);
 }
+.topbar-tagline{
+  font-size:.68rem;color:var(--tx3);letter-spacing:.01em;
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;
+  gap:.4rem;width:100%;line-height:1.4;
+}
+.topbar-tagline span{display:inline-flex;align-items:center;gap:.2rem}
 .topbar-row2{
   padding:.4rem .9rem;display:flex;align-items:center;gap:.45rem;
 }
@@ -283,7 +289,7 @@ body{
 /* ════ Logo image styles ════ */
 .login-logo-wrap{display:flex;flex-direction:column;align-items:center;gap:.6rem;margin-bottom:.4rem}
 .login-logo-img{width:88px;height:88px;border-radius:18px;object-fit:contain;display:block;filter:drop-shadow(0 4px 18px rgba(0,0,0,.55));background:transparent}
-.login-logo-text{font-family:'Syne',sans-serif;font-size:1.85rem;font-weight:800;background:linear-gradient(135deg,#d4a017,#f5d078,#c0a04a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.04em}
+.login-logo-text{font-family:'Syne',sans-serif;font-size:1.85rem;font-weight:700;background:linear-gradient(135deg,#d4a017,#f5d078,#c0a04a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.04em}
 .topbar-logo{display:flex;align-items:center;gap:.45rem;flex-shrink:0}
 .topbar-logo-img{width:30px;height:30px;border-radius:7px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 1px 4px rgba(0,0,0,.4));background:transparent}
 .topbar-logo span{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:var(--ac2);letter-spacing:-.02em}
@@ -433,7 +439,7 @@ body{
 .module-tabs-row{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem}
 .module-tabs-row .module-tabs{flex:1;margin-bottom:0}
 .module-tabs{
-  display:grid;grid-template-columns:1fr 1fr;gap:.45rem;
+  display:grid;grid-template-columns:1fr;gap:.45rem;
   margin-bottom:1rem;
 }
 
@@ -639,12 +645,12 @@ body{
 <!-- ════════════ LOGIN ════════════ -->
 <div id="login-screen">
   <div class="login-card">
-    <!-- Logo: Suresh Babu / Spendo brand mark -->
+    <!-- Logo: Suresh Babu / SB Monthly Ledger brand mark -->
     <div class="login-logo-wrap">
-      <img src="logo.png" alt="Spendo Logo" class="login-logo-img"/>
-      <div class="login-logo-text">Spendo</div>
+      <img src="logo.png" alt="SB Monthly Ledger Logo" class="login-logo-img"/>
+      <div class="login-logo-text">SB Monthly Ledger</div>
     </div>
-    <div class="login-tag">Monthly expense tracker</div>
+    <div class="login-tag">────────────────────────<br>💰 Income • 💸 Expense • 📊 Budget • 💎 Save</div>
     <div class="note-box">🔐 Sessions last <strong>30 minutes</strong>. Enter your User ID and Password to sign in.</div>
     <!-- Hidden URL input — used only on first-time setup, shown via #url-setup-field if no URL stored -->
     <div class="field" id="url-setup-field" style="display:none">
@@ -683,8 +689,11 @@ body{
     <!-- Row 1: Logo only -->
     <div class="topbar-row1">
       <div class="topbar-logo">
-        <img src="logo.png" alt="Spendo" class="topbar-logo-img"/>
-        <span>Spendo</span>
+        <img src="logo.png" alt="SB Monthly Ledger" class="topbar-logo-img"/>
+        <span>📈 SB Monthly Ledger</span>
+      </div>
+      <div class="topbar-tagline">
+        <span>💰 Income</span>•<span>💸 Expense</span>•<span>📊 Budget</span>•<span>💎 Save</span>
       </div>
     </div>
     <!-- Row 2: Month selector, Reports (admin), Session timer, Logout -->
@@ -702,11 +711,10 @@ body{
     <!-- CHANGE 1: greet-name shows Name from Login sheet, not User_ID -->
     <div class="greet-name" id="greet-name">Welcome</div>
 
-    <!-- v3.0 — Salary / Saving tabs -->
+    <!-- v3.4 — Saving tab removed; single Expenses Dashboard heading remains -->
     <div class="module-tabs-row">
       <div class="module-tabs">
-        <button class="module-tab active" id="tab-salary"  onclick="switchTab('salary')">💼 Salary</button>
-        <button class="module-tab saving" id="tab-saving"  onclick="switchTab('saving')">🏦 Saving</button>
+        <div class="module-tab active" style="cursor:default">📊 Expenses Dashboard</div>
       </div>
       <!-- Eye toggle: hide/show all amounts -->
       <button class="eye-toggle-btn" id="eye-toggle" onclick="toggleAmounts()" title="Show / Hide amounts">
@@ -739,18 +747,14 @@ body{
           <div class="mini-val r syne" id="s-exp">₹—</div>
         </div>
       </div>
-      <!-- v2.5: clickable cumulative carried balance row -->
-      <div class="prev-bal-row" id="prev-bal-row" onclick="openCarryPopup()">
+      <!-- v3.4: clickable cumulative carried balance row — only shown when
+           the previous month(s) carried a positive balance forward -->
+      <div class="prev-bal-row" id="prev-bal-row" onclick="openCarryPopup()" style="display:none">
         <div class="prev-bal-lbl">
-          ↩ Carried Balance
+          ↩ Balance Carried Forward
           <span class="prev-bal-tap">tap for details</span>
         </div>
         <div class="prev-bal-val syne" id="s-prev-bal">₹—</div>
-      </div>
-      <!-- v3.1: Saving deduction row — visible only when salary overflowed -->
-      <div class="sv-deducted-row" id="sv-deducted-row" style="display:none">
-        <div class="sv-deducted-lbl">🏦 From Saving Deducted</div>
-        <div class="sv-deducted-val" id="sv-deducted-val">₹0</div>
       </div>
     </div>
 
@@ -791,55 +795,11 @@ body{
     <div class="tx-list" id="tx-list"><div class="empty"><div class="empty-ico">🧾</div>Loading…</div></div>
   </div><!-- end salary-section -->
 
-    <!-- ── SAVING SECTION ── -->
-    <div id="saving-section" style="display:none">
-
-      <!-- Loading Banner (shown while data refreshes) -->
-      <div class="sv-loading-banner" id="sv-loading-banner">
-        <div class="sv-spin-g"></div>
-        <span>Loading Data…</span>
-      </div>
-
-      <!-- Saving Dashboard (fades during load) -->
-      <div class="sv-data-wrap" id="sv-data-wrap">
-        <div class="saving-hero">
-          <div class="saving-hero-lbl">Remaining Saving Balance</div>
-          <div class="saving-hero-val syne" id="sv-remaining">₹—</div>
-          <div class="saving-stat-row">
-            <div class="saving-stat">
-              <div class="saving-stat-lbl">💰 This Month Saving</div>
-              <div class="saving-stat-val g syne" id="sv-total">₹—</div>
-            </div>
-            <div class="saving-stat">
-              <div class="saving-stat-lbl">💸 Deducted</div>
-              <div class="saving-stat-val r syne" id="sv-spent">₹—</div>
-            </div>
-            <div class="saving-stat">
-              <div class="saving-stat-lbl">🔄 Recovery</div>
-              <div class="saving-stat-val syne" id="sv-recovery" style="color:#5ee8a8">₹—</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Category Expense Summary -->
-        <div class="sv-cat-summary" id="sv-cat-summary" style="display:none">
-          <div class="sv-cat-summary-title">📊 Expense Category Summary</div>
-          <div id="sv-cat-list"></div>
-        </div>
-
-        <!-- Saving Transactions -->
-        <div class="sec">
-          <div class="sec-title">Saving Transactions</div>
-          <div class="spin-w" id="sv-spin" style="margin-left:.5rem"><div class="spin"></div></div>
-        </div>
-        <div id="sv-tx-list"><div class="empty"><div class="empty-ico">🏦</div>Loading…</div></div>
-      </div><!-- end sv-data-wrap -->
-
-    </div><!-- end saving-section -->
-
   </div><!-- end content -->
 
-  <!-- Dynamic FAB — label changes per tab -->
+  <!-- v3.4 — Saving tab removed; the Saving Google Sheet and its historical
+       data are untouched and remain viewable via Admin → Reports → Saving
+       Transaction Details. -->
   <button class="fab" id="main-fab" onclick="onFabClick()">＋ Add Transaction</button>
 </div>
 
@@ -871,35 +831,6 @@ body{
   </div>
 </div>
 
-<!-- ════════════ ADD SAVING TRANSACTION SHEET (v3.0) ════════════ -->
-<div class="backdrop" id="sv-bd">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-title">Add Saving Transaction</div>
-    <div class="field">
-      <label>Bank</label>
-      <div class="sel-wrap">
-        <select id="sv-bank">
-          <option value="Axis Bank">Axis Bank</option>
-          <option value="SBI Bank (BLR)">SBI Bank (BLR)</option>
-          <option value="SBI Bank (BPM)">SBI Bank (BPM)</option>
-          <option value="Union Bank">Union Bank</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-    </div>
-    <div class="field"><label>Amount (₹)</label><input type="number" id="sv-amt" placeholder="0" min="0" step="1" inputmode="decimal"/></div>
-    <div class="field">
-      <label>Remark <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label>
-      <textarea id="sv-remark" placeholder="e.g. Monthly saving…"></textarea>
-    </div>
-    <div class="sh-actions">
-      <button class="btn btn-ghost" onclick="closeSavingModal()">Cancel</button>
-      <button class="btn btn-primary" id="sv-save" onclick="saveSavingTransaction()">Save Transaction</button>
-    </div>
-  </div>
-</div>
-
 <!-- ════════════ CARRY BREAKDOWN POPUP ════════════ -->
 <div class="backdrop" id="carry-bd">
   <div class="sheet">
@@ -926,7 +857,7 @@ body{
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       </button>
       <div class="topbar-logo" style="margin-left:.5rem">
-        <img src="logo.png" alt="Spendo" class="topbar-logo-img" style="width:26px;height:26px"/>
+        <img src="logo.png" alt="SB Monthly Ledger" class="topbar-logo-img" style="width:26px;height:26px"/>
         <span>Reports</span>
       </div>
     </div>
@@ -936,6 +867,7 @@ body{
         <option value="user">User Report</option>
         <option value="monthly">Monthly Summary</option>
         <option value="saving">Saving Transactions</option>
+        <option value="master">Master Data</option>
       </select>
       <select class="month-pick" id="rpt-month-pick" onchange="loadReport()"></select>
       <div class="topbar-spacer"></div>
@@ -1067,6 +999,54 @@ body{
   </div>
 </div>
 
+<!-- ════════════ MASTER DATA REPORT (all logins) ════════════ -->
+<div id="master-data-screen" style="display:none;flex-direction:column;min-height:100vh;min-height:100dvh">
+  <div class="topbar">
+    <div class="topbar-row1">
+      <button class="back-btn" onclick="hideMasterData()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <div class="topbar-logo" style="margin-left:.5rem">
+        <img src="logo.png" alt="SB Monthly Ledger" class="topbar-logo-img" style="width:26px;height:26px"/>
+        <span>Master Data</span>
+      </div>
+    </div>
+    <div class="topbar-row2">
+      <select class="month-pick" id="md-month-pick" onchange="loadMasterData()"></select>
+      <div class="topbar-spacer"></div>
+    </div>
+  </div>
+
+  <div class="content" id="md-content" style="padding-bottom:1.5rem">
+    <div class="rpt-heading">
+      <div class="rpt-heading-title" id="md-heading-title">Master Summary</div>
+      <div class="rpt-heading-sub" id="md-heading-sub">Income, expense, carry-forward for the selected month</div>
+    </div>
+
+    <!-- v3.6 — shown instead of the cards when the month has no income/expense at all -->
+    <div class="empty" id="md-empty" style="display:none"><div class="empty-ico">📭</div>No transactions found for this month</div>
+
+    <!-- Master card -->
+    <div class="budget-card" id="md-master-card">
+      <div class="carry-row"><span class="carry-month">Income</span><span class="carry-amt pos" id="md-income">₹0</span></div>
+      <div class="carry-row"><span class="carry-month">Expense</span><span class="carry-amt neg" id="md-expense">₹0</span></div>
+      <div class="carry-row"><span class="carry-month">Balance</span><span class="carry-amt" id="md-balance">₹0</span></div>
+      <div class="carry-row"><span class="carry-month">Excess</span><span class="carry-amt pos" id="md-excess">₹0</span></div>
+      <div class="carry-row"><span class="carry-month">Overuse</span><span class="carry-amt neg" id="md-overuse">₹0</span></div>
+      <div class="carry-row"><span class="carry-month">Carried Forward</span><span class="carry-amt" id="md-carried">₹0</span></div>
+    </div>
+
+    <!-- Over-expense card — shown only when this month went over income -->
+    <div class="budget-card" id="md-overexpense-card" style="display:none;margin-top:.8rem">
+      <div class="rpt-heading-sub" style="margin-bottom:.5rem">Over-expense detail (excess-over-income portion only)</div>
+      <div class="carry-row"><span class="carry-month">This Month Overuse</span><span class="carry-amt neg" id="md-this-overuse">₹0</span></div>
+      <div class="carry-row"><span class="carry-month">Previous Overuse</span><span class="carry-amt neg" id="md-prev-overuse">₹0</span></div>
+      <div class="carry-row"><span class="carry-month">Total Overuse</span><span class="carry-amt neg" id="md-total-overuse">₹0</span></div>
+      <div id="md-cat-breakdown"></div>
+    </div>
+  </div>
+</div>
+
 <div id="toasts"></div>
 
 <script>
@@ -1109,6 +1089,7 @@ const S = {
   expiresAt  : null,
   month      : MONTHS[new Date().getMonth()],
   savingMonth: MONTHS[new Date().getMonth()],  // v3.1: independent saving month filter
+  masterDataMonth: null, // v3.4: remembers last month picked in the Master Data screen
   txs        : [],
   lastSummary: null,
   txSavingDeductionById: {},
@@ -1141,6 +1122,10 @@ window.addEventListener("load", () => {
   const sess = loadSession();
   if (sess && sess.apiKey && sess.url && new Date(sess.expiresAt) > new Date()) {
     Object.assign(S, sess);
+    // v3.6: a page refresh always lands on the current month, never a
+    // previously-selected past month carried over from the saved session.
+    S.month = MONTHS[new Date().getMonth()];
+    S.savingMonth = S.month;
     bootApp();
   } else {
     bootLogin();
@@ -1162,8 +1147,11 @@ function bootApp() {
   g("greet-line").textContent = h < 12 ? "Good morning ☀️" : h < 17 ? "Good afternoon 🌤️" : "Good evening 🌙";
   g("greet-name").textContent = "Welcome, " + (S.userName || S.userId || "User");
 
-  // v2.4: show Reports button only for admin
-  g("report-btn").style.display = S.isAdmin ? "block" : "none";
+  // v3.6: Reports (incl. Master Data, now nested under it) — admin + "suresh" only
+  const canSeeReports = S.isAdmin
+    || String(S.userId   || "").trim().toLowerCase() === "suresh"
+    || String(S.userName || "").trim().toLowerCase() === "suresh";
+  g("report-btn").style.display = canSeeReports ? "block" : "none";
 
   const pick = g("month-pick");
   pick.innerHTML = MONTHS.map(m =>
@@ -1174,9 +1162,10 @@ function bootApp() {
   const rptPick = g("rpt-month-pick");
   rptPick.innerHTML = pick.innerHTML;
 
-    // Saving month stays in sync with top month picker
-  g("tab-salary").classList.add("active");
-  g("tab-saving").classList.remove("active");
+  // Sync Master Data month picker (v3.3 — available to all logins)
+  const mdPick = g("md-month-pick");
+  mdPick.innerHTML = pick.innerHTML;
+
   g("main-fab").textContent = "＋ Add Transaction";
 
   startTimer();
@@ -1342,44 +1331,15 @@ async function loadAll() {
 // ════════════════════════════════════════
 //  v3.0 — TAB SWITCHING
 // ════════════════════════════════════════
-function switchTab(tab) {
-  S.activeTab = tab;
-
-  // Toggle section visibility
-  g("salary-section").style.display = (tab === "salary") ? "block" : "none";
-  g("saving-section").style.display = (tab === "saving") ? "block" : "none";
-
-  // Toggle tab button styles
-  const salaryBtn = g("tab-salary");
-  const savingBtn = g("tab-saving");
-  salaryBtn.classList.toggle("active",       tab === "salary");
-  savingBtn.classList.toggle("active",       tab === "saving");
-
-  // Update FAB label
-  g("main-fab").textContent = (tab === "saving") ? "＋ Add Saving" : "＋ Add Transaction";
-
-  if (tab === "saving") {
-    loadSavingData();
-  } else {
-    loadAll();
-  }
-}
-
 function onFabClick() {
-  if (S.activeTab === "saving") {
-    openSavingModal();
-  } else {
-    openAddModal();
-  }
+  openAddModal();
 }
 
 // ════════════════════════════════════════
 //  EYE TOGGLE — hide / show all amounts
 // ════════════════════════════════════════
 const AMOUNT_SELECTORS = [
-  ".hero-val",".mini-val",".prev-bal-val","#sv-deducted-val",
-  ".saving-hero-val",".saving-stat-val",".tx-amt",".sv-tx-amt",
-  ".cat-amt",".sv-cat-amt",".budget-pct","#s-sub"
+  ".hero-val",".mini-val",".prev-bal-val",".tx-amt",".cat-amt",".budget-pct","#s-sub"
 ];
 function maskAmounts(hide) {
   AMOUNT_SELECTORS.forEach(sel => {
@@ -1404,240 +1364,6 @@ function toggleAmounts() {
   btn.classList.toggle("hidden-mode", S.amountsHidden);
   g("eye-icon-open").style.display   = S.amountsHidden ? "none" : "";
   g("eye-icon-closed").style.display = S.amountsHidden ? ""     : "none";
-}
-
-  // ════════════════════════════════════════
-  //  v3.1 — SAVING MONTH CHANGE
-  // ════════════════════════════════════════
-  function changeSavingMonth() {
-    S.savingMonth = g("sv-month-pick").value;
-    loadSavingData();
-  }
-
-// ════════════════════════════════════════
-//  v3.0 — SAVING MODAL
-// ════════════════════════════════════════
-function openSavingModal() {
-  g("sv-amt").value    = "";
-  g("sv-remark").value = "";
-  g("sv-bank").value   = "Axis Bank";
-  g("sv-bd").classList.add("open");
-}
-
-function closeSavingModal() {
-  g("sv-bd").classList.remove("open");
-}
-
-async function saveSavingTransaction() {
-  const bank   = g("sv-bank").value;
-  const amount = parseFloat(g("sv-amt").value);
-  const remark = g("sv-remark").value.trim();
-
-  if (!bank || isNaN(amount) || amount <= 0) {
-    toast("Please select a bank and enter a valid amount", "error");
-    return;
-  }
-
-  const saveBtn = g("sv-save");
-  saveBtn.disabled = true;
-  saveBtn.innerHTML = '<div class="btn-spin"></div>';
-
-  try {
-    const res = await apiGET({
-      action   : "addSavingTransaction",
-      bank,
-      amount,
-      remark,
-      txType   : "Saving",
-      userName : S.userName || S.userId,
-      date     : todayISO()
-    });
-
-    if (res.success) {
-      toast("Saving transaction added!", "success");
-      closeSavingModal();
-      loadSavingData();
-    } else {
-      toast(res.error || "Save failed", "error");
-    }
-  } catch (e) {
-    toast("Error saving transaction", "error");
-  }
-
-  saveBtn.disabled    = false;
-  saveBtn.textContent = "Save Transaction";
-}
-
-// ════════════════════════════════════════
-//  v3.0 — SAVING DATA LOAD & RENDER
-// ════════════════════════════════════════
-async function loadSavingData() {
-  // Show loading indicators
-  g("sv-loading-banner").classList.add("active");
-  g("sv-data-wrap").classList.add("loading");
-  g("sv-spin").style.display     = "flex";
-  g("sv-remaining").textContent  = "₹—";
-  g("sv-total").textContent      = "₹—";
-  g("sv-spent").textContent      = "₹—";
-  g("sv-recovery").textContent   = "₹—";
-  g("sv-tx-list").innerHTML      = '<div class="empty"><div class="empty-ico">⏳</div>Loading…</div>';
-  g("sv-cat-summary").style.display = "none";
-
-  // v3.1: admin sees all users' saving data (pass empty userName like salary)
-  const userName   = S.isAdmin ? "" : (S.userName || S.userId);
-  const month      = S.savingMonth;
-  try {
-    const [sumRes, txRes, salRes] = await Promise.all([
-      apiGET({ action: "getSavingSummary",      userName, month }),
-      apiGET({ action: "getSavingTransactions", userName, month }),
-      apiGET({ action: "getTransactions",       userName, month })
-    ]);
-
-    if (sumRes.success) {
-      const total     = parseFloat(sumRes.totalSavingAmount)    || 0;
-      const spent     = parseFloat(sumRes.amountSpentFromSaving) || 0;
-      const remaining = parseFloat(sumRes.remainingSavingBalance) || 0;
-      const recovery  = parseFloat(sumRes.recoveryAmount)         || 0;
-      g("sv-total").textContent     = fmtINR(total);
-      g("sv-spent").textContent     = fmtINR(spent);
-      g("sv-remaining").textContent = fmtINR(remaining);
-      g("sv-remaining").className   = "saving-hero-val syne" + (remaining < 0 ? " r" : "");
-      g("sv-recovery").textContent  = fmtINR(recovery);
-    }
-
-    if (txRes.success) {
-      const savingTxs = txRes.transactions || [];
-      const salaryTxs = (salRes && salRes.success) ? (salRes.transactions || []) : [];
-      const salaryAmtById  = buildSalaryAmountMap(salaryTxs);
-      const salaryByDateCat = buildSalaryByDateCat(salaryTxs);
-      S.savingSalaryAmountById = salaryAmtById;
-
-      const splitCats = buildSavingSplitCategorySummary(savingTxs, salaryAmtById, salaryByDateCat);
-      renderSavingCatSummary(splitCats);
-      renderSavingTxs(savingTxs, salaryAmtById, salaryByDateCat);
-    } else {
-      g("sv-tx-list").innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div>Failed to load saving transactions</div>';
-    }
-  } catch (e) {
-    g("sv-tx-list").innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div>Connection error</div>';
-  }
-
-  // Hide loading indicators
-  g("sv-loading-banner").classList.remove("active");
-  g("sv-data-wrap").classList.remove("loading");
-  g("sv-spin").style.display = "none";
-  if (S.amountsHidden) maskAmounts(true);
-}
-
-function renderSavingCatSummary(cats) {
-  const el = g("sv-cat-summary");
-  const listEl = g("sv-cat-list");
-  if (!cats || !cats.length) {
-    el.style.display = "none";
-    return;
-  }
-  el.style.display = "block";
-  const maxAmt = cats[0].amount || 1;
-  listEl.innerHTML = cats.map(c => {
-    const pct = ((c.amount / maxAmt) * 100).toFixed(1);
-    const fromSalary = parseFloat(c.fromSalary) || 0;
-    const fromSaving = parseFloat(c.fromSaving) || 0;
-    const splitNote = (fromSalary > 0 && fromSaving > 0)
-      ? `<div class="cat-split">(${fmtINR(fromSalary)} from Salary & ${fmtINR(fromSaving)} from Saving)</div>`
-      : "";
-    return `
-      <div class="sv-cat-row">
-        <div class="sv-cat-ico">${ICONS[c.name] || "📌"}</div>
-        <div style="flex:1;min-width:0">
-          <div class="sv-cat-name">${esc(c.name)}</div>
-          ${splitNote}
-          <div class="sv-cat-bar-wrap"><div class="sv-cat-bar-fill" style="width:${pct}%"></div></div>
-        </div>
-        <div class="sv-cat-amt">${fmtINR(c.amount)}</div>
-      </div>
-    `;
-  }).join("");
-  if (S.amountsHidden) maskAmounts(true);
-}
-
-function renderSavingTxs(txs, salaryAmtById, salaryByDateCat) {
-  const el = g("sv-tx-list");
-  if (!txs.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-ico">🏦</div>No saving transactions for this month — tap ＋ Add Saving to get started</div>';
-    return;
-  }
-
-  el.innerHTML = txs.map(tx => {
-    const isRecovery = tx.txType === "Recovery";
-    const isSaving   = tx.txType === "Saving";
-    const isExpense  = tx.txType === "Expense";
-
-    const ico    = isRecovery ? "💚" : isSaving ? "💰" : "💸";
-    const amtCls = isRecovery ? "saving" : isSaving ? "saving" : "expense";
-    const sign   = isExpense ? "−" : "+";
-
-    // Show user name for admin view
-    const userTag = S.isAdmin && tx.userName
-      ? `<span class="tx-user">${esc(tx.userName)}</span>`
-      : "";
-
-    const deductedAmount = Math.max(0, parseFloat(tx.amountDeductedFromSaving || tx.amount) || 0);
-
-    // Resolve linked salary total: ID link first (new data), date+category fallback (old data)
-    let linkedTotal = 0;
-    if (isExpense) {
-      const linkedId = parseLinkedSalaryTxId(tx.remark);
-      if (linkedId) {
-        linkedTotal = Math.max(0, parseFloat((salaryAmtById || {})[linkedId]) || 0);
-      }
-      if (!linkedTotal && tx.date && tx.category) {
-        const dateKey = String(tx.date || "").split("T")[0];
-        const dcKey   = `${dateKey}|${tx.category}`;
-        linkedTotal = Math.max(0, parseFloat((salaryByDateCat || {})[dcKey]) || 0);
-      }
-    }
-
-    const displayAmt = (isExpense && linkedTotal > deductedAmount) ? linkedTotal : tx.amount;
-    const fromSaving = (isExpense && linkedTotal > deductedAmount) ? deductedAmount : 0;
-    const fromSalary = (isExpense && linkedTotal > deductedAmount) ? Math.max(0, linkedTotal - deductedAmount) : 0;
-
-    const deductedNote = (!isSaving && !isRecovery && tx.amountDeductedFromSaving > 0)
-      ? `<span class="from-saving-badge">🏦 ₹${Number(tx.amountDeductedFromSaving).toLocaleString("en-IN")} deducted</span> `
-      : "";
-
-    const splitNote = (fromSalary > 0 && fromSaving > 0)
-      ? `<div class="tx-split">(${fmtINR(fromSalary)} from Salary & ${fmtINR(fromSaving)} from Saving)</div>`
-      : "";
-
-    // Recovery badge — shows this entry restores saving balance
-    const recoveryBadge = isRecovery
-      ? `<span class="from-saving-badge" style="background:var(--acbg);border-color:rgba(45,201,138,.28);color:var(--ac2)">✅ Salary Recovery</span> `
-      : "";
-
-    // Show category for expense transactions
-    const catTag = (!isSaving && !isRecovery && tx.category)
-      ? `<span style="display:inline-block;font-size:.65rem;background:var(--rdbg);color:var(--rd);border-radius:5px;padding:.05rem .35rem;margin-left:.3rem">${esc(tx.category)}</span>`
-      : "";
-
-    const remainNote = `Remaining: ${fmtINR(tx.remainingSavingBalance)}`;
-
-    return `
-      <div class="sv-tx-card">
-        <div class="sv-tx-ico ${amtCls}">${ico}</div>
-        <div class="sv-tx-body">
-          <div class="sv-tx-bank">${userTag}${esc(tx.bank) || "—"}${catTag}</div>
-          <div class="sv-tx-sub">${esc(tx.remark) || "—"} · ${fmtDate(tx.date)}</div>
-          ${splitNote}
-          <div class="sv-tx-meta">${deductedNote}${recoveryBadge}${remainNote}</div>
-        </div>
-        <div class="sv-tx-right">
-          <div class="sv-tx-amt ${amtCls}">${sign}${fmtINR(displayAmt)}</div>
-          <div style="font-size:.65rem;color:var(--tx3);margin-top:.2rem">${esc(tx.txType)}</div>
-        </div>
-      </div>
-    `;
-  }).join("");
-  if (S.amountsHidden) maskAmounts(true);
 }
 
 // ════════════════════════════════════════
@@ -1739,8 +1465,76 @@ function hideReport() {
   g("app").style.display           = "flex";
 }
 
+// v3.3 — Master Data report, gated the same as Reports (admin + "suresh").
+// v3.6: moved under Reports — opened via the "📘 Master Data" button on the
+// Reports screen, so it now returns to Reports (not the dashboard) on back.
+function showMasterData(fromReport) {
+  S.masterDataFromReport = !!fromReport;
+  g(fromReport ? "report-screen" : "app").style.display = "none";
+  g("master-data-screen").style.display  = "flex";
+  // v3.6: always reopen on the current month, not the last-picked one.
+  g("md-month-pick").value = S.month;
+  loadMasterData();
+}
+
+function hideMasterData() {
+  g("master-data-screen").style.display = "none";
+  g(S.masterDataFromReport ? "report-screen" : "app").style.display = "flex";
+}
+
+async function loadMasterData() {
+  const month = g("md-month-pick").value || S.month;
+  S.masterDataMonth = month;
+  g("md-heading-title").textContent = month + " — Master Summary";
+  g("md-heading-sub").textContent   = "Loading…";
+  try {
+    const res = await apiGET({ action: "getMasterData", month });
+    g("md-heading-sub").textContent = "Income, expense, carry-forward for the selected month";
+    if (!res.success) { toast(res.error || "Failed to load Master Data", "error"); return; }
+
+    // v3.6 — no income and no expense at all this month: show empty state instead of the cards
+    const isEmpty = (parseFloat(res.income) || 0) === 0 && (parseFloat(res.expense) || 0) === 0;
+    g("md-empty").style.display        = isEmpty ? "block" : "none";
+    g("md-master-card").style.display  = isEmpty ? "none"  : "block";
+    if (isEmpty) { g("md-overexpense-card").style.display = "none"; return; }
+
+    g("md-income").textContent   = fmtINR(res.income);
+    g("md-expense").textContent  = fmtINR(res.expense);
+    g("md-balance").textContent  = fmtINR(res.balance);
+    g("md-balance").className    = "carry-amt " + (res.balance < 0 ? "neg" : "pos");
+    g("md-excess").textContent   = fmtINR(res.excess);
+    g("md-overuse").textContent  = fmtINR(res.overuse);
+    // v3.6: display only — a negative carry-forward (overuse) isn't shown as
+    // carried into next month here; Total Overuse already covers that. The
+    // real value stays untouched in res.carriedForward / the Master sheet.
+    const carriedDisplay = Math.max(0, parseFloat(res.carriedForward) || 0);
+    g("md-carried").textContent  = fmtINR(carriedDisplay);
+    g("md-carried").className    = "carry-amt pos";
+
+    const overCard = g("md-overexpense-card");
+    if (res.thisMonthOveruse > 0) {
+      overCard.style.display = "block";
+      g("md-this-overuse").textContent  = fmtINR(res.thisMonthOveruse);
+      g("md-prev-overuse").textContent  = fmtINR(res.previousOveruse);
+      g("md-total-overuse").textContent = fmtINR(res.totalOveruse);
+      const cats = Array.isArray(res.categoryBreakdown) ? res.categoryBreakdown : [];
+      g("md-cat-breakdown").innerHTML = cats.map(c =>
+        `<div class="carry-row"><span class="carry-month">${esc(c.name)}</span><span class="carry-amt neg">${fmtINR(c.amount)}</span></div>`
+      ).join("");
+    } else {
+      overCard.style.display = "none";
+    }
+  } catch (e) {
+    toast("Failed to load Master Data", "error");
+  }
+}
+
 async function loadReport() {
   const type = g("rpt-type-pick").value;
+  if (type === "master") {
+    showMasterData(true); // v3.6 — Master Data lives in its own screen, opened from the Reports dropdown
+    return;
+  }
   if (type === "monthly") {
     await loadMonthlySummaryReport();
   } else if (type === "saving") {
@@ -2335,7 +2129,6 @@ function changeMonth() {
   g("cats-list").innerHTML = '<div class="empty"><div class="empty-ico">📊</div>Loading…</div>';
   g("tx-list").innerHTML   = '<div class="empty"><div class="empty-ico">🧾</div>Loading…</div>';
   loadAll();
-  loadSavingData();
 }
 
 // ════════════════════════════════════════
@@ -2369,9 +2162,13 @@ function renderSummary(d) {
   g("s-exp").textContent = fmtINR(exp);
 
   // ── Net balance (hero figure)
-  // v3.2: show negative overflow when saving covered salary shortage.
-  const balDisplay = netBal;
-  const savingDeducted = netBal < 0 ? Math.abs(netBal) : 0;
+  // v3.6: display only — the SELECTED month's own income-expense deficit
+  // still shows true negative (e.g. July: 1L income, 2L expense → -1L).
+  // What's suppressed is a negative CARRY from earlier months dragging the
+  // figure down further — a prior month's overuse doesn't subtract from
+  // this month's own number here (Master/OverExpense reports still track
+  // it in full). Underlying netBal / backend data is untouched.
+  const balDisplay = curBal + Math.max(0, carried);
 
   const balEl = g("s-bal");
   balEl.textContent = balDisplay < 0
@@ -2379,19 +2176,17 @@ function renderSummary(d) {
     : fmtINR(balDisplay);
   balEl.className   = "hero-val syne" + (balDisplay < 0 ? " neg" : "");
 
-  // ── Carried balance row
-  const prevEl = g("s-prev-bal");
-  prevEl.textContent = (carried >= 0 ? "+" : "") + fmtINR(carried);
-  prevEl.className   = "prev-bal-val syne" + (carried < 0 ? " neg" : " pos");
-
-  // ── Saving deduction row (v3.1): show when salary overflowed into saving
-  const dedRow = g("sv-deducted-row");
-  const dedVal = g("sv-deducted-val");
-  if (savingDeducted > 0) {
-    dedVal.textContent  = fmtINR(savingDeducted);
-    dedRow.style.display = "flex";
+  // ── Carried balance row — v3.4: only shown when the previous month(s)
+  // carried a positive balance forward (an overspend is tracked instead via
+  // the Master/OverExpense reports, not on the main dashboard).
+  const prevRow = g("prev-bal-row");
+  if (carried > 0) {
+    prevRow.style.display = "flex";
+    const prevEl = g("s-prev-bal");
+    prevEl.textContent = "+" + fmtINR(carried);
+    prevEl.className   = "prev-bal-val syne pos";
   } else {
-    dedRow.style.display = "none";
+    prevRow.style.display = "none";
   }
 
   // ── Budget bar
@@ -2710,8 +2505,6 @@ async function saveTransaction() {
           if (recovRes.success && recovRes.recovered > 0) {
             const recAmt = Number(recovRes.recovered).toLocaleString("en-IN");
             toast(`🏦 ₹${recAmt} restored to Savings from salary income`, "success");
-            // Refresh saving dashboard to reflect the recovered balance
-            if (S.activeTab === "saving") loadSavingData();
           }
         } catch (e) { /* non-critical */ }
       }
@@ -2933,9 +2726,6 @@ g("tx-bd").addEventListener("click", e => {
 });
 g("carry-bd").addEventListener("click", e => {
   if (e.target === g("carry-bd")) closeCarryPopup();
-});
-g("sv-bd").addEventListener("click", e => {
-  if (e.target === g("sv-bd")) closeSavingModal();
 });
 </script>
 </body>
