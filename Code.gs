@@ -218,16 +218,20 @@ function mergeDuplicateIdRows(rows) {
 // single rows. Call this BEFORE searching the sheet by ID (update/delete),
 // since a split transaction's two halves would otherwise look like a
 // duplicate/partial match.
+// Returns the merged, no-header row data (row 0 == sheet row 2) so callers
+// that already need a fresh read (update/delete) can reuse it instead of
+// issuing a second getDataRange() round trip.
 function mergeSplitRowsInSheet(sheet) {
-  if (!sheet) return;
+  if (!sheet) return [];
   const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return;
+  if (lastRow < 2) return [];
 
   const data   = sheet.getRange(2, 1, lastRow - 1, MONTH_SHEET_COLS).getValues();
   const merged = mergeDuplicateIdRows(data.filter(function(row) { return row[0]; }));
 
   sheet.getRange(2, 1, lastRow - 1, MONTH_SHEET_COLS).clearContent();
   if (merged.length) sheet.getRange(2, 1, merged.length, MONTH_SHEET_COLS).setValues(merged);
+  return merged;
 }
 
 function rebuildMonthSheetOrder(sheet) {
@@ -385,7 +389,7 @@ function addTransaction(p) {
   ]);
 
   rebuildMonthSheetOrder(sheet); // v3.5 — re-partition around the Over Usage divider
-  refreshReports({ year: txYear }); // v3.3 — keep that year's Master/OverExpense in sync
+  refreshReports({ year: txYear, month: month }); // v3.3 — keep that year's Master/OverExpense in sync; v3.7 — month scopes the recompute to just this month
   return { success: true, id: id, month: month };
 }
 
@@ -397,9 +401,9 @@ function updateTransaction(p) {
   const sheet = ss.getSheetByName(sheetKey);
   if (!sheet) return { success: false, error: "Month sheet '" + sheetKey + "' not found." };
 
-  mergeSplitRowsInSheet(sheet); // v3.5 — reunite any split transaction halves before searching by ID
-  const data = sheet.getDataRange().getValues();
-  for (let r = 1; r < data.length; r++) {
+  // v3.7 — reuse merge's own read instead of a second getDataRange() call
+  const data = mergeSplitRowsInSheet(sheet); // v3.5 — reunite any split transaction halves before searching by ID; no header, row 0 == sheet row 2
+  for (let r = 0; r < data.length; r++) {
     if (String(data[r][0]) !== String(p.id)) continue;
 
     // Preserve existing Name if caller doesn't supply one
@@ -418,7 +422,7 @@ function updateTransaction(p) {
     const newYear    = !isNaN(finalDateObj.getTime()) ? finalDateObj.getFullYear() : oldYear;
 
     // 8-column update
-    sheet.getRange(r + 1, 1, 1, 8).setValues([[
+    sheet.getRange(r + 2, 1, 1, 8).setValues([[
       p.id,
       p.date        || data[r][1],
       nameVal,
@@ -429,8 +433,8 @@ function updateTransaction(p) {
       createdAt
     ]]);
     rebuildMonthSheetOrder(sheet); // v3.5 — re-partition around the Over Usage divider
-    refreshReports({ year: newYear }); // v3.3 — keep that year's Master/OverExpense in sync
-    if (oldYear && oldYear !== newYear) refreshReports({ year: oldYear });
+    refreshReports({ year: newYear, month: month }); // v3.3 — keep that year's Master/OverExpense in sync; v3.7 — month scopes the recompute to just this month
+    if (oldYear && oldYear !== newYear) refreshReports({ year: oldYear, month: month });
     return { success: true };
   }
   return { success: false, error: "Transaction ID '" + p.id + "' not found in " + sheetKey + "." };
@@ -444,14 +448,14 @@ function deleteTransaction(p) {
   const sheet = ss.getSheetByName(sheetKey);
   if (!sheet) return { success: false, error: "Month sheet '" + sheetKey + "' not found." };
 
-  mergeSplitRowsInSheet(sheet); // v3.5 — reunite any split transaction halves before searching by ID
-  const data = sheet.getDataRange().getValues();
-  for (let r = 1; r < data.length; r++) {
+  // v3.7 — reuse merge's own read instead of a second getDataRange() call
+  const data = mergeSplitRowsInSheet(sheet); // v3.5 — reunite any split transaction halves before searching by ID; no header, row 0 == sheet row 2
+  for (let r = 0; r < data.length; r++) {
     if (String(data[r][0]) === String(p.id)) {
       const delYear = rowYear(data[r]) || new Date().getFullYear();
-      sheet.deleteRow(r + 1);
+      sheet.deleteRow(r + 2);
       rebuildMonthSheetOrder(sheet); // v3.5 — re-partition around the Over Usage divider
-      refreshReports({ year: delYear }); // v3.3 — keep that year's Master/OverExpense in sync
+      refreshReports({ year: delYear, month: month }); // v3.3 — keep that year's Master/OverExpense in sync; v3.7 — month scopes the recompute to just this month
       return { success: true };
     }
   }
@@ -675,15 +679,16 @@ function rowYear(row) {
 // year-scoped sheet directly, e.g. "May26")
 function computeMonthTotals(ss, month, year) {
   const sheet = ss.getSheetByName(monthSheetKey(month, year));
-  let income = 0, expense = 0;
+  let income = 0, expense = 0, hasData = false;
   const catMap = {};
-  if (!sheet) return { income: income, expense: expense, catMap: catMap };
+  if (!sheet) return { income: income, expense: expense, catMap: catMap, hasData: hasData };
 
   const data = sheet.getDataRange().getValues();
   for (let r = 1; r < data.length; r++) {
     const row = data[r];
     if (!row[0]) continue;
     if (rowYear(row) !== year) continue; // defensive — sheet is already year-scoped
+    hasData = true;
     const type   = String(row[3]).trim();
     const cat    = String(row[4]).trim();
     const amount = parseFloat(row[5]) || 0;
@@ -693,7 +698,7 @@ function computeMonthTotals(ss, month, year) {
       catMap[cat] = (catMap[cat] || 0) + amount;
     }
   }
-  return { income: income, expense: expense, catMap: catMap };
+  return { income: income, expense: expense, catMap: catMap, hasData: hasData };
 }
 
 // Single source of truth for Master/OverExpense/getMasterData — walks
@@ -703,6 +708,18 @@ function computeMonthTotals(ss, month, year) {
 // identical. getMasterData passes uptoIdx = the requested month's index so
 // it doesn't pay for sheet reads on months after the one being viewed.
 function buildYearReport(ss, year, uptoIdx) {
+  const lastIdx = (uptoIdx === undefined || uptoIdx === null) ? MONTHS.length - 1 : uptoIdx;
+  const rawTotals = [];
+  for (let idx = 0; idx <= lastIdx; idx++) rawTotals.push(computeMonthTotals(ss, MONTHS[idx], year));
+  return buildYearReportFromRaw(rawTotals, year, uptoIdx);
+}
+
+// v3.7 — same math as buildYearReport(), but takes already-fetched per-month
+// totals instead of reading every month's sheet itself. Lets refreshReports()
+// patch just the one changed month's totals and recompute the cumulative
+// carry-forward/overuse chain in memory, instead of re-reading all 12 month
+// sheets on every single transaction edit.
+function buildYearReportFromRaw(rawTotals, year, uptoIdx) {
   let carried           = 0;
   let cumulativeOveruse = 0;
   const monthly = [];
@@ -710,7 +727,7 @@ function buildYearReport(ss, year, uptoIdx) {
 
   for (let idx = 0; idx <= lastIdx; idx++) {
     const month = MONTHS[idx];
-    const t       = computeMonthTotals(ss, month, year);
+    const t       = rawTotals[idx] || { income: 0, expense: 0, catMap: {}, hasData: false };
     const balance = t.income - t.expense;
     const excess  = balance > 0 ? balance : 0;
     const overuse = balance < 0 ? -balance : 0;
@@ -744,7 +761,8 @@ function buildYearReport(ss, year, uptoIdx) {
       previousOveruse: previousOveruse,
       totalOveruse: cumulativeOveruse,
       categoryBreakdown: categoryBreakdown,
-      catMap: t.catMap // v3.6 — full month category totals, for Summary_<year>
+      catMap: t.catMap, // v3.6 — full month category totals, for Summary_<year>
+      hasData: t.hasData // v3.7 — no transactions this month; Master_/Summary_ skip rendering it
     });
   }
 
@@ -778,6 +796,27 @@ function getYearReportCached(ss, year, forceRecompute) {
   return monthly;
 }
 
+// v3.7 — per-month raw totals (income/expense/catMap/hasData), cached
+// separately from the derived `monthly` report so a single-month edit can
+// patch just its own entry instead of re-reading all 12 month sheets.
+function rawTotalsCacheKey(year) { return "rawTotals_" + year; }
+
+function cacheRawTotals(year, rawTotals) {
+  try {
+    CacheService.getScriptCache().put(rawTotalsCacheKey(year), JSON.stringify(rawTotals), 21600); // 6h, the max
+  } catch (e) { /* payload too large for cache — callers still work, just uncached */ }
+}
+
+function getRawTotalsCached(ss, year) {
+  try {
+    const cached = CacheService.getScriptCache().get(rawTotalsCacheKey(year));
+    if (cached) return JSON.parse(cached);
+  } catch (e) { /* fall through to recompute */ }
+  const rawTotals = MONTHS.map(function(m) { return computeMonthTotals(ss, m, year); });
+  cacheRawTotals(year, rawTotals);
+  return rawTotals;
+}
+
 function refreshMasterSheet(ss, year, monthly) {
   let sheet = ss.getSheetByName(masterSheetName(year));
   if (!sheet) sheet = ss.insertSheet(masterSheetName(year));
@@ -789,6 +828,8 @@ function refreshMasterSheet(ss, year, monthly) {
   const rows = [];
   const dividerRows = []; // sheet row numbers (1-based) holding a month divider
   monthly.forEach(function(m) {
+    if (!m.hasData) return; // no transactions this month — skip, don't render an empty entry
+
     dividerRows.push(rows.length + 2); // +2: header row + 1-based offset
     rows.push(["-------- " + m.month + " --------", ""]);
     rows.push(["Income", m.income]);
@@ -859,6 +900,8 @@ function refreshSummarySheet(ss, year, monthly) {
   const dividerRows = []; // sheet row numbers (1-based) holding a month divider
 
   monthly.forEach(function(m) {
+    if (!m.hasData) return; // no transactions this month — skip, don't render an empty entry
+
     dividerRows.push(rows.length + 2); // +2: header row + 1-based offset
     rows.push(["-------- " + m.month + " --------", ""]);
     rows.push(["Income", m.income]);
@@ -891,11 +934,31 @@ function highlightDividerRows(sheet, rowNumbers, bgColor) {
 
 // Manual trigger action ("refreshReports", optional p.year) + called
 // automatically after every transaction mutation, scoped to that
-// transaction's own year, so Master_<year>/OverExpense_<year> stay in sync.
+// transaction's own year, so Master_<year>/OverExpense_<year>/Summary_<year>
+// stay in sync.
+// v3.7 — perf: when p.month is given (every add/update/delete call passes
+// it), only that one month's sheet gets re-read; the other 11 months' totals
+// come from cache and the cumulative carry-forward/overuse chain is
+// recomputed in memory. Cuts a single-transaction edit from 12 month-sheet
+// reads down to 1. p.month omitted (maintenance/backfill callers) still does
+// the full 12-sheet rebuild.
 function refreshReports(p) {
-  const ss      = SpreadsheetApp.getActiveSpreadsheet();
-  const year    = resolveYear(p);
-  const monthly = getYearReportCached(ss, year, true); // force recompute — data just changed
+  const ss   = SpreadsheetApp.getActiveSpreadsheet();
+  const year = resolveYear(p);
+  let rawTotals;
+
+  if (p && p.month) {
+    rawTotals = getRawTotalsCached(ss, year);
+    const idx = MONTHS.indexOf(p.month);
+    if (idx >= 0) rawTotals[idx] = computeMonthTotals(ss, p.month, year); // re-read only the changed month
+  } else {
+    rawTotals = MONTHS.map(function(m) { return computeMonthTotals(ss, m, year); }); // no month scope given — full recompute
+  }
+  cacheRawTotals(year, rawTotals); // keep raw-totals cache consistent for the next month-scoped call
+
+  const monthly = buildYearReportFromRaw(rawTotals, year);
+  cacheYearReport(year, monthly);
+
   refreshMasterSheet(ss, year, monthly);
   refreshOverExpenseSheet(ss, year, monthly);
   refreshSummarySheet(ss, year, monthly);
@@ -937,11 +1000,7 @@ function refreshAllYears() {
   years[new Date().getFullYear()] = true; // always ensure current year exists
 
   Object.keys(years).forEach(function(year) {
-    const y = parseInt(year, 10);
-    const monthly = getYearReportCached(ss, y, true); // force recompute — bulk backfill
-    refreshMasterSheet(ss, y, monthly);
-    refreshOverExpenseSheet(ss, y, monthly);
-    refreshSummarySheet(ss, y, monthly);
+    refreshReports({ year: parseInt(year, 10) }); // no month — full recompute; also refreshes raw-totals cache
   });
 
   return { success: true, years: Object.keys(years).map(Number) };
@@ -1553,15 +1612,37 @@ function cleanupEmptyMonthSheets(skipKey) {
   });
 }
 
+// v3.7 — installable onChange trigger: catches manual row deletions made
+// directly in the Sheets UI (deleteTransaction() already syncs API-driven
+// deletes; onEdit does NOT fire on row delete, onChange does via
+// e.changeType === "REMOVE_ROW"). Refreshes Master_<year>/OverExpense_<year>/
+// Summary_<year> for whichever year the active month sheet belongs to.
+function onChangeSyncReports(e) {
+  if (!e || e.changeType !== "REMOVE_ROW") return;
+
+  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getActiveSheet();
+  const match = new RegExp("^(" + MONTHS.join("|") + ")(\\d{2})$").exec(sheet.getName());
+  if (!match) return; // deletion wasn't on a month sheet — nothing to sync
+
+  refreshReports({ year: 2000 + parseInt(match[2], 10) });
+}
+
 // One-time installer — run manually from the Apps Script editor.
 function installTriggers() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   ScriptApp.getProjectTriggers().forEach(function(t) {
-    if (t.getHandlerFunction() === "monthlyAutoMaintenance") ScriptApp.deleteTrigger(t);
+    const fn = t.getHandlerFunction();
+    if (fn === "monthlyAutoMaintenance" || fn === "onChangeSyncReports") ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger("monthlyAutoMaintenance")
     .timeBased()
     .onMonthDay(1)
     .atHour(0)
+    .create();
+  ScriptApp.newTrigger("onChangeSyncReports")
+    .forSpreadsheet(ss)
+    .onChange()
     .create();
 }
 
