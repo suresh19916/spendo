@@ -234,22 +234,10 @@ function mergeSplitRowsInSheet(sheet) {
   return merged;
 }
 
-function rebuildMonthSheetOrder(sheet) {
-  if (!sheet) return;
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return; // header only, nothing to reorder
-
-  const data = sheet.getRange(2, 1, lastRow - 1, MONTH_SHEET_COLS).getValues();
-  let txRows = mergeDuplicateIdRows(data.filter(function(row) { return row[0]; })); // drop old divider/blank rows, reunite any split pairs
-
-  if (!txRows.length) {
-    sheet.getRange(2, 1, lastRow - 1, MONTH_SHEET_COLS).clearContent();
-    return;
-  }
-
-  // Stable sort by CreatedAt ascending — true add order, independent of
-  // whatever position the row currently sits at in the sheet.
-  txRows = txRows
+// Stable sort by CreatedAt ascending — true add order, independent of
+// whatever position a row currently sits at in the sheet.
+function sortByCreatedAt(txRows) {
+  return txRows
     .map(function(row, idx) { return { row: row, idx: idx }; })
     .sort(function(a, b) {
       let ta = a.row[7] ? new Date(a.row[7]).getTime() : NaN;
@@ -259,7 +247,18 @@ function rebuildMonthSheetOrder(sheet) {
       return (ta - tb) || (a.idx - b.idx);
     })
     .map(function(x) { return x.row; });
+}
 
+// Single source of truth for the "Over Usage Of Expenses" split: walks
+// CreatedAt-ordered rows with a running balance and returns { mainList,
+// overList }. An expense that tips the balance negative is split into a
+// covered portion (mainList) + excess portion (overList); a later Income
+// pays back the oldest overList rows first (whole rows only). Used both to
+// physically reorder the month sheet (rebuildMonthSheetOrder) and to
+// compute the real overuse category breakdown for reports
+// (computeMonthTotals) — so the two never disagree on which transactions
+// count as overuse.
+function partitionOverUsage(txRows) {
   const mainList = [];
   const overList = [];
 
@@ -299,6 +298,27 @@ function rebuildMonthSheetOrder(sheet) {
       }
     }
   });
+
+  return { mainList: mainList, overList: overList };
+}
+
+function rebuildMonthSheetOrder(sheet) {
+  if (!sheet) return;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return; // header only, nothing to reorder
+
+  const data = sheet.getRange(2, 1, lastRow - 1, MONTH_SHEET_COLS).getValues();
+  let txRows = mergeDuplicateIdRows(data.filter(function(row) { return row[0]; })); // drop old divider/blank rows, reunite any split pairs
+
+  if (!txRows.length) {
+    sheet.getRange(2, 1, lastRow - 1, MONTH_SHEET_COLS).clearContent();
+    return;
+  }
+
+  txRows = sortByCreatedAt(txRows);
+  const partitioned = partitionOverUsage(txRows);
+  const mainList = partitioned.mainList;
+  const overList = partitioned.overList;
 
   let outRows = mainList.slice();
   let dividerRowNum = -1; // 1-based sheet row, set below if a divider is written
@@ -346,8 +366,8 @@ function getTransactions(p) {
   const year     = resolveYear(p);
   // userName filter: empty string means "show all" (admin); any other value = filter by name
   const userFilter = String(p.userName || "").trim();
-  const sheet    = getMonthSheet(ss, monthSheetKey(month, year), true);
-  const data     = sheet.getDataRange().getValues();
+  const sheet    = ss.getSheetByName(monthSheetKey(month, year)); // read-only — viewing a month must never create its sheet
+  const data     = sheet ? sheet.getDataRange().getValues() : [];
   const rows     = [];
   for (let r = 1; r < data.length; r++) {
     if (!data[r][0]) continue;
@@ -469,8 +489,8 @@ function getSummary(p) {
   const userFilter = String(p.userName || "").trim();
 
   // ── Current month ───────────────────────────────────────────
-  const sheet = getMonthSheet(ss, monthSheetKey(month, year), true);
-  const data  = sheet.getDataRange().getValues();
+  const sheet = ss.getSheetByName(monthSheetKey(month, year)); // read-only — viewing a month must never create its sheet
+  const data  = sheet ? sheet.getDataRange().getValues() : [];
 
   let income = 0, expense = 0;
   const catMap = {};
@@ -562,8 +582,8 @@ function getAdminReport(p) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const month = p.month || getCurrentMonth();
   const year  = resolveYear(p);
-  const sheet = getMonthSheet(ss, monthSheetKey(month, year), true);
-  const data  = sheet.getDataRange().getValues();
+  const sheet = ss.getSheetByName(monthSheetKey(month, year)); // read-only — viewing a month must never create its sheet
+  const data  = sheet ? sheet.getDataRange().getValues() : [];
 
   // Map: name → { income, expense, transactions[] }
   const userMap = {};
@@ -609,8 +629,8 @@ function getMonthlySummaryReport(p) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const month = p.month || getCurrentMonth();
   const year  = resolveYear(p);
-  const sheet = getMonthSheet(ss, monthSheetKey(month, year), true);
-  const data  = sheet.getDataRange().getValues();
+  const sheet = ss.getSheetByName(monthSheetKey(month, year)); // read-only — viewing a month must never create its sheet
+  const data  = sheet ? sheet.getDataRange().getValues() : [];
 
   let income = 0, expense = 0;
   // catUserMap: { catName: { total: num, users: { userName: num } } }
@@ -681,12 +701,14 @@ function computeMonthTotals(ss, month, year) {
   const sheet = ss.getSheetByName(monthSheetKey(month, year));
   let income = 0, expense = 0, hasData = false;
   const catMap = {};
-  if (!sheet) return { income: income, expense: expense, catMap: catMap, hasData: hasData };
+  const overCatMap = {};
+  if (!sheet) return { income: income, expense: expense, catMap: catMap, overCatMap: overCatMap, hasData: hasData };
 
   const data = sheet.getDataRange().getValues();
+  const txRows = [];
   for (let r = 1; r < data.length; r++) {
     const row = data[r];
-    if (!row[0]) continue;
+    if (!row[0]) continue; // skips the Over Usage divider row too — it has no id
     if (rowYear(row) !== year) continue; // defensive — sheet is already year-scoped
     hasData = true;
     const type   = String(row[3]).trim();
@@ -697,8 +719,22 @@ function computeMonthTotals(ss, month, year) {
       expense += amount;
       catMap[cat] = (catMap[cat] || 0) + amount;
     }
+    txRows.push(row);
   }
-  return { income: income, expense: expense, catMap: catMap, hasData: hasData };
+
+  // Real overuse category breakdown: reunite any split covered/excess
+  // halves already sitting in the sheet, then re-run the exact same
+  // CreatedAt-ordered partition the sheet's own divider uses, so
+  // categoryBreakdown reflects the actual transactions that landed after
+  // income ran out — not a proportional slice of every category.
+  const overList = partitionOverUsage(sortByCreatedAt(mergeDuplicateIdRows(txRows))).overList;
+  overList.forEach(function(row) {
+    const cat    = String(row[4]).trim();
+    const amount = parseFloat(row[5]) || 0;
+    overCatMap[cat] = (overCatMap[cat] || 0) + amount;
+  });
+
+  return { income: income, expense: expense, catMap: catMap, overCatMap: overCatMap, hasData: hasData };
 }
 
 // Single source of truth for Master/OverExpense/getMasterData — walks
@@ -727,7 +763,7 @@ function buildYearReportFromRaw(rawTotals, year, uptoIdx) {
 
   for (let idx = 0; idx <= lastIdx; idx++) {
     const month = MONTHS[idx];
-    const t       = rawTotals[idx] || { income: 0, expense: 0, catMap: {}, hasData: false };
+    const t       = rawTotals[idx] || { income: 0, expense: 0, catMap: {}, overCatMap: {}, hasData: false };
     const balance = t.income - t.expense;
     const excess  = balance > 0 ? balance : 0;
     const overuse = balance < 0 ? -balance : 0;
@@ -741,14 +777,10 @@ function buildYearReportFromRaw(rawTotals, year, uptoIdx) {
       thisMonthOveruse = overuse;
       cumulativeOveruse += overuse;
 
-      // Scale each category's spend down to only its share of the excess
-      const scaleFactor = overuse / t.expense;
-      const excessCatMap = {};
-      Object.keys(t.catMap).forEach(function(cat) {
-        const adjusted = Math.round(t.catMap[cat] * scaleFactor);
-        if (adjusted > 0) excessCatMap[cat] = adjusted;
-      });
-      categoryBreakdown = Object.entries(excessCatMap)
+      // Real overuse categories only — the actual transactions that landed
+      // after income ran out (t.overCatMap), not every category scaled down
+      // by its share of the month's total spend.
+      categoryBreakdown = Object.entries(t.overCatMap || {})
         .map(function(e) { return { name: e[0], amount: e[1] }; })
         .sort(function(a, b) { return b.amount - a.amount; });
     }
@@ -776,7 +808,7 @@ function buildYearReportFromRaw(rawTotals, year, uptoIdx) {
 // already recomputes the full year via refreshReports(); caching that
 // result means getMasterData() (and any other reader) can reuse it
 // instead of re-reading every month's sheet from scratch on every call.
-function yearReportCacheKey(year) { return "yearReport_" + year; }
+function yearReportCacheKey(year) { return "yearReport_v2_" + year; }
 
 function cacheYearReport(year, monthly) {
   try {
@@ -799,7 +831,7 @@ function getYearReportCached(ss, year, forceRecompute) {
 // v3.7 — per-month raw totals (income/expense/catMap/hasData), cached
 // separately from the derived `monthly` report so a single-month edit can
 // patch just its own entry instead of re-reading all 12 month sheets.
-function rawTotalsCacheKey(year) { return "rawTotals_" + year; }
+function rawTotalsCacheKey(year) { return "rawTotals_v2_" + year; }
 
 function cacheRawTotals(year, rawTotals) {
   try {
@@ -851,9 +883,10 @@ function refreshMasterSheet(ss, year, monthly) {
 }
 
 // Rebuilds OverExpense_<year>: a divider row per month where expense >
-// income. Category amounts shown are scaled down to represent ONLY the
-// excess-over-income portion (same proportional-scale technique used in
-// getSavingSummary), not the month's full category spend.
+// income. Category amounts shown are the real transactions that landed
+// after income ran out (see partitionOverUsage/computeMonthTotals's
+// overCatMap) — not the month's full category spend, and not a
+// proportional slice of every category.
 function refreshOverExpenseSheet(ss, year, monthly) {
   let sheet = ss.getSheetByName(overExpenseSheetName(year));
   if (!sheet) sheet = ss.insertSheet(overExpenseSheetName(year));
@@ -1572,24 +1605,22 @@ function getSavingTransactions(p) {
 // ─────────────────────────────────────────────────────────────
 //  Auto Maintenance  (v3.5 — time-driven trigger, 1st of every month)
 //
-//  Every 1st of month: ensures current month's sheet exists, ensures
-//  current year's Master_<year>/OverExpense_<year> exist (so year-start
-//  = Jan 1 = also month-start, one trigger covers both), then deletes
-//  any month-key sheet ("Jan26" etc.) that has zero transaction rows.
+//  Every 1st of month: ensures current year's Master_<year>/OverExpense_
+//  <year>/Summary_<year> exist (so year-start = Jan 1 = also
+//  month-start, one trigger covers both), then deletes any month-key
+//  sheet ("Jan26" etc.) that has zero transaction rows. v3.8 — no longer
+//  pre-creates the current month's own sheet; a month sheet is only ever
+//  created by addTransaction() when a real transaction lands in it.
 //
 //  Run installTriggers() once from the Apps Script editor to activate.
 // ─────────────────────────────────────────────────────────────
 
 function monthlyAutoMaintenance() {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const now   = new Date();
   const year  = now.getFullYear();
-  const month = MONTHS[now.getMonth()];
-  const curKey = monthSheetKey(month, year);
 
-  getMonthSheet(ss, curKey, true);   // ensure this month's sheet exists
   refreshReports({ year: year });    // ensure this year's Master/OverExpense/Summary exist
-  cleanupEmptyMonthSheets(curKey);
+  cleanupEmptyMonthSheets(null);     // no month sheet is pre-created any more — nothing to skip
 }
 
 // Deletes any month-key sheet (e.g. "Jan26") with zero transaction rows.

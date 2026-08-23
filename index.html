@@ -54,6 +54,21 @@ body{
 }
 .field select option{background:var(--bg3)}
 
+/* ─── Category search combobox ─── */
+.cat-combo{position:relative}
+.cat-dropdown{
+  position:absolute;left:0;right:0;top:calc(100% + 4px);
+  background:var(--bg3);border:1.5px solid var(--bdr2);border-radius:var(--r2);
+  max-height:200px;overflow-y:auto;z-index:20;display:none;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+}
+.cat-combo.open .cat-dropdown,.month-combo.open .cat-dropdown{display:block}
+.cat-opt{padding:.62rem .95rem;font-size:.88rem;color:var(--tx);cursor:pointer}
+.cat-opt:hover{background:var(--bg4)}
+.cat-opt-empty{padding:.62rem .95rem;font-size:.82rem;color:var(--tx3)}
+.month-combo{position:relative;flex-shrink:0}
+.month-combo input.month-pick{width:148px}
+
 /* ─── Buttons ─── */
 .btn{
   display:flex;align-items:center;justify-content:center;gap:.5rem;
@@ -124,7 +139,6 @@ body{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238a93b2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right .42rem center;
 }
-.month-pick option{background:var(--bg3)}
 .timer-pill{padding:.22rem .58rem;border-radius:20px;font-size:.68rem;font-weight:700;white-space:nowrap;background:var(--ambg);border:1px solid rgba(240,160,32,.22);color:var(--am)}
 .timer-pill.red{background:var(--rdbg);border-color:rgba(240,92,92,.22);color:var(--rd)}
 .logout-btn{background:none;border:1px solid var(--bdr2);border-radius:7px;color:var(--tx3);font-size:.7rem;padding:.26rem .52rem;cursor:pointer;font-family:inherit;flex-shrink:0;transition:all .14s}
@@ -700,7 +714,11 @@ body{
     </div>
     <!-- Row 2: Month selector, Reports (admin), Session timer, Logout -->
     <div class="topbar-row2">
-      <select class="month-pick" id="month-pick" onchange="changeMonth()"></select>
+      <div class="month-combo" id="month-pick-combo">
+        <input type="text" class="month-pick" id="month-pick-search" placeholder="Month" autocomplete="off" onfocus="openCombo('month-pick')" oninput="filterMonthCombo('month-pick')"/>
+        <input type="hidden" id="month-pick"/>
+        <div class="cat-dropdown" id="month-pick-dropdown"></div>
+      </div>
       <div class="topbar-spacer"></div>
       <button class="report-btn" id="report-btn" onclick="showReport()" style="display:none">📊 Reports</button>
       <div class="timer-pill" id="timer-pill">—</div>
@@ -817,7 +835,11 @@ body{
     <div class="field"><label>Date</label><input type="date" id="f-date"/></div>
     <div class="field">
       <label>Category</label>
-      <div class="sel-wrap"><select id="f-cat"></select></div>
+      <div class="cat-combo" id="cat-combo">
+        <input type="text" id="f-cat-search" placeholder="Search category…" autocomplete="off" onfocus="openCatDropdown()" oninput="filterCatDropdown()"/>
+        <input type="hidden" id="f-cat"/>
+        <div class="cat-dropdown" id="cat-dropdown"></div>
+      </div>
     </div>
     <div class="field"><label>Amount (₹)</label><input type="number" id="f-amt" placeholder="0" min="0" step="1" inputmode="decimal"/></div>
     <div class="field">
@@ -871,7 +893,11 @@ body{
         <option value="saving">Saving Transactions</option>
         <option value="master">Master Data</option>
       </select>
-      <select class="month-pick" id="rpt-month-pick" onchange="loadReport()"></select>
+      <div class="month-combo" id="rpt-month-pick-combo">
+        <input type="text" class="month-pick" id="rpt-month-pick-search" placeholder="Month" autocomplete="off" onfocus="openCombo('rpt-month-pick')" oninput="filterMonthCombo('rpt-month-pick')"/>
+        <input type="hidden" id="rpt-month-pick"/>
+        <div class="cat-dropdown" id="rpt-month-pick-dropdown"></div>
+      </div>
       <div class="topbar-spacer"></div>
     </div>
   </div>
@@ -1014,7 +1040,11 @@ body{
       </div>
     </div>
     <div class="topbar-row2">
-      <select class="month-pick" id="md-month-pick" onchange="loadMasterData()"></select>
+      <div class="month-combo" id="md-month-pick-combo">
+        <input type="text" class="month-pick" id="md-month-pick-search" placeholder="Month" autocomplete="off" onfocus="openCombo('md-month-pick')" oninput="filterMonthCombo('md-month-pick')"/>
+        <input type="hidden" id="md-month-pick"/>
+        <div class="cat-dropdown" id="md-month-pick-dropdown"></div>
+      </div>
       <div class="topbar-spacer"></div>
     </div>
   </div>
@@ -1058,6 +1088,12 @@ body{
 //  CONSTANTS
 // ════════════════════════════════════════
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+// v3.8 — display-only: month pickers always operate on the current
+// calendar year (no year selector exists), so label each month with that
+// year ("Aug 2026") to avoid any bare "Aug" ambiguity. Purely cosmetic —
+// the value sent to the backend stays the bare month name.
+const CUR_YEAR = new Date().getFullYear();
+function monthLabel(m) { return m + " " + CUR_YEAR; }
 
 // Categories — v2.3 adds Fruits, Petrol, Snacks
 const EXP_CATS =  [
@@ -1101,7 +1137,8 @@ const S = {
   // v3.0 — active tab: "salary" | "saving"
   activeTab  : "salary",
   // eye-toggle: hide/show amounts
-  amountsHidden: false
+  amountsHidden: false,
+  catList    : [] // v3.8 — current Expense/Income category list, for the search combobox
 };
 
 // ════════════════════════════════════════
@@ -1151,18 +1188,13 @@ function bootApp() {
     || String(S.userName || "").trim().toLowerCase() === "suresh";
   g("report-btn").style.display = canSeeReports ? "block" : "none";
 
-  const pick = g("month-pick");
-  pick.innerHTML = MONTHS.map(m =>
-    `<option value="${m}"${m === S.month ? " selected" : ""}>${m}</option>`
-  ).join("");
+  fillMonthCombo("month-pick", S.month);
 
   // Sync report month picker too
-  const rptPick = g("rpt-month-pick");
-  rptPick.innerHTML = pick.innerHTML;
+  fillMonthCombo("rpt-month-pick", S.month);
 
   // Sync Master Data month picker (v3.3 — available to all logins)
-  const mdPick = g("md-month-pick");
-  mdPick.innerHTML = pick.innerHTML;
+  fillMonthCombo("md-month-pick", S.month);
 
   g("main-fab").textContent = "＋ Add Transaction";
 
@@ -1454,7 +1486,7 @@ function showReport() {
   g("app").style.display           = "none";
   g("report-screen").style.display = "flex";
   // Sync report month picker to main month picker value
-  g("rpt-month-pick").value = S.month;
+  fillMonthCombo("rpt-month-pick", S.month);
   loadReport();
 }
 
@@ -1471,7 +1503,7 @@ function showMasterData(fromReport) {
   g(fromReport ? "report-screen" : "app").style.display = "none";
   g("master-data-screen").style.display  = "flex";
   // v3.6: always reopen on the current month, not the last-picked one.
-  g("md-month-pick").value = S.month;
+  fillMonthCombo("md-month-pick", S.month);
   loadMasterData();
 }
 
@@ -1548,7 +1580,7 @@ function onRptTypeChange() {
   g("rpt-monthly-report").style.display = type === "monthly" ? "block" : "none";
   g("rpt-saving-report").style.display  = type === "saving"  ? "block" : "none";
   // Month picker only relevant for user/monthly reports
-  g("rpt-month-pick").style.display     = type === "saving"  ? ""     : "";
+  g("rpt-month-pick-combo").style.display = type === "saving" ? "" : "";
   loadReport();
 }
 
@@ -2332,7 +2364,71 @@ function setType(t) {
 function fillCats(t) {
   // CHANGE 3: EXP_CATS now includes EMI and Chetty
   const cats = t === "Income" ? INC_CATS : EXP_CATS;
-  g("f-cat").innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join("");
+  S.catList = cats;
+  selectCat(cats[0] || ""); // matches old <select>'s implicit default (first option)
+  renderCatOptions(cats);
+}
+
+// v3.8 — Category search combobox (replaces the plain <select>, list too
+// long to scroll through on mobile)
+function renderCatOptions(list) {
+  g("cat-dropdown").innerHTML = list.length
+    ? list.map(c => `<div class="cat-opt" data-cat="${esc(c)}">${esc(c)}</div>`).join("")
+    : '<div class="cat-opt-empty">No matching category</div>';
+}
+
+function filterCatDropdown() {
+  const q = g("f-cat-search").value.trim().toLowerCase();
+  renderCatOptions(S.catList.filter(c => c.toLowerCase().includes(q)));
+  openCatDropdown();
+}
+
+function openCatDropdown()  { g("cat-combo").classList.add("open"); }
+function closeCatDropdown() { g("cat-combo").classList.remove("open"); }
+
+function selectCat(c) {
+  g("f-cat").value = c;
+  g("f-cat-search").value = c;
+  closeCatDropdown();
+}
+
+// v3.8 — same search-combobox pattern applied to the month pickers
+// (topbar, Reports, Master Data). Shared across all three by baseId; each
+// hidden input keeps its original id so every existing g(baseId).value
+// read elsewhere in the app still works unchanged.
+const MONTH_COMBO_ONCHANGE = {
+  "month-pick"     : changeMonth,
+  "rpt-month-pick" : loadReport,
+  "md-month-pick"  : loadMasterData
+};
+
+function fillMonthCombo(baseId, selected) {
+  g(baseId).value = selected || "";
+  g(baseId + "-search").value = selected ? monthLabel(selected) : "";
+  renderMonthOptions(baseId, MONTHS);
+}
+
+function renderMonthOptions(baseId, list) {
+  g(baseId + "-dropdown").innerHTML = list.length
+    ? list.map(m => `<div class="cat-opt" data-val="${esc(m)}">${esc(monthLabel(m))}</div>`).join("")
+    : '<div class="cat-opt-empty">No matching month</div>';
+}
+
+function filterMonthCombo(baseId) {
+  const q = g(baseId + "-search").value.trim().toLowerCase();
+  renderMonthOptions(baseId, MONTHS.filter(m => monthLabel(m).toLowerCase().includes(q)));
+  openCombo(baseId);
+}
+
+function openCombo(baseId)  { g(baseId + "-combo").classList.add("open"); }
+function closeCombo(baseId) { g(baseId + "-combo").classList.remove("open"); }
+
+function selectMonthCombo(baseId, m) {
+  g(baseId).value = m;
+  g(baseId + "-search").value = monthLabel(m);
+  closeCombo(baseId);
+  const cb = MONTH_COMBO_ONCHANGE[baseId];
+  if (cb) cb();
 }
 
 function editTx(id) {
@@ -2354,7 +2450,7 @@ function editTx(id) {
   g("f-month").value        = S.month;
 
   setType(tx.type);
-  requestAnimationFrame(() => { g("f-cat").value = tx.category; });
+  requestAnimationFrame(() => { selectCat(tx.category); });
   g("tx-bd").classList.add("open");
 }
 
@@ -2584,6 +2680,22 @@ function setBtn(id, loading, label) {
 
 g("tx-bd").addEventListener("click", e => {
   if (e.target === g("tx-bd")) closeModal();
+});
+g("cat-dropdown").addEventListener("click", e => {
+  const opt = e.target.closest(".cat-opt");
+  if (opt) selectCat(opt.dataset.cat);
+});
+["month-pick", "rpt-month-pick", "md-month-pick"].forEach(baseId => {
+  g(baseId + "-dropdown").addEventListener("click", e => {
+    const opt = e.target.closest(".cat-opt");
+    if (opt) selectMonthCombo(baseId, opt.dataset.val);
+  });
+});
+document.addEventListener("click", e => {
+  if (!g("cat-combo").contains(e.target)) closeCatDropdown();
+  ["month-pick", "rpt-month-pick", "md-month-pick"].forEach(baseId => {
+    if (!g(baseId + "-combo").contains(e.target)) closeCombo(baseId);
+  });
 });
 g("carry-bd").addEventListener("click", e => {
   if (e.target === g("carry-bd")) closeCarryPopup();
