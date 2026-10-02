@@ -3,8 +3,13 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0b0d12"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<meta name="apple-mobile-web-app-title" content="Spendo"/>
+<link rel="apple-touch-icon" href="icon-180.png"/>
 <title>📈 SB Monthly Ledger</title>
 <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAkmklEQVR4nHWbeZxc1XXnv/e+pfau6r3V3VrQihYkRCMBAiTEZmM22wFjTJwYT+zgJHYmccbJzOSTTzIJEyd2nNWOJ44nMV7wxmIbY2w2A0ZGQqBdaG91t9T7Xuvb7p0/3ntVBcnUR63u2u6759zfOed3lifau3o1QiAQhP8EQggAhBQIIRFSoDUIIZBSEj1BCAno6PMCIQANQkqEkGgdvheuHa0lor/lO55D9Bmi18O1EOF6qKC+x/ghEEjDQGuFECBFvLdwrxoQIn5fhPshXjj8jBkK0bSoFOH7MhQKIqHQkcCxoqjvUEqJVtGihhEJE20ouhCRsA1lRIuET+sKFNF7Ugi0oHEtaSCkRAc+4VMDrcM9CCKlSRNQ4WekJFwApDQAhWHY+L6DVhrDNBGAqdFv31Sk9fAkQ62FipF1wUIFNlCjtK6fmogFpnn34Ze0jlHVOEHqiGsgD63RIr5mvAcNSjWQp0GEC9b3pLUCHUSHIECrUCkRApTykUIizPAwAqUw68JDfWMRGtERvKWU9RcbUJVv1340kch44G2nHcNVImVoUqGpSYjWjxWstQ5/YgUTIknrIEKGDIXWqgnK4Qmjg3BHSofXkAKt/Lo5ggjNSSs04f5NpRWGNN5mVzqCe90ciE+uCSWxoDLWmq4LpSMFCgFG9D0/0FRqPn4ASikMKbAMMCQESqMVCMPETtgkkxamFZ5iEKjo+mbD/LWqmwE6RLogNBsQaBVEIJVIKUBrlPIxTBsApUEiUIGPGWs9hl986g0PFLuEZhgbb/MJdeiK+MQEUgoCpSlVfZSGQi7B+pV5Nq9tY/2aLnr720i1tBGQouZJpmfKnDs3xrHjQ5w4NcrMTBE7kSCTTSKFJlA6UnyIECFlhL9IIdII945GGGbo+AidN1qHKFJB6IsApfzwQDt7lmpErASJYci6rRLZs4g9fJMnr0eLZu8OGIZEaU21pkinLC5fk+eWKwoMrEnRmhU4vmCmZrHoaNrb8/R2t+N5Jspuo6Wrh0JnK45TY9/+Ezz2xD5e3TdMxdVk03bo1yIvX0emEHVzEEIS+v5QIbETDM0xPFCl/FAhhoHSNBRADKHopEPbN9Bah6/LhqMSkS3FJlH33FJSqfkkEyY7Nxe49bIEOVnizMUShwYrnJ/yWKxA4Gvc0jwfe/9qHnhgB1/7m6+BVeD4hEnNLLBq/Spufc82rtu1nrGxab705Zd5Yc9FHD+IIE3dOetYE0rVI0cd1ZGZKK3QSiOlQCuFUir0I4Bo7+7TskmYunVHHhioO6k6IiLbip2YKcNTr9QCtqzOcu/VWQxnmhffnOD4qKKmbXwFKlAEvo/v+biezweuaWfHttU8+vhr5LJJpsuCqbLEDyRIg54lrdz7gSt58CMDfPVLe/j8t0ZIJhMIrZAyBHyIZ41GE5l73Sy01kgjcoCRAlQULTSglfr/KKDp7xgJzaiIlQIS0xC4fkhE7r2+jW39NX66Z4R95zyMRBqlAuYXq1RqAbZlYhoWhmmyqj1g+9oO1ly6guGhEfYenaVY8VisOBSdAGlapFNJJLC8L0XZT/O/P7WLUxeKfO47wwgpsE1BEOhQIKVCrx8EoDXCMNBR2JQRkVKEEUurABAEvofo6OnXIvLmIbSbbL7pdVlnbo2wZxqSqhPQkpH8xs150t4Mjzw3zmKQxjQU49MVnMAgk0mTSVkoDa0Zk81LLeYvjjKwdQVbt29k/ysHCKTN8GKCE0PzGFKwUCwzPb+AkIKVS7vIZPKsbl3gvz+4nhMzLfz5t2aYLXkk7TDCxDwh9hF1/lLHtK6feqwYgBjXodZi+2l4mPB1qHvg2PMbEqo1n7ac4Pfe00JlepQvPDmOZ+aoVKqcG6tip/O0txdIp5IESpAy4bYr27HdIi3pBO2dHQgtWLO6F0vX2Lymlb6ONI4vaGlpob93CflcntODE5w8cYrnDpa4549eJV0d4XMfaaW7YFF1FaYR8RgpYwITyhH5hdBFKCLN1Km81hoZs6yYEmsVB5fQKUoRM8AoxmuQUuC4AbmU5nduzTI0OMq/vzhPZ0eOobEFFj2LjvZWDClRgUJpheMFDKxMUp2boK/gccOOftIJgfY91g1s5qZbN1KZHuGqDXmkIXB8hUKSzmTp6uqiFBjMzC9Q8hJ87HPHKE8N8bcfLdCZs6i5oaOO85Uw8oX7V5G8aI32vdBvSIlQCh0ESBExNV2Prw2eriPCoRs4QghNEARAwMduzjI+NsGjv1yksy3NW0MLmMkcuXQSpRTSkBEF1STNAFlbZGp8jrKfYHTOYGx0mtmZCQ68fpLpiRKdyQqLE6O0tlj4KqRWXqAQhklPVweJTJ7h8VlMO8En/+EESRb4wu8sxRIKX+k6LQ+hrFFaE6gAFbHL8IB9VBCE8hJZeKyhBqcjUlvICmM6S0SYylWXD1ydJhkUeeTn87TmkpwcKZLJ5bEiHkH0bccLmJqrMjw8xtyiw2zVZnjc4/TQHCMTPqfPzjE6Ns+hkxXG5w2qHgxfmGJ2oUzN8ZBS4itFoCCbzZAttDI4NothJfjwn73J+vVZ/vjjaymVXcwoEWuWI0RtGPZUHR2KIAgjgRnHyzp3jYTXCITQoZtQ4S9pQKniMnCJxRVLA/7+ySmymRQXJsuYdhrH8bBMA9cLSKdsihWfvnaT9+/qx/GX8fovjmMJiWj1uPOmLlyznZbOFay8fDv7n/gXfvLmPMKQ/Mp7roJMG6++dpTBkQXSSRNf+1RrPlJaJLN5RqcXKWRSfOJ/vsRXv/cQL70xzzOvjpPLmPiBikxYNuSJ0+SQHQBRmGwwqGbdNTI6EcIEAfgBpC3F+wYSPLt/lgXHpFLzqAYWHW0ZNq1bQiahue+WlXh+wKpug43tVQ4fGqSzrZNtAyuZmi+yY1OKnQNdLN+6hZY113LZjhu4+/bVjIzN0Le8jYRlcui1wwysSLK6P4PnKzxPsXJpCwObesnnclSVhRKK535+mse/cZg//ZM7yCc0nq9C3Ea2HygVmoYKQgIVc4coQZINmNfBT3OhIn5VGoJS1eXGjSmkdnntjEPaFkyXNJZp8Le/tZL7duUp2JoOW+E5FS5JL6KdBfoyDo9+/WmeffUU6/oNZisW81WDkweOcfbYq8yNH2bPmwusX27xk1eG+PHjT7G5dZjK0CFWZUpUHZd3D7TwR+/t5Pfu6uBjt3XR1V5gbM6l0JrhLz/7Q9I5g49+aDOLxWo9e1Va1U9fSCPiCwFKBQSBj9IaM3Z6se+o57T1VD7kBo6nKCQV79qc4EevTSKkwWzJRwuL/nZBG7NcmJnhnmt7qPgeltSMluGv/8s6iuWAlStKfP4757lyqc2etzz49pv8xgOX07mlg2e++Of84GejrOzJUz0yzX0f3Mq9d6ylrTPPzR/9CYHrYhYnOHViHtMAy9Us7UwxX8wyU6yRlA7//HeP8dBv3cK/f/cQJS9ACl2nxQIDrQO0iDLFmCAJiaTJQ9YfWoeEIebTIrT9GzZmyGcEh4ccUrak4htYBkxOL/DWSJXPfvciR87Mc35wlK3LLI6OOGzYvAJL+tx6fS/rl1hc0p3gvdd3MDExjd3aTn7trRTnijz40G2sW9XBdRtzbN/chqqVqPVs4/yES+BVOH3B4dm9Mzy/f4bXT9aYX6yQy2YoVTXpTIJvfOuXCGeKu29cRqnkhARHabTS6CAIHWFMgOrcIAg/J+qOIgS8rqeeIZkIfI0IPO7b1c65qQAvEJQcjZQGhtTMFD3+6P+eZ0GZlD2H01MuB89XmJ6r8cdfPMq61e1UJ8dY3m1RLbuo6hx97QY+CTy3ja3rO5k78RqnT4ywcmmO3kSJXMbk07/9j5SqHguVgKPjDkYqRWdvJ68Nu0wsKAyhSKUzLJRcpqYrPPPEG9xzUwcmoZdHh6FQaY2KDjRkgnEiBVJHVZv4V73YEVNFKSjXXNb2J9i1vYt9p0pkUhalmsa2DIQQ2IkUs4s+v3XXKjo7c5wZq+CQJJtN83ffP8t39nnsvmYZl/QkeeyAw5FBn6XLepiZmGPmwnFaenrYd2iBb+0ps+aSPMtu2sZfPjHPVx8/QntrjkIuzchMhbGSYM2KPnK5FFqHfiqZsCg7mqRt8r0fHWNVZ43V/Skcr0GJdVw1icprCo2KDlnWCwxNyU+dDBEmPeWKw67tvSSX9HF2tIYW4GkIC40GtmXxB/evxzCT2Jago7uAxiCdSgKS7z87xCun4GcHq1RJ0LtmHedHilRLFYLqJPv3niS7dB2plgLffm6an+8N+MXLpyi0toeUVlpsWNXF7i15hi7O86ef2EEhK/ECjSElwrAJdMChk/MUJ2YZWJPE8YIog9cRvQ8doI7CQ+gLos80ioECFScNUW6AgMBzuG7npZyZT1F1FL6W9RKUr6Bg+2inxhtHLvLu63rpaTEItMbXgpsuyzLQq/jG48fYuKLAzktbeezZ45wZmqdaKmKpEsdPjvH0c8f46B3r2XXNKvb+5Bd87lOXc881BYpVHy0Ell/hlhs2cPjEKHteOcqSPLh+WAixLQsvgGLZZ9+bw6zrCdlnXAcI4a9QDXiHuQAaUwNCaWiqANd9IQLXC0hIxZatazlweBghwXVB6bDk5Xs+847LyHiZdd1w7shpzlwoYxo2SSrcsa2VG69fi1ur8fO907w14iCGi1Q9yYXBEa4ws1x+1VZ+ceBVhkdmuPcju9hxVTdBdjnCfYRXjhxnPkgwNFlh/89fZ/eVrZwfc5kvh2VNP1AESDwlMLRi79FptqxPYBkKFYR1RRVVg7RWddaLCGWVITmIvKWOnF+9qKDx/YBc2qSnJ8fw0Axag+N4fPpDa2hrSVBzPLoKSdyag+dWGJ/WdOSSzJcc7tixjIGB9ew5MMOzL5zm0mU2K/o72H5ZL2OLkmNvTbD3mae58f138fVHf5cHH7qJ1d3wrw9/k589+hRLl7dy9SqbcsWlu5DlwlSAX15kZGwOFQQEStGWs/jdBzbgB6HZnh2t4lUWSZoarUUjsw0xW+cBSoVOX9ZlrUuu65Eirspm0ha2UWFmcpJq1cfE476rbXLJkHmdnyjy7KFZjg5KVm3cwAPv6mP3OpsbN6WZHBvlpb3neePoJDuuXsqtt21h3fI2hJ1g32nFU4+9yJf/1+f5waM/5idPvMjI6AJlmebHj7+Mnyhw2eo+Vra4vGd7C5dcuopjwyb7ThcZWwhwPE2CKvdvN0gnJJ7nMTbjMj9fJWHoqF8R1TfjUl+9kBr6AjNOeupdmyg5EoQxIggU6aTECKaYmlig6vgkUyZf/NZRlna2EOg29h6pIi2NCBbJ2bNcfXUHi6MjFGseCStB//JuThyp8Y3vvIFZ6GRy0iGbtDg16jP2lo99cpz50jizDkxMzPOB9w/ww2dO8OQPBjk/XmJlwefD7+7n1MgiFycmsbItaGDLqhwF2+GfvvY6djJJ1Q2Yr/jUAo0hAhBWA9Eq8m5SIHTYyVI6CE2AGPlx7K/HTo1hwMR0iX1PvYlyPJZ3WXzhtzfyw4M+912dJG/7JBMpKh54QvDSS0f5zMPPYxY62X7dJtq7snQlq0wGFl96cpxHnziCpwRdecm2VVkKmRQTRUhnsyQSJrPVBD96YYShGcHTz+7jmi0Zbr/9Cn7w4nl++uIpkqkE2kjguJpkMMev7u7kBwcVf/XxdazszVF1NMfOV5iv+KHv17peA4xr/I3QCCZNrUEtNKi4JB7aSBAEZGyLv3lkiOMjRYYuzrE4eoHfvG0Zz+0ZZrGWJp+z0drj4MUaWnlUXEnG9FnWYzB1psQ1Oy/nx3ue5pJVNrdf389s0MGqXb2YaRPf9xkfr3D6zAIv7z/La28MUXKhpgU7r1lDoGxyCZt169dwdvQER8arJHMGWIrxeZ+XXh/hwVuWMHTqDMcHF0hbijMzNtmUTdnVUVFLRxWhSHjVUIqMFQORY6wnhHEbTILyue/aVlYvLaCNBH/x2DTP7Zvk3JzJJ29vx/MUmaTNnGNwclpz00AnBw5PcOjNc8zN13jxhcOk8LhqtcWtN65m7eo856cMOjo6WLZiKVa2m5vfez1/8ZlbuGtHC5ctt7lpUyt9nVkW56sUWlsIXMWG1b0kkgkAnGqF33x3J0dHBS8cmOZfXywhTIs1S1u4cWMS13HDdD6qDmuI0NCQDyEw4yjQaIzGWghrAqYUzJUDhi6OsayjgFABf/Zr63jqQJWMWOSNwxdRwsCSGjthY9sOU1PznB03+ed/eQ2tBS+fDcgloOibnBucoSth8/y5GcYuTGAbks5umy3v20RtXOFMdvPT/WcoOj5PPHeBvt4Cw1NnOTU4h4FLe0uCyWKAEwhOnptgXW+WciC55/oMf/BvF+jJWywWS1ScLHYqtmnCfiERN2gKdObbAr+Mzj3KCmMy5CrB8LRHaxtUPMFnv36YW67s4+A5RWtW8NGbO/jiU2NkkhbjCzX2nKwwW5FMFpOYhmCqGpCyoLxY4amXRli2JINXW2RoIkU6ZbFueYqTP3ueweEFjp28yOCcxpstsSuhcBdrzFUTTE3PMLwAOt1GqeLz67tbGZosg/bp79D8y1NTeMqiq8VgckHhaYmFrtu7jqIbEOU6ISoaHUcdNxp0zBHCqrgUKG0wNOFwbY9Paz6NThqcnTU4Pxtw82abk2PzKCRK+aSSFpvXpOlrN6kFEs81WDOX49DgLBemfJZ4U7w0MoeVtJiZC5CB5s2DHm+IHJY3y4VJj6RlkJKCQyNVjg2VSGroaoNZL0NOCxxf4xZnGVid51u/qEAijUwXyNglCinFwSkJwkBEkI+zfF037Eb5z4xLxWHu3LCRZndgGAZnxh1u2OKxYkmW2YlRvvSxfn52NMezb56nvTXFLVtaeHrvBPdfleS2gRz3P3At5sZrePPJZ3nt+YOMT0gOjibxkLhK41ZB+1WUo7g4YVLzFmlJmxybTdKZC+hMQz7hcsvNa7nmrg9izBznK1/7Bf/6isetWzLMVKpMHi/yvh1dbOyDP3xkgv52i4wNw3MC05ARHW6y++jUm3M+M678hjXPdwxJEPYdE7bJ8FyVmYUy21YV+Odjgg//9RFW9LRwYSHBjksVg9NVpNC0W2UWqjle/vlxNpUDrrjtJra85166v/A5Hv4/xxktFWjLWxSLDmv628m1pDj01hQ9XRlGFjwCd5EtvR43X9XNtdevY92uayG/kcqJKTZ1e5h4tFtV+jpNfvSGpnx4im+/4DA6b3HzlgRzFcFU2SSdozFrEJX+Y6qvorQYQLR19dZruBD1AevJURgrlQ6YnVvgvZdb7B7o569+MMOqdpdfv7WfZw+VkJVppkuKM9Owvb2EmbawbJOlbZKd23oZuPv9WIbPD7/yPb765CjDi5JsyqS3xUKakplKOP+jnBpXLNPcffNSNm7oZd6zGBtb5NyZIeYrmsmL8+ydbCVtOrRlBEamldu2tfHlp8Y4PebwmTsyPHfUY/94npZMIqwH0gh9cUhsDGHoWAFxKhzZiAQRRcgwTwgolit0JGr8/t09HBjL8egzR/jUu1tJJdO8clKRNopUay7nxwMu74VkPk0mnQCvysalgh3XXUprTy/T4/M88v2T7HtrjlzaopC1uDBTo5CS3HZ5hg2rMvhWiuFpj/NDU4zPVlHCQHoeJy9qtm7IMVcVTMybvOeKBBNzDl9+vsqvXNvKwHKDf3jORaTaMKNGaAzjBhJiJUQpUltnqICmjDhSRmMCLAgUKvCYn1/g3qvS7BxYwd8/NcXg0CgfunEpk0WNrpaYnFrg4JjikrzBkrygv7eV1kIKcBFOmW1rMyxbcwnzTo5jp0YZG7rIdBW0L7npyj4yLKARDM4qRqaqOH5IYCZnKozNuJyc0dx4qUk6kyWwM7RmJI++NMOqviyfuT3Dk3tLvDqSob2QIW4XNk47aovXS+ShoGY8Pha3lYhbaHEhQUdTF0KSTCV5/kiFLSvn+ODupXzh0RmW5Dzuv76DH+2BCzMBsMCip6nMKGreHB2zRRSgJYzPzKJfXSCbz3PLtf089MBuvvfYYaxUhqlpj2MXy1Qdn6miwpcmUijGpspcnPUwTBOFouRl2bwkw53XFnh63wIJ2+bDO/OUqx6vDWoyLTZeEIQVIA2KyNabFBI7RADR2rkkco1NA1A0emyxaWitUYHP3NwC21eYPHj7Sp4/ZfD9Zw6wot3E8aElm6LsakrFCt05g+mSopAxKCQFnheghURKg8Wyy+6NKXbv3kQ6nWDo3BjfeHqIZMKiWnNoyZgsVhXTRQ9fw8qeBIMzkEwnEL6L4/pYBgxOSz5xdz+/cqXF7//bBBeqefK5FL5qimOqifZoIiIUmkCYC6gYDrrJ+Yt6shAnEUKETcVcLs2+wUWW7b/Ie3auZb50GXsPnqG/K89b5yZZ1pGksz3H9HwZKTTlWkCxEg5DlV2PRdclY0HZt/j3J09SSEt68nBkzMEQLm0ZycXFGq4StKYNfE9zeiqgNZ+mXHG5OK9Y3ZtldC7gnps6+B/3dPLH/3aeUzMWPV1JfKXrYU5Hpx+3/VRkCmFQiA660N6jBSKEfNQ9bp4TiGvrcfQMAh+nVkW7Ve6/ro3LNy7nh29WeOvkIN1tLRwfmiVna9ryaaYXHUrlKksLNrmUQdISrF1isfd0lZIL+bYsK3ryXLgwDcqlv93izLhLa9bi3KRDxVWk0knasiaT8w6+TLJ1ZY4Tw0W2rW/j65++hH94bIiHH5+mp6cr7AOKaMjybSGwwQG0bhC9ejKk41ZSpLD6u3Xh43J6OCGSSKQIpM23fzHDgaPnuX1zgssuXcnodImNywsIO8X5iRLtOZvlS1qZciQHL9SYqWiwkkwselxccLnrmk7ufNcqDo8UmS85GKbN2KJi/1ANT9r0dObIJCQXZnxa8i2sW5Jk/8k5rt1Y4K8+1Mbff3eQzz4+SVtbK/EYlFYK5QeoIKwHiqi13dzh1nWZNSLf1t04+sj23zb2FlWM61WVKJUMAp9KtYwROLxrU5abtvVzbDrFU6+eJ2sGGLbN0EQRE0Vn3sYwDC7MVBFCcPfOZaxd2cqG1jJbBrbww1OtHDt8lMd/tB/L0LRnTTw/YKboIy2b7kKCWs3FTiRY2pVCVeZY3mHxzV9WKbS1k7BtdFMbr05/0U2vNTl10ah/mg1wN8OEyASIqqcNOwqdo0AaJqlUmlpV8OPDZaaLg9wy0MHvv38lPz1U5vjZCfrbkwRaMFtyUX6NdMKg5vrMj0/Qs9bEs1u5WErRo4bZM3gSCBubEwsepmnQXkgjURQrHqv6suy81MbWLv/0jM+Lb3l093RgWXYU78Pav4rCWHzKcYs3Fj4mdjp2/Pn2bh2XxRqPKGGIp7YjglQfcI6vF0UGx6lSrVZY1mpy6+YsOy7rYtpN8/zhIqdHFvBcDy00jq8oVx0q5Rr3DNi05wxaW7OUyzX+8WdlOtpbEChsy0ACpmmwtCvF1kssUrrI8cEKr53zqMocqVQG0zAbYzEQlvRVPAQbHWqM7tgfRPCIC8Oipa2rUThtUkBs83F63DCLppQ5UkKgfHzPpVKtYiifDUtMbtqc5brNSxDJFg4O1zg8VOX8eI2h0QWEqvCRHSn2nFigXIO7ru3j0X01yi505hN0tBgs77BZ0qLwakXOXSxzeMhjZFFipXJkM5mwIRLNBdY3pqkzPB3LTeT0mhyiaJp9Evm27jgRJkbSO31B/f8IARLRdM0IVkqhAh/Pc6jWqhhas67bYueGLLdc1c2W9d1093XxlafH+OxX9tKa1pydgcAPWNluIJJZ7rimh10bUpwbnmFkvMTJCxWOX3QZWxQIK0k2k8VK2DRPpupoD0JRt21FNCpTrwJHIT2IBqzjCIduQkCsgfiE4+xZiHDgOb5/QDehirBeENuXjiouyvdwHAfHdVF+QC4hWNFps2NjHmUm+c4rUyhM7tnRQSGf4ss/GiRhCW68NInyXQ4PVZkqKRxlYloJUqkklmUjpBG2tI2w80M9XIeOLZwJCn16ECiEjuoZSkV9gMZ0ewx70dLa9XYExE4jHp7SgsWyV6+ipNMWGoFlSmzbxHECiKqv1aqPRmOZgnTSZKFYRbsu4Earq/oVQLOhN4FtS46PA1rhOg4ICzORAGHg+2CYJqZh0pJLYJkGfqCpOj7ZjIXWUCq7OG44Sm/bkmTSolYLyCQNtIByxSNpS4z4pg4ZefkY17nWTt3Afug9ZQR/DVim4K4bltFaSGFbJnsPTWBKzdiMw/kLi2y+tJOEZZDJWmxY10XCsjh6cpoX9gxyx+7l9HWlkVJw5K0ZhkbnuO2GlSgtqdZcnn35FEuXFNh/fI5MUnLN1l5ePThGpaa4dGUnO3eswjagXPX56UuDTM0U6e7IsG5VBy+/PowlBbuuWc6qS9owhObYqVmOvjXOZWtaefnAOELADQO9HDgxzdyiS3zbQ70OWs95iftCjVKRlLC46PJrN3fzybt7qJYWMXWVoeEpPv3gJraua6W0UOTOG5Zy5+4+fvtDl7FlVZZqaZY/fWgjv3vvCj75/iU45SImLo5T4fMPrWTNEgOUS6nssKKvwF//4S7KtZDnP/zfdpLPpCiXA3Zv6+PX716LU57lgVu7+fjdlzA7WeLB967iiS/fytLuDPNzJf7ww2tYt0Siq3M8/PE1XL3G5ld35ZEIgprLp+7qpLtg4ngqlK2pJ6CViqvCjUf4pkZpiWEKTg1OM3LWoi/j0NMiWLs0TbnsMrfgAIrpmSKdLQYT43M8/ewp2tKaF57ey+Ksgy7atBol2iyXi2ML7Nnn09tu01LzaMnazAqfnDfJ4w9vJmlBdewcfqAxTMHo6AIjJ8YISg4jxwbZ9+YEK1cW2LRE8F8//V0+cUcvD312jNMHTzA/U8GfLnJ0b5mJqQXODycpll08x+HkyTEcx20KhQ20I6KiaJ0uxvQwHm5MSp49OE/NcUkmTLavzfLA9S1ceOsUV6ywGVzVwbJMmeELZVrFLLVakffu7uSLT00ztVDltq1JDp5eJJ8xSadsvvLsLDvWJam58NBtCQjg0OHzPPzNITpyJn94X39ohEJQqZQ5NTjKkTMTZGSGS/sTrO6RvLr3LCfPl7j36jSXrckyMTnD2TGXkyNlNiy1WNklKZdrXL0hj+OkqFYdFosuhhRRMhTKGx+0yBU6Y44Ym0dkAoKaq1jTI7lza5Kyo8jYkucPLbJQDbh/Vxs1T6MDzddfmue2K7I8c9ghoSrct7uPb708z51bBIVcgmzK4MCIBOWyqVdQdRSegtfP1Ni6KsMjr3pI5fC+7Rl+9pbJ9KLHmm7YuamFquNjCp9zozWWtZvsOVVh4/IEGTPg4oJFPumzojOcDbQMeOTlMhv7LK5Yk8NXcHSowmuDBsmE3WiR1fMjjcgWOnTDLzc4QFQhwXGquJUaMSU0kinQiqDmhN8QFnYm7MRkMxlqrofvuSSTCWqlaki3NJgJG9/1QPlkMiYJy+bGgWWsWNLGa8fHGZpcYHKugpVswTYFxeIinuNE3MOo3+ZmmBZOzQWtsG0Dz/fCEXkBCJNMJkWlWkF7HgBmIk0+l4mceswPI8RrhcgW2uupQ+wFGjeYhASnzgqlwDQM0jbkEpCyNJmkIGlJkpYgYZukEiYJW2KbBpmURcKSWKZBKhE+/+mbC3TmBKt7EqzfeCnX33wTP/nutzlwaorTEy7vviKP7ytmFx08P8D1wPU1nqdwA4Xr+Xh+OIJbdQJqXkDV01RdqPkGpZqg6vqoiA9IYdSpcnNyFCPAbBa8Do2Y8gvqd47EM4RBoClWNMVyWFyo36+DRkTJjEBhiPCOMdNQmDIMrev7UtxzQz/npzULC0WsygUuvPFjZqcnSFDjg9ttnv7laV47VUYRTqb6CgItURoU0RxyfOsc8e8oQYtv60HWQ16cyCFCr+8HAYZh1MfoQwToSOh3KoDYOKgr4J15Q8y3m7UaZ11BUwKitSaoObRmFL/33j7SmRzHzi2QMn2WL8mQtTw+/8QEg9MSM22HXCRiejEvedsPNA6mqYwXCq3rmS3R5wIVkEwk2b5tgH3791OrOUgpMBtdk4ZQsU8UTZYRKvGdL0aHESum7kjCmyitd3xcpG2KNYc/+eYI91/bylWXLcHzHM5fnOPLzy0gE1naOuymDm7TAURL1zPS5s+IZmH/k4cI71favm2Au+68HQ289NLLSGkhMi1t+m1XiJ801USiK/8n6zYlEO94xEwrBk7jM4pABZQXSty0KU0uLXjydYdcIYdlSpQScc4VrtMct6Nl6s/qo31Nb9TF0DRrMgzrCbZtu5LXXw8RIIRApHOt9bapgKYZAfE2U/hPxXwHGt6pSNEkePOGtQ6VUKlUkdIkm01jxKPtTWs2T601vv8fLvA29NU9vY7uaa7XNqJkyfcxTbP+BZHKFXR9cAhBfLdsc1Wovo34NJo2KZpV1Lyhdwgd/inqyNBReTq8bVf8h9XeDq74rhYaaSzNiqIJtE2eXr9DUdFyzXeQ/D997h9q/taPygAAAABJRU5ErkJggg=="/>
 
@@ -26,12 +31,16 @@
   --r:14px;--r2:10px;--r3:22px;
   --sb:env(safe-area-inset-bottom,0px);
 }
-html{font-size:16px;background:var(--bg)}
+html{font-size:16px;background:var(--bg);overscroll-behavior:none;-webkit-text-size-adjust:100%}
 body{
   font-family:'DM Sans',sans-serif;color:var(--tx);background:var(--bg);
   max-width:430px;margin:0 auto;min-height:100vh;min-height:100dvh;
   overflow-x:hidden;position:relative;
+  overscroll-behavior:none;touch-action:manipulation;
 }
+/* App feel — no text selection / long-press callout on UI chrome */
+button,.topbar,.fab,.cat-opt,label,img{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+img{-webkit-user-drag:none}
 ::-webkit-scrollbar{width:0;height:0}
 .syne{font-family:'Syne',sans-serif}
 
@@ -67,6 +76,7 @@ body{
 .cat-combo.open .cat-dropdown,.month-combo.open .cat-dropdown{display:block}
 .cat-opt{padding:.62rem .95rem;font-size:.88rem;color:var(--tx);cursor:pointer}
 .cat-opt:hover{background:var(--bg4)}
+.cat-opt.sel{color:var(--ac2);font-weight:700;background:var(--acbg)}
 .cat-opt-empty{padding:.62rem .95rem;font-size:.82rem;color:var(--tx3)}
 .month-combo{position:relative;flex-shrink:0}
 .month-combo input.month-pick{width:148px}
@@ -302,6 +312,57 @@ body{
 .toast.success .t-dot{background:var(--gr)}
 .toast.error   .t-dot{background:var(--rd)}
 .btn-spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.22);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0}
+
+/* ════ v4.0 — Finance tab ════ */
+.fin-title{font-family:'Syne',sans-serif;font-weight:800;font-size:.95rem;margin-bottom:.8rem}
+.fin-sec{font-size:.68rem;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:1rem 0 .5rem}
+.fin-hint{font-size:.72rem;color:var(--ac2);margin:-.4rem 0 .8rem}
+.fin-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:.8rem .9rem;margin-bottom:.55rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:.6rem}
+.fin-card:active{background:var(--sur2)}
+.fin-name{font-weight:700;font-size:.95rem}
+.fin-sub{font-size:.72rem;color:var(--tx3);margin-top:.18rem}
+.fin-pend{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;text-align:right;white-space:nowrap}
+.fin-pend.r{color:var(--rd)}.fin-pend.g{color:var(--gr)}
+.fin-back{background:none;border:none;color:var(--ac2);font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;padding:0;margin-bottom:.7rem}
+.fin-table-wrap{overflow-x:auto;background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r)}
+.fin-table{width:100%;border-collapse:collapse;font-size:.74rem;white-space:nowrap}
+.fin-table th{background:var(--bg3);color:var(--tx2);font-weight:700;text-align:left;padding:.55rem .6rem;font-size:.66rem;text-transform:uppercase;letter-spacing:.03em}
+.fin-table td{padding:.55rem .6rem;border-top:1px solid var(--bdr)}
+.fin-table tbody tr{cursor:pointer}
+.fin-table tbody tr:active{background:var(--sur2)}
+.fin-yes{color:var(--gr);font-weight:700}.fin-no{color:var(--rd);font-weight:700}
+#fin-month-bd,#chit-month-bd{z-index:210}
+.fin-table.fit{table-layout:fixed;white-space:normal}
+.fin-table.fit th,.fin-table.fit td{padding:.5rem .3rem;vertical-align:top;overflow:hidden;text-overflow:ellipsis;overflow-wrap:break-word}
+.fin-table.fit th{text-transform:none;letter-spacing:0;font-size:.68rem;word-break:normal}
+.fin-table.fit th:first-child,.fin-table.fit td:first-child{padding-left:.55rem}
+.fin-table.fit th:last-child,.fin-table.fit td:last-child{padding-right:.55rem}
+.fin-table.dash.fit{font-size:.7rem}
+.fin-table .sm{display:block;font-size:.66rem;color:var(--tx3);font-weight:400;margin-top:.1rem}
+.fin-table.dash td:first-child{font-weight:700}
+.fin-table.dash.fit td{vertical-align:middle}
+.fin-table .pct{font-size:.64rem;color:var(--tx3);white-space:nowrap}
+.fin-head-row{display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem}
+.fin-head-row .fin-title{flex:1;margin-bottom:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fin-icon-btn{background:var(--sur2);border:1px solid var(--bdr2);border-radius:8px;color:var(--tx2);font-size:.72rem;font-weight:600;font-family:inherit;padding:.3rem .55rem;cursor:pointer;flex-shrink:0}
+.fin-icon-btn.del{color:var(--rd);border-color:rgba(240,92,92,.3)}
+.fin-collect{font-size:.75rem;color:var(--ac2);background:var(--acbg);border-radius:var(--r2);padding:.5rem .7rem;margin:-.3rem 0 .9rem;display:none}
+#fin-fab{display:none}
+.fin-subtabs{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.9rem;background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r2);padding:.25rem}
+.fin-subtab{background:none;border:none;border-radius:8px;color:var(--tx2);font-family:inherit;font-size:.82rem;font-weight:600;padding:.5rem;cursor:pointer}
+.fin-subtab.active{background:var(--acbg);color:var(--ac2)}
+#fm-month{opacity:.65}
+
+/* ════ App install banner & offline pill ════ */
+#install-bar{position:fixed;left:50%;bottom:calc(5rem + var(--sb));transform:translateX(-50%);z-index:450;width:calc(100% - 1.4rem);max-width:420px;background:var(--sur2);border:1px solid var(--bdr2);border-radius:var(--r);padding:.7rem .8rem;display:none;align-items:center;gap:.6rem;box-shadow:0 6px 22px rgba(0,0,0,.45);animation:tIn .19s ease}
+#install-bar.show{display:flex}
+#install-bar img{width:34px;height:34px;border-radius:8px;flex-shrink:0}
+#install-bar .ib-txt{flex:1;font-size:.78rem;color:var(--tx2);line-height:1.35}
+#install-bar .ib-txt b{display:block;color:var(--tx);font-size:.85rem}
+#install-bar .ib-go{background:var(--ac);color:#fff;border:none;border-radius:8px;padding:.45rem .8rem;font-family:inherit;font-weight:700;font-size:.78rem;cursor:pointer;flex-shrink:0}
+#install-bar .ib-x{background:none;border:none;color:var(--tx3);font-size:1.1rem;padding:.2rem .35rem;cursor:pointer;flex-shrink:0}
+#offline-pill{position:fixed;top:.5rem;left:50%;transform:translateX(-50%);z-index:600;background:var(--rdbg);border:1px solid rgba(240,92,92,.3);color:var(--rd);font-size:.7rem;font-weight:700;padding:.22rem .7rem;border-radius:20px;display:none;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#offline-pill.show{display:block}
 
 /* ════ v2.4 — Logo & Branding ════ */
 /* ════ Logo image styles ════ */
@@ -735,8 +796,9 @@ body{
 
     <!-- v3.4 — Saving tab removed; single Expenses Dashboard heading remains -->
     <div class="module-tabs-row">
-      <div class="module-tabs">
-        <div class="module-tab active" style="cursor:default">📊 Expenses Dashboard</div>
+      <div class="module-tabs" style="grid-template-columns:1fr 1fr">
+        <div class="module-tab active" id="mt-exp" onclick="switchModule('exp')">📊 Expenses</div>
+        <div class="module-tab" id="mt-fin" onclick="switchModule('fin')">💼 Finance</div>
       </div>
       <!-- Eye toggle: hide/show all amounts -->
       <button class="eye-toggle-btn" id="eye-toggle" onclick="toggleAmounts()" title="Show / Hide amounts">
@@ -817,12 +879,50 @@ body{
     <div class="tx-list" id="tx-list"><div class="empty"><div class="empty-ico">🧾</div>Loading…</div></div>
   </div><!-- end salary-section -->
 
+    <!-- ── FINANCE SECTION (v4.0) ── -->
+    <div id="finance-section" style="display:none">
+      <div class="fin-subtabs">
+        <button class="fin-subtab active" id="fst-loan" onclick="switchFinSub('loan')">🤝 Hand Loan</button>
+        <button class="fin-subtab" id="fst-chit" onclick="switchFinSub('chit')">🪙 Chit Funds</button>
+      </div>
+
+      <!-- Hand Loan -->
+      <div id="fin-loan-section">
+      <div id="fin-list-view">
+        <div class="fin-title">Hand Loan Dashboard</div>
+        <div id="fin-list"></div>
+      </div>
+
+      <div id="fin-person-view" style="display:none">
+        <button class="fin-back" onclick="closeFinPerson()">‹ Dashboard</button>
+        <div class="budget-card" id="fin-p-head"></div>
+        <div class="fin-sec">Monthly Interest <span style="text-transform:none;font-weight:400">· tap a row to update</span></div>
+        <div id="fin-p-table"></div>
+      </div>
+      </div><!-- end fin-loan-section -->
+
+      <!-- Chit Funds -->
+      <div id="fin-chit-section" style="display:none">
+        <div id="chit-list-view">
+          <div class="fin-title">Chit Funds Dashboard</div>
+          <div id="chit-list"></div>
+        </div>
+        <div id="chit-view" style="display:none">
+          <button class="fin-back" onclick="closeChit()">‹ Dashboard</button>
+          <div class="budget-card" id="chit-head"></div>
+          <div class="fin-sec">Monthly Bids <span style="text-transform:none;font-weight:400">· tap a row to enter bid</span></div>
+          <div id="chit-table"></div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- end content -->
 
   <!-- v3.4 — Saving tab removed; the Saving Google Sheet and its historical
        data are untouched and remain viewable via Admin → Reports → Saving
        Transaction Details. -->
   <button class="fab" id="main-fab" onclick="onFabClick()">＋ Add Transaction</button>
+  <button class="fab" id="fin-fab" onclick="F.sub === 'chit' ? openChitForm() : openFinForm()">＋ Add Person</button>
 </div>
 
 <!-- ════════════ ADD/EDIT SHEET ════════════ -->
@@ -1081,7 +1181,118 @@ body{
   </div>
 </div>
 
+<!-- Finance add / edit person (v4.0) -->
+<div class="backdrop" id="fin-form-bd">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="fin-form-title">Add Hand Loan</div>
+    <div class="field"><label>Person Name</label><input type="text" id="fin-name" placeholder="Person name" autocomplete="off"/></div>
+    <div class="field"><label>Hand Loan Date</label><input type="date" id="fin-date"/></div>
+    <div class="field"><label>Principal Amount (₹)</label><input type="number" id="fin-amount" placeholder="0" min="0" step="1" inputmode="decimal" oninput="finHint()"/></div>
+    <div class="field"><label>Rate Of Interest (% per month)</label><input type="number" id="fin-roi" placeholder="e.g. 2" min="0" step="0.01" inputmode="decimal" oninput="finHint()"/></div>
+    <div class="fin-hint" id="fin-hint"></div>
+    <input type="hidden" id="fin-id"/>
+    <div class="sh-actions">
+      <button class="btn btn-ghost" onclick="closeFinForm()">Cancel</button>
+      <button class="btn btn-primary" id="fin-submit" onclick="saveFinPerson()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Finance month update (v4.0) -->
+<div class="backdrop" id="fin-month-bd">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="fm-title">Month</div>
+    <div class="field"><label>Month</label><input type="text" id="fm-month" readonly/></div>
+    <div class="field"><label>Interest Amount (₹)</label><input type="number" id="fm-interest" min="0" step="1" inputmode="decimal" oninput="setFinReceived(F.received)"/></div>
+    <div class="field"><label>Received Interest</label>
+      <div class="type-toggle" style="margin-bottom:0">
+        <button class="type-btn income"  id="fm-yes" onclick="setFinReceived('Yes')">✓ Yes</button>
+        <button class="type-btn expense" id="fm-no"  onclick="setFinReceived('No')">✕ No</button>
+      </div>
+    </div>
+    <div class="fin-collect" id="fm-collect"></div>
+    <div class="field"><label>Transaction Mode</label>
+      <div class="sel-wrap"><select id="fm-txn">
+        <option value="">— Select —</option>
+        <option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Cheque</option><option>Other</option>
+      </select></div>
+    </div>
+    <div class="field"><label>Remarks</label><textarea id="fm-remarks" placeholder="Note…"></textarea></div>
+    <div class="sh-actions">
+      <button class="btn btn-ghost" onclick="closeFinMonth()">Cancel</button>
+      <button class="btn btn-primary" id="fm-save" onclick="saveFinMonth()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chit add / edit (v4.1) -->
+<div class="backdrop" id="chit-form-bd">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="chit-form-title">Add Chit</div>
+    <div class="field"><label>Chit Name <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="text" id="chit-name" placeholder="e.g. Office chit" autocomplete="off"/></div>
+    <div class="field"><label>Chit Type</label>
+      <div class="type-toggle" style="margin-bottom:0">
+        <button class="type-btn income active" id="ct-comm" onclick="setChitType('commission')">Commission</button>
+        <button class="type-btn income"        id="ct-save" onclick="setChitType('saving')">Holding Saving</button>
+      </div>
+    </div>
+    <div class="field"><label>Chitty Amount (₹)</label><input type="number" id="chit-amount" placeholder="0" min="0" step="1" inputmode="decimal" oninput="chitHint()"/></div>
+    <div class="field"><label>Date</label><input type="date" id="chit-date"/></div>
+    <div class="field"><label>Members</label><input type="number" id="chit-members" placeholder="e.g. 20" min="1" step="1" inputmode="numeric" oninput="chitHint()"/></div>
+    <div class="field" id="chit-comm-f"><label>Commission (₹ per month)</label><input type="number" id="chit-comm" placeholder="0" min="0" step="1" inputmode="decimal"/></div>
+    <div class="field" id="chit-inst-f" style="display:none"><label>Monthly Amount (₹)</label><input type="number" id="chit-inst" placeholder="0" min="0" step="1" inputmode="decimal" oninput="this.dataset.touched = '1'"/></div>
+    <div class="fin-hint" id="chit-hint"></div>
+    <input type="hidden" id="chit-id"/>
+    <div class="sh-actions">
+      <button class="btn btn-ghost" onclick="closeChitForm()">Cancel</button>
+      <button class="btn btn-primary" id="chit-submit" onclick="saveChit()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chit month bid (v4.1) -->
+<div class="backdrop" id="chit-month-bd">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="cm-title">Month</div>
+    <div class="field"><label>Date</label><input type="text" id="cm-date" readonly/></div>
+    <div class="field"><label>Bid Amount (₹)</label><input type="number" id="cm-bid" placeholder="Leave empty to clear" min="0" step="1" inputmode="decimal" oninput="chitMonthPreview()"/></div>
+    <div id="cm-sv-wrap" style="display:none">
+      <label class="field" style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+        <input type="checkbox" id="cm-int-on" onchange="chitToggle('int')" style="width:auto"/>
+        <span>Bid amount giving interest</span>
+      </label>
+      <div id="cm-int-f" style="display:none">
+        <div class="fin-hint" id="cm-carried"></div>
+        <div class="field"><label>Amount (₹)</label><input type="number" id="cm-int-base" min="0" step="1" inputmode="decimal" oninput="chitIntCalc()"/></div>
+        <div class="field"><label>Interest %</label><input type="number" id="cm-int-pct" min="0" step="0.01" inputmode="decimal" oninput="chitIntCalc()"/></div>
+        <div class="field"><label>Interest (₹)</label><input type="text" id="cm-int" readonly/></div>
+      </div>
+      <label class="field" style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+        <input type="checkbox" id="cm-b2-on" onchange="chitToggle('b2')" style="width:auto"/>
+        <span>2nd chit this month (paid from Holding)</span>
+      </label>
+      <div class="field" id="cm-b2-f" style="display:none"><label>2nd Bid Amount (₹)</label><input type="number" id="cm-bid2" min="0" step="1" inputmode="decimal" oninput="chitMonthPreview()"/></div>
+    </div>
+    <div class="fin-collect" id="cm-preview" style="display:block"></div>
+    <div class="sh-actions">
+      <button class="btn btn-ghost" onclick="closeChitMonth()">Cancel</button>
+      <button class="btn btn-primary" id="cm-save" onclick="saveChitMonth()">Save</button>
+    </div>
+  </div>
+</div>
+
 <div id="toasts"></div>
+<div id="offline-pill">Offline — changes need internet</div>
+<div id="install-bar">
+  <img src="icon-192.png" alt=""/>
+  <div class="ib-txt"><b>Install Spendo</b><span id="ib-msg">Add to your home screen for quick access</span></div>
+  <button class="ib-go" id="ib-go" onclick="installApp()">Install</button>
+  <button class="ib-x" onclick="dismissInstall()" aria-label="Dismiss">✕</button>
+</div>
 
 <script>
 "use strict";
@@ -1116,6 +1327,15 @@ const ICONS = {
 
 const LS_URL  = "spendo_api_url";
 const LS_SESS = "spendo_session";
+
+// Last-loaded data per user, shown instantly on open while fresh data loads
+function cacheKey(kind) { return `spendo_cache_${kind}_${S.userId || S.userName}`; }
+function cacheGet(kind) {
+  try { return JSON.parse(localStorage.getItem(cacheKey(kind)) || "null"); } catch { return null; }
+}
+function cacheSet(kind, val) {
+  try { localStorage.setItem(cacheKey(kind), JSON.stringify(val)); } catch {}
+}
 
 // ════════════════════════════════════════
 //  STATE
@@ -1323,6 +1543,9 @@ async function doReLogin() {
 function logout() {
   clearInterval(S.timerTick);
   clearSession();
+  try {
+    Object.keys(localStorage).filter(k => k.startsWith("spendo_cache_")).forEach(k => localStorage.removeItem(k));
+  } catch {}
   location.reload();
 }
 
@@ -1352,10 +1575,20 @@ function startTimer() {
 //  DATA LOADING
 // ════════════════════════════════════════
 async function loadAll() {
+  const cached = cacheGet("dash_" + S.month);
+  if (cached) {
+    S.txs = cached.txs || [];
+    renderTxs();
+    renderSummary(cached.summary);
+    if (S.amountsHidden) maskAmounts(true);
+  }
   g("sal-loading-banner").classList.add("active");
   await Promise.all([loadSummary(), loadTxs()]);
   // Re-render summary once BOTH are done so deduction maps are always applied
-  if (S.lastSummary) renderSummary(S.lastSummary);
+  if (S.lastSummary) {
+    renderSummary(S.lastSummary);
+    cacheSet("dash_" + S.month, { summary: S.lastSummary, txs: S.txs });
+  }
   g("sal-loading-banner").classList.remove("active");
   if (S.amountsHidden) maskAmounts(true);
 }
@@ -2375,7 +2608,7 @@ function fillCats(t) {
 // long to scroll through on mobile)
 function renderCatOptions(list) {
   g("cat-dropdown").innerHTML = list.length
-    ? list.map(c => `<div class="cat-opt" data-cat="${esc(c)}">${esc(c)}</div>`).join("")
+    ? list.map(c => `<div class="cat-opt${c === g("f-cat").value ? " sel" : ""}" data-cat="${esc(c)}">${esc(c)}</div>`).join("")
     : '<div class="cat-opt-empty">No matching category</div>';
 }
 
@@ -2385,8 +2618,26 @@ function filterCatDropdown() {
   openCatDropdown();
 }
 
-function openCatDropdown()  { g("cat-combo").classList.add("open"); }
-function closeCatDropdown() { g("cat-combo").classList.remove("open"); }
+// Opening clears the box so the user can type straight away (the current
+// choice stays as placeholder); closing without a pick restores it.
+function openCatDropdown() {
+  if (g("cat-combo").classList.contains("open")) return;
+  const inp = g("f-cat-search");
+  inp.placeholder = g("f-cat").value || "Search category…";
+  inp.value = "";
+  renderCatOptions(S.catList);
+  g("cat-combo").classList.add("open");
+  scrollToSel("cat-dropdown");
+}
+function closeCatDropdown() {
+  g("cat-combo").classList.remove("open");
+  g("f-cat-search").value = g("f-cat").value;
+  g("f-cat-search").placeholder = "Search category…";
+}
+function scrollToSel(dropId) {
+  const sel = g(dropId).querySelector(".cat-opt.sel");
+  if (sel) sel.scrollIntoView({ block: "nearest" });
+}
 
 function selectCat(c) {
   g("f-cat").value = c;
@@ -2412,7 +2663,7 @@ function fillMonthCombo(baseId, selected) {
 
 function renderMonthOptions(baseId, list) {
   g(baseId + "-dropdown").innerHTML = list.length
-    ? list.map(m => `<div class="cat-opt" data-val="${esc(m)}">${esc(monthLabel(m))}</div>`).join("")
+    ? list.map(m => `<div class="cat-opt${m === (g(baseId).value || MONTHS[new Date().getMonth()]) ? " sel" : ""}" data-val="${esc(m)}">${esc(monthLabel(m))}</div>`).join("")
     : '<div class="cat-opt-empty">No matching month</div>';
 }
 
@@ -2422,8 +2673,20 @@ function filterMonthCombo(baseId) {
   openCombo(baseId);
 }
 
-function openCombo(baseId)  { g(baseId + "-combo").classList.add("open"); }
-function closeCombo(baseId) { g(baseId + "-combo").classList.remove("open"); }
+function openCombo(baseId) {
+  if (g(baseId + "-combo").classList.contains("open")) return;
+  const inp = g(baseId + "-search");
+  inp.placeholder = g(baseId).value ? monthLabel(g(baseId).value) : "Month";
+  inp.value = "";
+  renderMonthOptions(baseId, MONTHS);
+  g(baseId + "-combo").classList.add("open");
+  scrollToSel(baseId + "-dropdown");
+}
+function closeCombo(baseId) {
+  g(baseId + "-combo").classList.remove("open");
+  g(baseId + "-search").value = g(baseId).value ? monthLabel(g(baseId).value) : "";
+  g(baseId + "-search").placeholder = "Month";
+}
 
 function selectMonthCombo(baseId, m) {
   g(baseId).value = m;
@@ -2702,6 +2965,648 @@ document.addEventListener("click", e => {
 g("carry-bd").addEventListener("click", e => {
   if (e.target === g("carry-bd")) closeCarryPopup();
 });
+
+// ════════════════════════════════════════
+//  FINANCE TAB  (v4.0)
+//  Interest, carry-forward pending and month rows are computed by the
+//  backend (getFinance) — the same numbers written to the "Finance" sheet.
+//  "No" adds the month's interest to pending; "Yes" collects all pending.
+// ════════════════════════════════════════
+const F = { persons: [], activeId: null, month: null, received: "No", sub: "loan" };
+const C = { chits: [], activeId: null, month: null, type: "commission" };   // v4.1 — Chit Funds
+
+function switchModule(m) {
+  const fin = m === "fin";
+  g("mt-exp").classList.toggle("active", !fin);
+  g("mt-fin").classList.toggle("active", fin);
+  g("salary-section").style.display  = fin ? "none" : "";
+  g("finance-section").style.display = fin ? "" : "none";
+  g("main-fab").style.display        = fin ? "none" : "";
+  if (fin) switchFinSub(F.sub); else g("fin-fab").style.display = "none";
+}
+
+// Finance sub-tabs: "loan" (Hand Loan) | "chit" (Chit Funds)
+function switchFinSub(sub) {
+  F.sub = sub;
+  const loan = sub === "loan";
+  g("fst-loan").classList.toggle("active", loan);
+  g("fst-chit").classList.toggle("active", !loan);
+  g("fin-loan-section").style.display = loan ? "" : "none";
+  g("fin-chit-section").style.display = loan ? "none" : "";
+  g("fin-fab").textContent = loan ? "＋ Add Person" : "＋ Add Chit";
+  if (loan) { closeFinPerson(); loadFinance(); }
+  else { closeChit(); loadChits(); }
+}
+
+function fmtShortDate(d) {
+  const dt = new Date(d);
+  return isNaN(dt.getTime()) ? String(d || "—")
+    : dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
+}
+
+function finHint() {
+  const a = parseFloat(g("fin-amount").value) || 0, r = parseFloat(g("fin-roi").value) || 0;
+  g("fin-hint").textContent = a && r ? `Interest: ${fmtINR(a * r / 100)} per month` : "";
+}
+
+function openFinForm(p) {
+  g("fin-id").value     = p ? p.id : "";
+  g("fin-name").value   = p ? p.name : "";
+  g("fin-date").value   = p ? p.date : todayISO();
+  g("fin-amount").value = p ? p.amount : "";
+  g("fin-roi").value    = p ? p.roi : "";
+  g("fin-form-title").textContent = p ? "Edit " + p.name : "Add Hand Loan";
+  g("fin-submit").textContent     = p ? "Update" : "Submit";
+  finHint();
+  g("fin-form-bd").classList.add("open");
+}
+
+function closeFinForm() { g("fin-form-bd").classList.remove("open"); }
+
+const finListUser = () => S.isAdmin ? "" : (S.userName || S.userId);
+
+function applyFinPersons(persons) {
+  F.persons = persons || [];
+  cacheSet("fin", F.persons);
+  renderFinList();
+  if (F.activeId) renderFinPerson();
+}
+
+async function loadFinance() {
+  if (!F.persons.length) {
+    const cached = cacheGet("fin");
+    if (cached) { F.persons = cached; renderFinList(); }
+    else g("fin-list").innerHTML = '<div class="empty"><div class="btn-spin" style="margin:0 auto .5rem"></div>Loading…</div>';
+  }
+  try {
+    const res = await apiGET({ action: "getFinance", userName: finListUser() });
+    if (!res.success) { toast(res.error || "Could not load finance", "error"); return; }
+    applyFinPersons(res.persons);
+  } catch (e) {
+    if (!F.persons.length) g("fin-list").innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div>Could not load. Check internet.</div>';
+  }
+}
+
+function renderFinList() {
+  if (!F.persons.length) {
+    g("fin-list").innerHTML = '<div class="empty"><div class="empty-ico">💼</div>No persons yet. Tap “Add Person”.</div>';
+    return;
+  }
+  g("fin-list").innerHTML = `
+    <div class="fin-table-wrap"><table class="fin-table dash fit">
+      <colgroup><col style="width:28%"><col style="width:21%"><col style="width:23%"><col style="width:28%"></colgroup>
+      <thead><tr><th>Name</th><th>Date</th><th>Principal</th><th>Interest</th></tr></thead>
+      <tbody>${F.persons.map(p => `
+        <tr data-id="${esc(p.id)}">
+          <td>${esc(p.name)}</td>
+          <td>${fmtShortDate(p.date)}</td>
+          <td>${fmtINR(p.amount)}</td>
+          <td>${fmtINR(p.interest)} <span class="pct">(${p.roi}%)</span></td>
+        </tr>`).join("")}</tbody>
+    </table></div>`;
+}
+
+function openFinPerson(id) {
+  F.activeId = id;
+  g("fin-list-view").style.display   = "none";
+  g("fin-person-view").style.display = "";
+  g("fin-fab").style.display         = "none";
+  renderFinPerson();
+  window.scrollTo(0, 0);
+}
+
+function closeFinPerson() {
+  F.activeId = null;
+  g("fin-person-view").style.display = "none";
+  g("fin-list-view").style.display   = "";
+  g("fin-fab").style.display         = "flex";
+}
+
+function renderFinPerson() {
+  const p = F.persons.find(x => x.id === F.activeId);
+  if (!p) { closeFinPerson(); return; }
+  const row = (l, v, cls = "") => `<div class="carry-row"><span class="carry-month">${l}</span><span class="carry-amt ${cls}">${v}</span></div>`;
+  g("fin-p-head").innerHTML = `
+    <div class="fin-head-row">
+      <div class="fin-title">${esc(p.name)}</div>
+      <button class="fin-icon-btn" onclick="editFinPerson()">✏️ Edit</button>
+      <button class="fin-icon-btn del" onclick="deleteFinPerson()">🗑 Delete</button>
+    </div>
+    ${row("Hand Loan Date", fmtDate(p.date))}
+    ${row("Principal Amount", fmtINR(p.amount))}
+    ${row("Rate Of Interest", p.roi + "% / month")}
+    ${row("Interest / Month", fmtINR(p.interest))}
+    ${row("Pending Interest", fmtINR(p.pending), p.pending > 0 ? "neg" : "pos")}
+    ${row("Pending Months", p.pendingMonths ? p.pendingMonths + " month" + (p.pendingMonths > 1 ? "s" : "") : "No due", p.pendingMonths ? "neg" : "pos")}`;
+
+  g("fin-p-table").innerHTML = p.rows.length ? `
+    <div class="fin-table-wrap"><table class="fin-table fit">
+      <colgroup><col style="width:27%"><col style="width:24%"><col style="width:21%"><col style="width:28%"></colgroup>
+      <thead><tr><th>Month<span class="sm">Interest</span></th><th>Received</th><th>Pending</th><th>Mode<span class="sm">Remarks</span></th></tr></thead>
+      <tbody>${p.rows.map((r, i) => `
+        <tr data-month="${esc(r.month)}">
+          <td><b>${esc(r.label)}</b><span class="sm">${fmtINR(r.interest)}</span></td>
+          <td class="${r.received === "Yes" ? "fin-yes" : r.upcoming ? "" : "fin-no"}">${
+            r.received === "Yes" ? `Yes<span class="sm">${fmtINR(r.collected)}</span>`
+            : r.upcoming ? `<span style="color:var(--tx3)">Upcoming</span><span class="sm">${fmtShortDate(r.dueDate)}</span>` : "No"}</td>
+          ${r.upcoming && r.received !== "Yes" ? "<td>—</td>"
+            : `<td class="${r.pending > 0 ? "fin-no" : "fin-yes"}">${fmtINR(r.pending)}${finPendingNote(r, i ? p.rows[i - 1].pending : 0)}</td>`}
+          <td>${esc(r.transaction) || "—"}${r.remarks ? `<span class="sm">${esc(r.remarks)}</span>` : ""}</td>
+        </tr>`).join("")}</tbody>
+    </table></div>`
+    : `<div class="empty">No interest due yet${p.nextDue ? " — first due " + fmtDate(p.nextDue) : ""}</div>`;
+}
+
+function editFinPerson() {
+  const p = F.persons.find(x => x.id === F.activeId);
+  if (p) openFinForm(p);
+}
+
+async function saveFinPerson() {
+  const id = g("fin-id").value;
+  const params = {
+    action: id ? "updateFinancePerson" : "addFinancePerson", id,
+    name: g("fin-name").value.trim(), date: g("fin-date").value,
+    amount: parseFloat(g("fin-amount").value), roi: parseFloat(g("fin-roi").value) || 0,
+    userName: S.userName || S.userId, listUser: finListUser()
+  };
+  if (!params.name || !params.date || isNaN(params.amount) || params.amount <= 0) {
+    toast("Enter person name, hand loan date and principal amount", "error");
+    return;
+  }
+  setBtn("fin-submit", true);
+  try {
+    const res = await apiGET(params);
+    if (!res.success) { toast(res.error || "Save failed", "error"); return; }
+    toast(id ? "Updated" : "Saved", "success");
+    closeFinForm();
+    applyFinPersons(res.persons);
+  } catch (e) {
+    toast("Save failed. Check internet.", "error");
+  } finally {
+    setBtn("fin-submit", false, id ? "Update" : "Submit");
+  }
+}
+
+async function deleteFinPerson() {
+  const p = F.persons.find(x => x.id === F.activeId);
+  if (!p || !confirm(`Delete ${p.name} and all monthly records? This cannot be undone.`)) return;
+  try {
+    const res = await apiGET({ action: "deleteFinancePerson", id: p.id, listUser: finListUser() });
+    if (!res.success) { toast(res.error || "Delete failed", "error"); return; }
+    toast("Deleted", "success");
+    closeFinPerson();
+    applyFinPersons(res.persons);
+  } catch (e) { toast("Delete failed. Check internet.", "error"); }
+}
+
+// Explains a Pending cell: what was carried in vs. this month's interest
+function finPendingNote(r, carried) {
+  if (r.received === "Yes" || r.pending <= 0) return "";
+  return carried > 0
+    ? `<span class="sm">incl. ${fmtINR(r.interest)} this month</span>`
+    : `<span class="sm">this month</span>`;
+}
+
+// Pending carried into a month = previous row's pending
+function finCarriedInto(p, month) {
+  const i = p.rows.findIndex(x => x.month === month);
+  return i > 0 ? p.rows[i - 1].pending : 0;
+}
+
+function setFinReceived(v) {
+  F.received = v;
+  g("fm-yes").classList.toggle("active", v === "Yes");
+  g("fm-no").classList.toggle("active", v === "No");
+  const p = F.persons.find(x => x.id === F.activeId);
+  const box = g("fm-collect");
+  if (!p || v !== "Yes") { box.style.display = "none"; return; }
+  const carried = finCarriedInto(p, F.month);
+  const amt     = parseFloat(g("fm-interest").value) || 0;
+  box.textContent = carried > 0
+    ? `Collect ${fmtINR(carried + amt)} = pending ${fmtINR(carried)} + this month ${fmtINR(amt)}`
+    : `Collect ${fmtINR(amt)} for this month`;
+  box.style.display = "block";
+}
+
+function openFinMonth(month) {
+  const p = F.persons.find(x => x.id === F.activeId);
+  const r = p && p.rows.find(x => x.month === month);
+  if (!r) return;
+  F.month = month;
+  g("fm-title").textContent = p.name;
+  g("fm-month").value       = r.label;
+  g("fm-interest").value    = r.interest;
+  setFinReceived(r.received);
+  const sel = g("fm-txn");
+  if (r.transaction && ![...sel.options].some(o => o.value === r.transaction)) sel.add(new Option(r.transaction));
+  sel.value = r.transaction;
+  g("fm-remarks").value = r.remarks;
+  g("fin-month-bd").classList.add("open");
+}
+
+function closeFinMonth() { g("fin-month-bd").classList.remove("open"); }
+
+async function saveFinMonth() {
+  setBtn("fm-save", true);
+  try {
+    const res = await apiGET({
+      action: "saveFinanceMonth", personId: F.activeId, month: F.month, received: F.received,
+      transaction: g("fm-txn").value, remarks: g("fm-remarks").value.trim(),
+      interest: parseFloat(g("fm-interest").value) || 0, listUser: finListUser()
+    });
+    if (!res.success) { toast(res.error || "Save failed", "error"); return; }
+    toast("Saved", "success");
+    closeFinMonth();
+    applyFinPersons(res.persons);
+  } catch (e) {
+    toast("Save failed. Check internet.", "error");
+  } finally {
+    setBtn("fm-save", false, "Save");
+  }
+}
+
+g("fin-list").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-id]");
+  if (tr) openFinPerson(tr.dataset.id);
+});
+g("fin-p-table").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-month]");
+  if (tr) openFinMonth(tr.dataset.month);
+});
+["fin-month-bd", "fin-form-bd"].forEach(id => {
+  g(id).addEventListener("click", e => { if (e.target === g(id)) g(id).classList.remove("open"); });
+});
+
+// ════════════════════════════════════════
+//  CHIT FUNDS  (v4.1)
+//  Per-month values are computed by the backend (getChits):
+//    Comm Owner = form commission, By Hand = Chitty − Bid,
+//    Payable = (Chitty − Bid + Comm) / Members, Remain = Members − month.
+// ════════════════════════════════════════
+// "commission" — dividend chit; "saving" — full monthly payment, bids held as saving
+function setChitType(t) {
+  C.type = t;
+  g("ct-comm").classList.toggle("active", t === "commission");
+  g("ct-save").classList.toggle("active", t === "saving");
+  g("chit-comm-f").style.display = t === "saving" ? "none" : "";
+  g("chit-inst-f").style.display = t === "saving" ? "" : "none";
+  chitHint();
+}
+
+function chitHint() {
+  const a = parseFloat(g("chit-amount").value) || 0, n = parseInt(g("chit-members").value, 10) || 0;
+  // Prefill monthly amount with amount ÷ members until the user types their own
+  const inst = g("chit-inst");
+  if (C.type === "saving" && inst.dataset.touched !== "1" && a && n) inst.value = Math.round(a / n);
+  g("chit-hint").textContent = a && n ? `Monthly due: ${fmtINR(a / n)} · ${n} months` : "";
+}
+
+function openChitForm(c) {
+  g("chit-id").value      = c ? c.id : "";
+  g("chit-name").value    = c ? c.name : "";
+  g("chit-amount").value  = c ? c.amount : "";
+  g("chit-date").value    = c ? c.date : todayISO();
+  g("chit-members").value = c ? c.members : "";
+  g("chit-comm").value    = c ? c.commission : "";
+  g("chit-inst").value    = c && c.installment ? c.installment : "";
+  g("chit-inst").dataset.touched = c ? "1" : "";
+  setChitType(c ? c.type : "commission");
+  g("chit-form-title").textContent = c ? "Edit " + c.name : "Add Chit";
+  g("chit-submit").textContent     = c ? "Update" : "Submit";
+  chitHint();
+  g("chit-form-bd").classList.add("open");
+}
+
+function closeChitForm() { g("chit-form-bd").classList.remove("open"); }
+
+function applyChits(chits) {
+  C.chits = chits || [];
+  cacheSet("chit", C.chits);
+  renderChitList();
+  if (C.activeId) renderChit();
+}
+
+async function loadChits() {
+  if (!C.chits.length) {
+    const cached = cacheGet("chit");
+    if (cached) { C.chits = cached; renderChitList(); }
+    else g("chit-list").innerHTML = '<div class="empty"><div class="btn-spin" style="margin:0 auto .5rem"></div>Loading…</div>';
+  }
+  try {
+    const res = await apiGET({ action: "getChits", userName: finListUser() });
+    if (!res.success) { toast(res.error || "Could not load chits", "error"); return; }
+    applyChits(res.chits);
+  } catch (e) {
+    if (!C.chits.length) g("chit-list").innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div>Could not load. Check internet.</div>';
+  }
+}
+
+function renderChitList() {
+  if (!C.chits.length) {
+    g("chit-list").innerHTML = '<div class="empty"><div class="empty-ico">🪙</div>No chits yet. Tap “Add Chit”.</div>';
+    return;
+  }
+  g("chit-list").innerHTML = `
+    <div class="fin-table-wrap"><table class="fin-table dash fit">
+      <colgroup><col style="width:30%"><col style="width:22%"><col style="width:24%"><col style="width:24%"></colgroup>
+      <thead><tr><th>Chit<span class="sm">Amount</span></th><th>Date</th><th>Members<span class="sm">Comm</span></th><th>Remain</th></tr></thead>
+      <tbody>${C.chits.map(c => `
+        <tr data-id="${esc(c.id)}">
+          <td>${esc(c.name)}<span class="sm">${fmtINR(c.amount)}</span></td>
+          <td>${fmtShortDate(c.date)}</td>
+          <td>${c.members}<span class="sm">${c.type === "saving" ? "Saving " + fmtINR(c.holding) : fmtINR(c.commission)}</span></td>
+          <td class="${c.remain ? "" : "fin-yes"}">${c.remain ? c.remain + " chits" : "Done"}</td>
+        </tr>`).join("")}</tbody>
+    </table></div>`;
+}
+
+function openChit(id) {
+  C.activeId = id;
+  g("chit-list-view").style.display = "none";
+  g("chit-view").style.display      = "";
+  g("fin-fab").style.display        = "none";
+  renderChit();
+  window.scrollTo(0, 0);
+}
+
+function closeChit() {
+  C.activeId = null;
+  g("chit-view").style.display      = "none";
+  g("chit-list-view").style.display = "";
+  g("fin-fab").style.display        = "flex";
+}
+
+function renderChit() {
+  const c = C.chits.find(x => x.id === C.activeId);
+  if (!c) { closeChit(); return; }
+  const row = (l, v, cls = "") => `<div class="carry-row"><span class="carry-month">${l}</span><span class="carry-amt ${cls}">${v}</span></div>`;
+  const amt = v => v === null ? "—" : fmtINR(v);
+  const saving = c.type === "saving";
+  g("chit-head").innerHTML = `
+    <div class="fin-head-row">
+      <div class="fin-title">${esc(c.name)}</div>
+      <button class="fin-icon-btn" onclick="editChit()">✏️ Edit</button>
+      <button class="fin-icon-btn del" onclick="deleteChit()">🗑 Delete</button>
+    </div>
+    ${row("Chitty Amount", fmtINR(c.amount))}
+    ${row("Start Date", fmtDate(c.date))}
+    ${row("Members", c.members)}
+    ${saving ? row("Monthly Amount", fmtINR(c.installment))
+             : row("Commission / Month", fmtINR(c.commission)) + row("Monthly Due", fmtINR(c.monthlyDue))}
+    ${saving ? row("Holding Saving", fmtINR(c.holding), c.holding < 0 ? "neg" : "pos") : ""}
+    ${saving && c.shortfall ? row("Shortfall in Last Payable", fmtINR(c.shortfall), "neg") : ""}
+    ${saving && c.interest ? row("Total Bid Interest", fmtINR(c.interest), "pos") : ""}
+    ${row("Total Paid", fmtINR(c.paid))}
+    ${row("Remain Chits", c.remain || "Done", c.remain ? "neg" : "pos")}`;
+
+  g("chit-table").innerHTML = c.rows.length ? `
+    <div class="fin-table-wrap"><table class="fin-table">
+      <thead><tr><th>#</th><th>Date</th><th>Bid Amount</th>${saving ? "" : "<th>Comm Owner</th>"}<th>By Hand</th><th>Payable</th>${saving ? "<th>Interest</th><th>Holding Saving</th>" : ""}<th>Remain</th></tr></thead>
+      <tbody>${c.rows.map(r => `
+        <tr data-month="${r.month}">
+          <td>${r.month}${r.second ? '<span class="sm">2nd</span>' : ""}</td>
+          <td>${fmtShortDate(r.date)}</td>
+          <td class="${r.bid === null ? "" : "fin-yes"}">${amt(r.bid)}</td>
+          ${saving ? "" : `<td>${fmtINR(r.comm)}</td>`}
+          <td>${amt(r.byHand)}</td>
+          <td>${r.second ? "" : amt(r.payable)}${r.shortfall ? `<span class="sm">incl. ${fmtINR(r.shortfall / c.members)} shortfall</span>` : ""}</td>
+          ${saving ? `<td class="fin-yes">${r.interest ? fmtINR(r.interest) : ""}</td><td class="${r.holding < 0 ? "fin-no" : ""}">${amt(r.holding)}</td>` : ""}
+          <td>${r.remain}</td>
+        </tr>`).join("")}</tbody>
+    </table></div>`
+    : '<div class="empty">No months</div>';
+}
+
+function editChit() {
+  const c = C.chits.find(x => x.id === C.activeId);
+  if (c) openChitForm(c);
+}
+
+async function saveChit() {
+  const id = g("chit-id").value;
+  const params = {
+    action: id ? "updateChit" : "addChit", id,
+    name: g("chit-name").value.trim(), amount: parseFloat(g("chit-amount").value),
+    date: g("chit-date").value, members: parseInt(g("chit-members").value, 10),
+    type: C.type, commission: parseFloat(g("chit-comm").value) || 0,
+    installment: parseFloat(g("chit-inst").value) || 0,
+    userName: S.userName || S.userId, listUser: finListUser()
+  };
+  if (isNaN(params.amount) || params.amount <= 0 || !params.date || !(params.members >= 1)) {
+    toast("Enter chitty amount, date and members", "error");
+    return;
+  }
+  if (C.type === "saving" && params.installment <= 0) { toast("Enter monthly amount", "error"); return; }
+  setBtn("chit-submit", true);
+  try {
+    const res = await apiGET(params);
+    if (!res.success) { toast(res.error || "Save failed", "error"); return; }
+    toast(id ? "Updated" : "Saved", "success");
+    closeChitForm();
+    applyChits(res.chits);
+  } catch (e) {
+    toast("Save failed. Check internet.", "error");
+  } finally {
+    setBtn("chit-submit", false, id ? "Update" : "Submit");
+  }
+}
+
+async function deleteChit() {
+  const c = C.chits.find(x => x.id === C.activeId);
+  if (!c || !confirm(`Delete ${c.name} and all monthly bids? This cannot be undone.`)) return;
+  try {
+    const res = await apiGET({ action: "deleteChit", id: c.id, listUser: finListUser() });
+    if (!res.success) { toast(res.error || "Delete failed", "error"); return; }
+    toast("Deleted", "success");
+    closeChit();
+    applyChits(res.chits);
+  } catch (e) { toast("Delete failed. Check internet.", "error"); }
+}
+
+// Live preview of the derived columns while typing a bid
+function chitMonthPreview() {
+  const c = C.chits.find(x => x.id === C.activeId);
+  const box = g("cm-preview");
+  const raw = g("cm-bid").value.trim();
+  if (!c || raw === "") { box.textContent = "Enter the bid amount for this month"; return; }
+  const bid = parseFloat(raw) || 0;
+  if (c.type === "saving") {
+    const r    = c.rows.find(x => x.month === C.month && !x.second);
+    const int  = g("cm-int-on").checked ? chitIntValue() : 0;
+    const b2on = g("cm-b2-on").checked, b2 = parseFloat(g("cm-bid2").value) || 0;
+    const out  = b2on ? c.amount - b2 : 0;
+    box.textContent = `By Hand ${fmtINR(c.amount - bid)} · Payable ${fmtINR(c.installment)}`
+      + (b2on ? ` · 2nd By Hand ${fmtINR(out)}` : "")
+      + ` · Holding ${fmtINR(r.carried)}${int ? " + " + fmtINR(int) + " interest" : ""} + ${fmtINR(bid)} bid`
+      + (b2on ? ` − ${fmtINR(out)}` : "") + ` = ${fmtINR(r.carried + int + bid - out)}`;
+    return;
+  }
+  box.textContent = `By Hand ${fmtINR(c.amount - bid)} · Comm ${fmtINR(c.commission)} · Payable ${fmtINR((c.amount - bid + c.commission) / c.members)}`;
+}
+
+function openChitMonth(month) {
+  const c = C.chits.find(x => x.id === C.activeId);
+  const r = c && c.rows.find(x => x.month === month && !x.second);
+  if (!r) return;
+  C.month = month;
+  g("cm-title").textContent = `${c.name} · Month ${month}`;
+  g("cm-date").value        = fmtDate(r.date);
+  g("cm-bid").value         = r.bid === null ? "" : r.bid;
+  g("cm-sv-wrap").style.display = c.type === "saving" ? "" : "none";
+  g("cm-carried").textContent = `Carried Holding from last month: ${fmtINR(r.carried)}`;
+  g("cm-int-on").checked = r.intBase !== null;
+  g("cm-int-base").value = r.intBase !== null ? r.intBase : (r.carried > 0 ? r.carried : "");
+  g("cm-int-pct").value  = r.intPct !== null ? r.intPct : "";
+  g("cm-int").value      = fmtINR(chitIntValue());
+  g("cm-b2-on").checked  = r.bid2 !== null;
+  g("cm-bid2").value     = r.bid2 === null ? "" : r.bid2;
+  chitToggle();
+  chitMonthPreview();
+  g("chit-month-bd").classList.add("open");
+}
+
+function closeChitMonth() { g("chit-month-bd").classList.remove("open"); }
+
+// Shows the interest / 2nd bid fields for whichever boxes are ticked
+function chitToggle() {
+  g("cm-int-f").style.display = g("cm-int-on").checked ? "" : "none";
+  g("cm-b2-f").style.display  = g("cm-b2-on").checked ? "" : "none";
+  chitMonthPreview();
+}
+
+// Interest = Amount × % / 100 (Amount defaults to the carried Holding)
+function chitIntValue() {
+  const base = parseFloat(g("cm-int-base").value) || 0, pct = parseFloat(g("cm-int-pct").value) || 0;
+  return Math.round(base * pct) / 100;
+}
+
+function chitIntCalc() {
+  g("cm-int").value = fmtINR(chitIntValue());
+  chitMonthPreview();
+}
+
+async function saveChitMonth() {
+  setBtn("cm-save", true);
+  try {
+    const res = await apiGET({
+      action: "saveChitMonth", chitId: C.activeId, month: C.month,
+      bid: g("cm-bid").value.trim(),
+      bid2: g("cm-b2-on").checked ? g("cm-bid2").value.trim() : "",
+      intBase: g("cm-int-on").checked ? g("cm-int-base").value.trim() : "",
+      intPct: g("cm-int-on").checked ? g("cm-int-pct").value.trim() : "", listUser: finListUser()
+    });
+    if (!res.success) { toast(res.error || "Save failed", "error"); return; }
+    toast("Saved", "success");
+    closeChitMonth();
+    applyChits(res.chits);
+  } catch (e) {
+    toast("Save failed. Check internet.", "error");
+  } finally {
+    setBtn("cm-save", false, "Save");
+  }
+}
+
+g("chit-list").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-id]");
+  if (tr) openChit(tr.dataset.id);
+});
+g("chit-table").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-month]");
+  if (tr) openChitMonth(parseInt(tr.dataset.month, 10));
+});
+["chit-month-bd", "chit-form-bd"].forEach(id => {
+  g(id).addEventListener("click", e => { if (e.target === g(id)) g(id).classList.remove("open"); });
+});
+
+// ════════════════════════════════════════
+//  APP MODE — service worker, install, back button, offline
+// ════════════════════════════════════════
+const LS_INSTALL_DISMISS = "spendo_install_dismissed";
+const IS_STANDALONE = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+let deferredInstall = null;
+
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+
+function installDismissed() {
+  try { return localStorage.getItem(LS_INSTALL_DISMISS) === "1"; } catch { return false; }
+}
+function showInstallBar() {
+  if (IS_STANDALONE || installDismissed()) return;
+  g("install-bar").classList.add("show");
+}
+function dismissInstall() {
+  g("install-bar").classList.remove("show");
+  try { localStorage.setItem(LS_INSTALL_DISMISS, "1"); } catch {}
+}
+async function installApp() {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  const { outcome } = await deferredInstall.userChoice;
+  deferredInstall = null;
+  g("install-bar").classList.remove("show");
+  if (outcome === "accepted") toast("Spendo installed", "success");
+}
+
+// Android / Chrome — native install prompt
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredInstall = e;
+  showInstallBar();
+});
+window.addEventListener("appinstalled", () => {
+  deferredInstall = null;
+  g("install-bar").classList.remove("show");
+});
+
+// iOS Safari — no prompt API, show manual hint
+if (IS_IOS && !IS_STANDALONE) {
+  g("ib-msg").textContent = "Tap Share ⎋ then “Add to Home Screen”";
+  g("ib-go").style.display = "none";
+  setTimeout(showInstallBar, 1500);
+}
+
+// Hardware / gesture back closes open popups instead of leaving the app
+(function () {
+  let fromPop = false, selfBack = false;
+  const stack = [];   // open popups, newest last
+  document.querySelectorAll(".backdrop").forEach(bd => {
+    new MutationObserver(() => {
+      const open = bd.classList.contains("open");
+      if (open && bd.dataset.hist !== "1") {
+        bd.dataset.hist = "1";
+        stack.push(bd);
+        history.pushState({ popup: bd.id }, "");
+      } else if (!open && bd.dataset.hist === "1") {
+        bd.dataset.hist = "";
+        stack.splice(stack.indexOf(bd), 1);
+        if (!fromPop) { selfBack = true; history.back(); }
+      }
+    }).observe(bd, { attributes: true, attributeFilter: ["class"] });
+  });
+  window.addEventListener("popstate", () => {
+    if (selfBack) { selfBack = false; return; }
+    const top = stack[stack.length - 1];
+    if (!top) return;
+    // Session-expired popup must stay — re-arm its history entry
+    if (top.id === "relogin-bd") { history.pushState({ popup: top.id }, ""); return; }
+    fromPop = true;
+    if (top.id === "tx-bd") closeModal();
+    else if (top.id === "carry-bd") closeCarryPopup();
+    else top.classList.remove("open");
+    setTimeout(() => { fromPop = false; }, 0);
+  });
+})();
+
+// Offline indicator
+function syncOnline() { g("offline-pill").classList.toggle("show", !navigator.onLine); }
+window.addEventListener("online",  () => { syncOnline(); toast("Back online", "success"); });
+window.addEventListener("offline", syncOnline);
+syncOnline();
 </script>
 </body>
 </html>

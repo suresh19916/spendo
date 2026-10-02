@@ -15,6 +15,8 @@
 
 const SHEET_LOGIN  = "Login";
 const SHEET_SAVING = "Saving";
+const SHEET_FINANCE = "Finance";   // v4.0 — Finance tab (single storage sheet)
+const SHEET_CHIT    = "ChitFunds"; // v4.1 — Finance → Chit Funds
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 // ─────────────────────────────────────────────────────────────
@@ -53,6 +55,18 @@ function handleRequest(e) {
       case "getSavingTransactions":        return respond(getSavingTransactions(p));
       case "getAdminSavingReport":         return respond(getAdminSavingReport(p));
       case "recoverSavingFromSalary":      return respond(recoverSavingFromSalary(p));
+      // v4.0 — Finance tab
+      case "getFinance":          return respond(getFinance(p));
+      case "addFinancePerson":    return respond(saveFinancePerson(p));
+      case "updateFinancePerson": return respond(saveFinancePerson(p));
+      case "deleteFinancePerson": return respond(deleteFinancePerson(p));
+      case "saveFinanceMonth":    return respond(saveFinanceMonth(p));
+      // v4.1 — Chit Funds
+      case "getChits":            return respond(getChits(p));
+      case "addChit":             return respond(saveChit(p));
+      case "updateChit":          return respond(saveChit(p));
+      case "deleteChit":          return respond(deleteChit(p));
+      case "saveChitMonth":       return respond(saveChitMonth(p));
       default: return respond({ success: false, error: "Unknown action: " + action });
     }
   } catch (err) {
@@ -1681,6 +1695,585 @@ function installTriggers() {
 //  One-time setup  (run from Apps Script editor)
 // ─────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────
+//  Finance tab  (v4.0) — money given at a monthly ROI
+//
+//  The "Finance" sheet is the only storage. One block per person:
+//    Title    : Name                                   | G: ID  H: UserName
+//    Details  : Hand Loan Date | date | Principal Amount | amt | Rate Of Interest % | roi
+//    Summary  : Monthly Interest | x | Pending Interest | x | Pending Months | x
+//    Header   : Month | Interest Amount | Received Interest | Pending Interest Amount
+//               | Transaction Mode | Remarks              | G: (month key)
+//    Months   : one row per month                      | G: yyyy-MM
+//    (blank row between blocks)
+//  Columns G:H are hidden. The sheet is parsed on every request and fully
+//  rewritten after every change; Summary/Pending cells are recomputed.
+//
+//  Interest per month = Principal × ROI / 100 (editable per month). The
+//  first month falls due one month after the hand loan date. A "No" month
+//  adds its interest to Pending, which carries forward. A "Yes" month
+//  collects everything pending plus that month, so Pending resets to 0.
+//  The next not-yet-due month is listed (upcoming) so it can be updated
+//  early; it adds to Pending only once its due date has passed.
+// ─────────────────────────────────────────────────────────────
+
+const FIN_COLS = 8;   // A–F visible, G–H hidden metadata
+
+function finDate(v) {
+  const tz = Session.getScriptTimeZone();
+  if (Object.prototype.toString.call(v) === "[object Date]") return Utilities.formatDate(v, tz, "yyyy-MM-dd");
+  const s = String(v || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? s : Utilities.formatDate(d, tz, "yyyy-MM-dd");
+}
+
+// yyyy-MM cell may come back from Sheets as a Date
+function finMonthKey(v) {
+  if (Object.prototype.toString.call(v) === "[object Date]") return Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM");
+  return String(v || "").trim();
+}
+
+// Same day-of-month k months later, clamped (31 Jan + 1 → 28/29 Feb)
+function finAddMonths(isoDate, k) {
+  const p = isoDate.split("-").map(Number);
+  const last = new Date(p[0], p[1] - 1 + k + 1, 0).getDate();
+  return new Date(p[0], p[1] - 1 + k, Math.min(p[2], last));
+}
+
+function finSheetObj(ss) {
+  return ss.getSheetByName(SHEET_FINANCE) || ss.insertSheet(SHEET_FINANCE);
+}
+
+// Parse the Finance sheet → { persons: [...], months: { "id|yyyy-MM": {...} } }
+function parseFinance(ss) {
+  const data    = finSheetObj(ss).getDataRange().getValues();
+  const persons = [], months = {};
+  let cur = null, inTable = false;
+
+  for (let r = 0; r < data.length; r++) {
+    const row = data[r];
+    const a   = String(row[0] || "").trim();
+    const next = data[r + 1] ? String(data[r + 1][0] || "").trim() : "";
+
+    if (a && next === "Hand Loan Date") {             // title row
+      const d = data[r + 1];
+      cur = {
+        id      : String(row[6] || "").trim() || Utilities.getUuid().substring(0, 8),
+        userName: String(row[7] || "").trim(),
+        name    : a,
+        date    : finDate(d[1]),
+        amount  : parseFloat(d[3]) || 0,
+        roi     : parseFloat(d[5]) || 0
+      };
+      persons.push(cur);
+      inTable = false;
+      r++;                                            // skip details row
+      continue;
+    }
+    if (!cur) continue;
+    if (a === "Month") { inTable = true; continue; }
+    if (!a) { inTable = false; continue; }
+    if (!inTable) continue;
+
+    const key = finMonthKey(row[6]);
+    if (!/^\d{4}-\d{2}$/.test(key)) continue;
+    const interest = row[1] === "" || row[1] === null ? null : (parseFloat(row[1]) || 0);
+    months[cur.id + "|" + key] = {
+      received   : /^yes/i.test(String(row[2] || "").trim()) ? "Yes" : "No",
+      interest   : interest,
+      transaction: String(row[4] || ""),
+      remarks    : String(row[5] || "")
+    };
+  }
+  return { persons: persons, months: months };
+}
+
+// Builds month rows, pending carry-forward and counts for each person
+function computeFinance(model) {
+  const tz    = Session.getScriptTimeZone();
+  const today = new Date(Utilities.formatDate(new Date(), tz, "yyyy-MM-dd") + "T00:00:00");
+
+  model.persons.forEach(function(pr) {
+    pr.interest = Math.round(pr.amount * pr.roi) / 100;
+    pr.rows = [];
+    pr.nextDue = "";
+    let pending = 0;
+    for (let k = 1; /^\d{4}-\d{2}-\d{2}$/.test(pr.date) && k <= 600; k++) {
+      const due      = finAddMonths(pr.date, k);
+      const upcoming = due > today;
+      if (upcoming) pr.nextDue = Utilities.formatDate(due, tz, "yyyy-MM-dd");
+      const key = Utilities.formatDate(due, tz, "yyyy-MM");
+      const m   = model.months[pr.id + "|" + key] || { received: "No", transaction: "", remarks: "", interest: null };
+      const interest = m.interest === null ? pr.interest : m.interest;
+      let collected = 0;
+      if (m.received === "Yes") { collected = pending + interest; pending = 0; }
+      else if (!upcoming) pending += interest;
+      pr.rows.push({ month: key, label: Utilities.formatDate(due, tz, "MMM yyyy"),
+                     dueDate: Utilities.formatDate(due, tz, "yyyy-MM-dd"), interest: interest,
+                     received: m.received, collected: collected, pending: pending, upcoming: upcoming,
+                     transaction: m.transaction, remarks: m.remarks });
+      if (upcoming) break;
+    }
+    pr.pending = pending;
+    // Unpaid due months since the last "Yes" (a Yes clears everything before it)
+    pr.pendingMonths = 0;
+    pr.rows.forEach(function(r) {
+      if (r.received === "Yes") pr.pendingMonths = 0;
+      else if (!r.upcoming) pr.pendingMonths++;
+    });
+  });
+  return model.persons;
+}
+
+function writeFinance(ss, model) {
+  const sheet   = finSheetObj(ss);
+  const persons = computeFinance(model);
+  const out = [], titles = [], infos = [], heads = [];
+  const pad = function(a) { while (a.length < FIN_COLS) a.push(""); return a; };
+
+  persons.forEach(function(pr) {
+    titles.push(out.length + 1);
+    out.push(pad([pr.name, "", "", "", "", "", pr.id, pr.userName]));
+    infos.push(out.length + 1);
+    out.push(pad(["Hand Loan Date", pr.date, "Principal Amount", pr.amount, "Rate Of Interest %", pr.roi]));
+    infos.push(out.length + 1);
+    out.push(pad(["Monthly Interest", pr.interest, "Pending Interest", pr.pending,
+                  "Pending Months", pr.pendingMonths ? pr.pendingMonths : "No due"]));
+    heads.push(out.length + 1);
+    out.push(pad(["Month", "Interest Amount", "Received Interest", "Pending Interest Amount", "Transaction Mode", "Remarks"]));
+    pr.rows.forEach(function(r) {
+      out.push(pad([r.label, r.interest,
+        r.received === "Yes" ? "Yes (" + r.collected + ")" : r.upcoming ? "Due " + r.dueDate : "No",
+        r.upcoming && r.received !== "Yes" ? "" : r.pending, r.transaction, r.remarks, r.month]));
+    });
+    out.push(pad([]));
+  });
+
+  sheet.getDataRange().breakApart();   // merges from earlier versions
+  sheet.clear();
+  if (!out.length) return persons;
+
+  // Month labels / keys must stay text — Sheets would turn "Oct 2026" into a date
+  sheet.getRange(1, 1, out.length, 1).setNumberFormat("@");
+  sheet.getRange(1, 7, out.length, 2).setNumberFormat("@");
+  sheet.getRange(1, 1, out.length, FIN_COLS).setValues(out);
+
+  // Batched formatting — a few calls total instead of several per person
+  const rows = function(list) { return list.map(function(r) { return "A" + r + ":F" + r; }); };
+  if (titles.length) sheet.getRangeList(rows(titles)).setFontWeight("bold").setFontSize(12)
+    .setBackground("#1e7d55").setFontColor("#ffffff");
+  if (infos.length) {
+    sheet.getRangeList(rows(infos)).setBackground("#eef7f2");
+    sheet.getRangeList([].concat.apply([], infos.map(function(r) { return ["A" + r, "C" + r, "E" + r]; })))
+      .setFontWeight("bold");
+  }
+  if (heads.length) sheet.getRangeList(rows(heads)).setFontWeight("bold").setBackground("#d9d9d9");
+
+  // Layout only needs setting once
+  if (!sheet.isColumnHiddenByUser(7)) {
+    [130, 130, 140, 170, 140, 220].forEach(function(w, i) { sheet.setColumnWidth(i + 1, w); });
+    sheet.hideColumns(7, 2);
+  }
+  return persons;
+}
+
+// Read-modify-write under a script lock so two saves can't interleave.
+// Returns the updated list (filtered by p.listUser) so the client needs
+// no second getFinance round trip after a save.
+function withFinance(p, fn) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const ss    = SpreadsheetApp.getActiveSpreadsheet();
+    const model = parseFinance(ss);
+    const res   = fn(model);
+    if (res.success) {
+      const listUser = String(p.listUser || "").trim();
+      res.persons = writeFinance(ss, model)
+        .filter(function(pr) { return !listUser || pr.userName === listUser; });
+    }
+    return res;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getFinance(p) {
+  const userFilter = String(p.userName || "").trim();
+  const persons = computeFinance(parseFinance(SpreadsheetApp.getActiveSpreadsheet()))
+    .filter(function(pr) { return !userFilter || pr.userName === userFilter; });
+  return { success: true, persons: persons };
+}
+
+function saveFinancePerson(p) {
+  const name   = String(p.name || "").trim();
+  const date   = finDate(p.date);
+  const amount = parseFloat(p.amount) || 0;
+  const roi    = parseFloat(p.roi) || 0;
+  if (!name || !/^\d{4}-\d{2}-\d{2}$/.test(date) || amount <= 0) {
+    return { success: false, error: "Person name, hand loan date and principal amount are required." };
+  }
+  return withFinance(p, function(model) {
+    let id = String(p.id || "");
+    if (id) {
+      const pr = model.persons.find(function(x) { return x.id === id; });
+      if (!pr) return { success: false, error: "Person not found." };
+      // Months still on the old default amount follow the new principal/ROI
+      const oldDefault = Math.round(pr.amount * pr.roi) / 100;
+      Object.keys(model.months).forEach(function(k) {
+        if (k.indexOf(id + "|") === 0 && model.months[k].interest === oldDefault) model.months[k].interest = null;
+      });
+      pr.name = name; pr.date = date; pr.amount = amount; pr.roi = roi;
+    } else {
+      id = Utilities.getUuid().substring(0, 8);
+      model.persons.push({ id: id, userName: String(p.userName || "").trim(), name: name, date: date, amount: amount, roi: roi });
+    }
+    return { success: true, id: id };
+  });
+}
+
+function deleteFinancePerson(p) {
+  const id = String(p.id || "");
+  return withFinance(p, function(model) {
+    const before = model.persons.length;
+    model.persons = model.persons.filter(function(x) { return x.id !== id; });
+    if (model.persons.length === before) return { success: false, error: "Person not found." };
+    return { success: true };
+  });
+}
+
+function saveFinanceMonth(p) {
+  const id    = String(p.personId || "");
+  const month = String(p.month || "").trim();
+  if (!id || !/^\d{4}-\d{2}$/.test(month)) return { success: false, error: "Person and month are required." };
+  return withFinance(p, function(model) {
+    if (!model.persons.some(function(x) { return x.id === id; })) return { success: false, error: "Person not found." };
+    model.months[id + "|" + month] = {
+      received   : p.received === "Yes" ? "Yes" : "No",
+      interest   : p.interest === undefined || p.interest === "" ? null : (parseFloat(p.interest) || 0),
+      transaction: String(p.transaction || "").trim(),
+      remarks    : String(p.remarks || "").trim()
+    };
+    return { success: true };
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Chit Funds  (v4.1)
+//
+//  The "ChitFunds" sheet is the only storage. One block per chit:
+//    Title    : Name                                   | K: ID  L: UserName
+//    Details  : Chitty Amount | amt | Start Date | date | Members | n
+//    Summary  : Commission | comm | Monthly Due | amt/n | Remain Chits | x
+//           or  Monthly Amount | inst | Holding Saving | x | Remain Chits | x
+//               (the A label tells the chit type: "commission" | "saving")
+//    Header   : Month | Date | Bid Amount | Comm Owner | By Hand
+//               | Payable Amount | Remain Chits        | K: (month no.)
+//           or  Month | Date | Bid Amount | By Hand | Payable Amount
+//               | Bid Interest | Holding Saving | Remain Chits
+//               | Interest On | Interest %
+//    Months   : one row per month                      | K: 1..n
+//               a 2nd chit gets its own row under it   | K: "k.2"
+//    (blank row between blocks)
+//  Columns K:L are hidden. Parsed on every request, fully rewritten on save.
+//
+//  Month k falls on start date + (k − 1) months. Entered per month: Bid
+//  Amount, and for saving chits optionally Bid Interest and a 2nd Bid.
+//  Commission type:
+//    Comm Owner     = commission from the chit form (same every month)
+//    By Hand        = Chitty Amount − Bid Amount
+//    Payable Amount = (Chitty Amount − Bid Amount + Comm) / Members
+//    Remain Chits   = Members − k
+//  Saving type (no commission, everyone pays in full):
+//    By Hand        = Chitty Amount − Bid Amount
+//    Payable Amount = Monthly Amount from the chit form
+//    Bid Interest   = Interest On × Interest % / 100 (Interest On defaults
+//                     to the Holding carried from last month)
+//    Holding Saving = last Holding + Bid Interest + Bid
+//    2nd chit row (same month): By Hand = Chitty Amount − 2nd Bid, paid
+//    out of Holding Saving; Remain Chits drops by one more, so the chit
+//    can finish before Members months. Holding may go negative; if it is
+//    still negative after the last month, that shortfall ÷ Members is added
+//    to the last month's Payable Amount and Holding ends at 0.
+// ─────────────────────────────────────────────────────────────
+
+const CHIT_COLS = 12;   // A–J visible, K–L hidden metadata
+
+function chitSheetObj(ss) {
+  return ss.getSheetByName(SHEET_CHIT) || ss.insertSheet(SHEET_CHIT);
+}
+
+// Parse the ChitFunds sheet → { chits, bids, bids2, interest: {base, pct} } (maps keyed "id|k")
+function parseChits(ss) {
+  const data  = chitSheetObj(ss).getDataRange().getValues();
+  const chits = [], bids = {}, bids2 = {}, interest = {};
+  let cur = null, inTable = false;
+  const blank = function(x) { return x === "" || x === null; };
+
+  for (let r = 0; r < data.length; r++) {
+    const row  = data[r];
+    const a    = String(row[0] || "").trim();
+    const next = data[r + 1] ? String(data[r + 1][0] || "").trim() : "";
+
+    if (a && next === "Chitty Amount") {              // title row
+      const d = data[r + 1], c = data[r + 2] || [];
+      cur = {
+        id        : String(row[10] || "").trim() || Utilities.getUuid().substring(0, 8),
+        userName  : String(row[11] || "").trim(),
+        name      : a,
+        amount    : parseFloat(d[1]) || 0,
+        date      : finDate(d[3]),
+        members   : parseInt(d[5], 10) || 0,
+        type      : String(c[0] || "").trim() === "Monthly Amount" ? "saving" : "commission",
+        commission: 0,
+        installment: 0
+      };
+      if (cur.type === "saving") cur.installment = parseFloat(c[1]) || 0;
+      else cur.commission = parseFloat(c[1]) || 0;
+      chits.push(cur);
+      inTable = false;
+      r += 2;                                         // skip details + summary
+      continue;
+    }
+    if (!cur) continue;
+    if (a === "Month") { inTable = true; continue; }
+    if (!a) { inTable = false; continue; }
+    if (!inTable) continue;
+
+    const mk = String(row[10] || "").trim();
+    const k  = parseInt(mk, 10);
+    if (!k || blank(row[2])) continue;
+    const key = cur.id + "|" + k;
+    if (/\.2$/.test(mk)) { if (cur.type === "saving") bids2[key] = parseFloat(row[2]) || 0; continue; }
+    bids[key] = parseFloat(row[2]) || 0;
+    if (cur.type === "saving" && !blank(row[8]) && !blank(row[9]))
+      interest[key] = { base: parseFloat(row[8]) || 0, pct: parseFloat(row[9]) || 0 };
+  }
+  return { chits: chits, bids: bids, bids2: bids2, interest: interest };
+}
+
+function computeChits(model) {
+  const tz  = Session.getScriptTimeZone();
+  const r2  = function(n) { return Math.round(n * 100) / 100; };
+  const get = function(o, k) { return Object.prototype.hasOwnProperty.call(o, k) ? o[k] : null; };
+  model.chits.forEach(function(ch) {
+    const n = ch.members, saving = ch.type === "saving";
+    ch.monthlyDue = n ? r2(ch.amount / n) : 0;
+    ch.rows = [];
+    ch.paid = 0;
+    ch.holding = 0;
+    ch.interest = 0;
+    let remain = n, done = 0;
+    for (let k = 1; /^\d{4}-\d{2}-\d{2}$/.test(ch.date) && remain > 0 && k <= 600; k++) {
+      const due  = finAddMonths(ch.date, k - 1);
+      const key  = ch.id + "|" + k;
+      const bid  = get(model.bids, key);
+      const bid2 = saving && bid !== null ? get(model.bids2, key) : null;
+      const ib   = saving && bid !== null ? get(model.interest, key) : null;
+      const int  = ib ? r2(ib.base * ib.pct / 100) : null;
+      remain = Math.max(0, remain - 1);
+      const date  = Utilities.formatDate(due, tz, "yyyy-MM-dd");
+      const label = Utilities.formatDate(due, tz, "dd MMM yyyy");
+      const row = { month: k, second: false, date: date, label: label,
+                    bid: bid, comm: ch.commission, byHand: null, payable: null,
+                    carried: ch.holding, interest: int, intBase: ib ? ib.base : null, intPct: ib ? ib.pct : null,
+                    holding: null, bid2: bid2, remain: remain };
+      if (bid !== null) {
+        row.byHand  = r2(ch.amount - bid);
+        row.payable = saving ? ch.installment : r2((ch.amount - bid + ch.commission) / n);
+        if (saving) {
+          ch.holding  = r2(ch.holding + (int || 0) + bid);
+          ch.interest = r2(ch.interest + (int || 0));
+          row.holding = ch.holding;
+        }
+        ch.paid += row.payable;
+        done++;
+      }
+      ch.rows.push(row);
+      if (bid2 !== null) {                            // 2nd chit, paid from Holding
+        remain = Math.max(0, remain - 1);
+        ch.holding = r2(ch.holding - (ch.amount - bid2));
+        ch.rows.push({ month: k, second: true, date: date, label: label,
+                       bid: bid2, comm: 0, byHand: r2(ch.amount - bid2), payable: null,
+                       carried: null, interest: null, holding: ch.holding, bid2: null, remain: remain });
+        done++;
+      }
+    }
+    // Shortfall left once every chit is taken → recovered in the last Payable
+    ch.shortfall = 0;
+    const last = ch.rows.filter(function(r) { return !r.second; }).pop();
+    if (saving && done >= n && ch.holding < 0 && last && last.payable !== null) {
+      ch.shortfall = -ch.holding;
+      last.shortfall = ch.shortfall;
+      last.payable = r2(last.payable + ch.shortfall / n);
+      ch.paid += ch.shortfall / n;
+      ch.holding = 0;
+      ch.rows[ch.rows.length - 1].holding = 0;
+    }
+    ch.paid   = r2(ch.paid);
+    ch.remain = Math.max(0, n - done);
+  });
+  return model.chits;
+}
+
+function writeChits(ss, model) {
+  const sheet = chitSheetObj(ss);
+  const chits = computeChits(model);
+  const out = [], titles = [], infos = [], heads = [];
+  const pad = function(a) { while (a.length < CHIT_COLS) a.push(""); return a; };
+  const v   = function(x) { return x === null ? "" : x; };
+
+  chits.forEach(function(ch) {
+    titles.push(out.length + 1);
+    out.push(pad([ch.name, "", "", "", "", "", "", "", "", "", ch.id, ch.userName]));
+    infos.push(out.length + 1);
+    out.push(pad(["Chitty Amount", ch.amount, "Start Date", ch.date, "Members", ch.members]));
+    infos.push(out.length + 1);
+    const saving = ch.type === "saving";
+    out.push(pad(saving
+      ? ["Monthly Amount", ch.installment, "Holding Saving", ch.holding, "Remain Chits", ch.remain]
+      : ["Commission", ch.commission, "Monthly Due", ch.monthlyDue, "Remain Chits", ch.remain]));
+    heads.push(out.length + 1);
+    out.push(pad(saving
+      ? ["Month", "Date", "Bid Amount", "By Hand", "Payable Amount", "Bid Interest", "Holding Saving",
+         "Remain Chits", "Interest On", "Interest %"]
+      : ["Month", "Date", "Bid Amount", "Comm Owner", "By Hand", "Payable Amount", "Remain Chits"]));
+    ch.rows.forEach(function(r) {
+      out.push(pad(saving
+        ? [r.second ? r.month + " (2nd)" : r.month, r.label, v(r.bid), v(r.byHand), v(r.payable),
+           v(r.interest), v(r.holding), r.remain, r.second ? "" : v(r.intBase), r.second ? "" : v(r.intPct),
+           r.second ? r.month + ".2" : r.month]
+        : [r.month, r.label, v(r.bid), r.comm, v(r.byHand), v(r.payable), r.remain, "", "", "", r.month]));
+    });
+    out.push(pad([]));
+  });
+
+  sheet.clear();
+  if (!out.length) return chits;
+
+  // Date labels / keys stay text — Sheets would reparse "05 Oct 2026"
+  sheet.getRange(1, 2, out.length, 1).setNumberFormat("@");
+  sheet.getRange(1, 11, out.length, 2).setNumberFormat("@");
+  sheet.getRange(1, 1, out.length, CHIT_COLS).setValues(out);
+
+  const rows = function(list) { return list.map(function(r) { return "A" + r + ":J" + r; }); };
+  if (titles.length) sheet.getRangeList(rows(titles)).setFontWeight("bold").setFontSize(12)
+    .setBackground("#1e7d55").setFontColor("#ffffff");
+  if (infos.length) {
+    sheet.getRangeList(rows(infos)).setBackground("#eef7f2");
+    sheet.getRangeList([].concat.apply([], infos.map(function(r) { return ["A" + r, "C" + r, "E" + r]; })))
+      .setFontWeight("bold");
+  }
+  if (heads.length) sheet.getRangeList(rows(heads)).setFontWeight("bold").setBackground("#d9d9d9");
+
+  if (!sheet.isColumnHiddenByUser(11)) {
+    [90, 110, 110, 110, 120, 110, 120, 100, 110, 90].forEach(function(w, i) { sheet.setColumnWidth(i + 1, w); });
+    sheet.hideColumns(11, 2);
+  }
+  return chits;
+}
+
+// Same lock + return-the-list pattern as withFinance
+function withChits(p, fn) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const ss    = SpreadsheetApp.getActiveSpreadsheet();
+    const model = parseChits(ss);
+    const res   = fn(model);
+    if (res.success) {
+      const listUser = String(p.listUser || "").trim();
+      res.chits = writeChits(ss, model)
+        .filter(function(ch) { return !listUser || ch.userName === listUser; });
+    }
+    return res;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getChits(p) {
+  const userFilter = String(p.userName || "").trim();
+  const chits = computeChits(parseChits(SpreadsheetApp.getActiveSpreadsheet()))
+    .filter(function(ch) { return !userFilter || ch.userName === userFilter; });
+  return { success: true, chits: chits };
+}
+
+function saveChit(p) {
+  const amount     = parseFloat(p.amount) || 0;
+  const date       = finDate(p.date);
+  const members    = parseInt(p.members, 10) || 0;
+  const type       = p.type === "saving" ? "saving" : "commission";
+  const commission = type === "saving" ? 0 : (parseFloat(p.commission) || 0);
+  const installment = type === "saving" ? (parseFloat(p.installment) || 0) : 0;
+  const name       = String(p.name || "").trim() || ("Chit " + amount);
+  if (amount <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date) || members < 1 || commission < 0) {
+    return { success: false, error: "Chitty amount, date and members are required." };
+  }
+  if (type === "saving" && installment <= 0) return { success: false, error: "Monthly amount is required." };
+  return withChits(p, function(model) {
+    let id = String(p.id || "");
+    if (id) {
+      const ch = model.chits.find(function(x) { return x.id === id; });
+      if (!ch) return { success: false, error: "Chit not found." };
+      ch.name = name; ch.amount = amount; ch.date = date; ch.members = members;
+      ch.type = type; ch.commission = commission; ch.installment = installment;
+    } else {
+      id = Utilities.getUuid().substring(0, 8);
+      model.chits.push({ id: id, userName: String(p.userName || "").trim(), name: name,
+                         amount: amount, date: date, members: members, type: type,
+                         commission: commission, installment: installment });
+    }
+    return { success: true, id: id };
+  });
+}
+
+function deleteChit(p) {
+  const id = String(p.id || "");
+  return withChits(p, function(model) {
+    const before = model.chits.length;
+    model.chits = model.chits.filter(function(x) { return x.id !== id; });
+    if (model.chits.length === before) return { success: false, error: "Chit not found." };
+    return { success: true };
+  });
+}
+
+// Empty bid clears that month (with its interest and 2nd bid). Saving
+// chits may also record Bid Interest and a 2nd Bid; empty = none. A 2nd
+// chit may take Holding below 0 (recovered in the last month's Payable).
+function saveChitMonth(p) {
+  const id = String(p.chitId || "");
+  const k  = parseInt(p.month, 10);
+  if (!id || !k) return { success: false, error: "Chit and month are required." };
+  const num = function(x) { const t = String(x === undefined ? "" : x).trim(); return t === "" ? null : parseFloat(t); };
+  return withChits(p, function(model) {
+    const ch = model.chits.find(function(x) { return x.id === id; });
+    if (!ch) return { success: false, error: "Chit not found." };
+    if (k > ch.members) return { success: false, error: "Month is beyond the member count." };
+    const key = id + "|" + k;
+    const bid = num(p.bid), bid2 = num(p.bid2), base = num(p.intBase), pct = num(p.intPct);
+    delete model.bids[key]; delete model.bids2[key]; delete model.interest[key];
+    if (bid === null) return { success: true };
+    const inRange = function(b) { return !isNaN(b) && b >= 0 && b <= ch.amount; };
+    if (!inRange(bid)) return { success: false, error: "Bid must be between 0 and the chitty amount." };
+    model.bids[key] = bid;
+    if (ch.type === "saving") {
+      if (bid2 !== null) {
+        if (!inRange(bid2)) return { success: false, error: "2nd bid must be between 0 and the chitty amount." };
+        model.bids2[key] = bid2;
+      }
+      if (base !== null || pct !== null) {
+        if (base === null || pct === null || isNaN(base) || isNaN(pct) || base < 0 || pct < 0) {
+          return { success: false, error: "Enter interest amount and percentage." };
+        }
+        if (base && pct) model.interest[key] = { base: base, pct: pct };
+      }
+    }
+    return { success: true };
+  });
+}
+
 function createLoginSheet(ss) {
   const sheet = ss.insertSheet(SHEET_LOGIN);
   // v2.9: header includes Script_URL for URL-based login validation
@@ -1700,6 +2293,8 @@ function setupSpreadsheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss.getSheetByName(SHEET_LOGIN))  createLoginSheet(ss);
   if (!ss.getSheetByName(SHEET_SAVING)) getSavingSheet(ss);
+  finSheetObj(ss);   // v4.0 — Finance tab
+  chitSheetObj(ss);  // v4.1 — Chit Funds
   var curYear = new Date().getFullYear();
   MONTHS.forEach(function(m) { getMonthSheet(ss, monthSheetKey(m, curYear), true); });
   refreshAllYears(); // v3.3 — builds Master_<year>/OverExpense_<year> for every year found
