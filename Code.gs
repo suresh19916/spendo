@@ -1951,6 +1951,7 @@ function withFinance(p, fn) {
       const listUser = String(p.listUser || "").trim();
       res.persons = writeFinance(ss, model)
         .filter(function(pr) { return !listUser || pr.userName === listUser; });
+      queueReminderSync();
     }
     return res;
   } finally {
@@ -2247,6 +2248,7 @@ function withChits(p, fn) {
       const listUser = String(p.listUser || "").trim();
       res.chits = writeChits(ss, model)
         .filter(function(ch) { return !listUser || ch.userName === listUser; });
+      queueReminderSync();
     }
     return res;
   } finally {
@@ -2333,6 +2335,218 @@ function saveChitMonth(p) {
     }
     return { success: true };
   });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Calendar reminders  (v4.4)
+//
+//  Events go to the "Money Book Reminders" Google Calendar of the account
+//  that owns this script (found by Script Property CAL_ID, else by name,
+//  else created). Every event we own carries the tag mb=<key>, so a sync
+//  can update/remove its own events and never touches anything else.
+//
+//  Every reminder is one line, no description:
+//    Hand Loan : "Yog ₹6,000 interest due" (9:00, popups 1 day before + on the day)
+//                "Yog ₹6,000 interest received" (no popup)
+//                "Yog ₹12,000 interest pending" (today 9:30)
+//    Chit Fund : "Office chit ₹5,000 due" (9:00, popups 1 day before + on the day)
+//    Expenses  : "Today spent ₹370" at 21:00 (popup at 21:00)
+//                last day of month 21:00 → "September total expenses ₹30,000"
+//                1st of month 09:00      → "Last month (1–30 Sep) total expenses ₹30,000"
+//
+//  Optional Script Properties: CAL_ID, REMINDER_USER (only that user's
+//  entries; empty = everyone).
+//  Run setupReminders() once from the editor to authorise and install.
+// ─────────────────────────────────────────────────────────────
+
+const REM_CAL_NAME = "Money Book Reminders";
+const REM_DAYS     = 92;   // how far ahead events are kept
+
+function remProps() { return PropertiesService.getScriptProperties(); }
+
+function remCalendar() {
+  const props = remProps();
+  const id = props.getProperty("CAL_ID");
+  let cal = id ? CalendarApp.getCalendarById(id) : null;
+  if (!cal) cal = CalendarApp.getCalendarsByName(REM_CAL_NAME)[0] || null;
+  if (!cal) cal = CalendarApp.createCalendar(REM_CAL_NAME, { color: CalendarApp.Color.GREEN });
+  if (cal.getId() !== id) props.setProperty("CAL_ID", cal.getId());
+  return cal;
+}
+
+// ₹1,23,456 — Indian digit grouping
+function inr(n) {
+  const v = Math.round(Math.abs(parseFloat(n) || 0)).toString();
+  const head = v.slice(0, -3), tail = v.slice(-3);
+  return (n < 0 ? "-₹" : "₹") + (head ? head.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," : "") + tail;
+}
+
+function remAt(isoDate, h, m) {
+  const p = isoDate.split("-").map(Number);
+  return new Date(p[0], p[1] - 1, p[2], h, m || 0);
+}
+
+function remToday() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"); }
+
+function remAddDays(iso, n) {
+  const d = remAt(iso, 12); d.setDate(d.getDate() + n);
+  return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM-dd");
+}
+
+function remUserOk(userName) {
+  const only = String(remProps().getProperty("REMINDER_USER") || "").trim();
+  return !only || String(userName || "").trim() === only;
+}
+
+// What the calendar should contain from today to today + REM_DAYS
+function remDesiredEvents(ss) {
+  const today = remToday(), end = remAddDays(today, REM_DAYS);
+  const inWin = function(d) { return d >= today && d <= end; };
+  const out = [];
+  const ev = function(key, title, iso, h, m, mins, popups) {
+    out.push({ key: key, title: title, start: remAt(iso, h, m), end: remAt(iso, h, m + mins),
+               desc: "", popups: popups });
+  };
+
+  computeFinance(parseFinance(ss)).forEach(function(pr) {
+    if (!remUserOk(pr.userName)) return;
+    pr.rows.forEach(function(r) {
+      if (!inWin(r.dueDate)) return;
+      if (r.received === "Yes") ev("loan|" + pr.id + "|" + r.month, pr.name + " " + inr(r.collected) + " interest received",
+                                   r.dueDate, 9, 0, 15, []);
+      else ev("loan|" + pr.id + "|" + r.month, pr.name + " " + inr(r.interest) + " interest due", r.dueDate, 9, 0, 15, [1440, 0]);
+    });
+    if (pr.pending > 0) ev("loanpend|" + pr.id + "|" + today, pr.name + " " + inr(pr.pending) + " interest pending",
+                           today, 9, 30, 15, [0]);
+  });
+
+  computeChits(parseChits(ss)).forEach(function(ch) {
+    if (!remUserOk(ch.userName)) return;
+    const due = ch.type === "saving" ? ch.installment : ch.monthlyDue;
+    ch.rows.forEach(function(r) {
+      if (r.second || !inWin(r.date)) return;
+      // Payable once the month's bid is known, otherwise the regular monthly amount
+      const amt = r.payable !== null && r.payable !== undefined ? r.payable : due;
+      ev("chit|" + ch.id + "|" + r.month, ch.name + " " + inr(amt) + " due", r.date, 9, 0, 15, [1440, 0]);
+    });
+  });
+  return out;
+}
+
+// Creates / updates / removes our tagged events so the calendar matches remDesiredEvents
+function syncReminders() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) return;
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet(), cal = remCalendar();
+    const today = remToday();
+    const from = remAt(today, 0), to = remAt(remAddDays(today, REM_DAYS + 1), 0);
+    const have = {};
+    cal.getEvents(from, to).forEach(function(e) {
+      const k = e.getTag("mb");
+      if (k && k.indexOf("sum|") !== 0) have[k] = e;   // daily summaries are managed separately
+    });
+    remDesiredEvents(ss).forEach(function(d) {
+      let e = have[d.key];
+      delete have[d.key];
+      if (e && e.getTitle() === d.title && e.getStartTime().getTime() === d.start.getTime() && e.getDescription() === d.desc) return;
+      if (e) { e.setTitle(d.title); e.setTime(d.start, d.end); e.setDescription(d.desc); }
+      else { e = cal.createEvent(d.title, d.start, d.end, { description: d.desc }); e.setTag("mb", d.key); }
+      e.removeAllReminders();
+      d.popups.forEach(function(m) { e.addPopupReminder(m); });
+    });
+    Object.keys(have).forEach(function(k) { have[k].deleteEvent(); });   // loan/chit deleted or changed
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Called after every Finance / Chit save: runs the sync a minute later in
+// the background so the save itself stays fast. No-op until setupReminders ran.
+function queueReminderSync() {
+  try {
+    if (!remProps().getProperty("CAL_ID")) return;
+    const queued = ScriptApp.getProjectTriggers().some(function(t) { return t.getHandlerFunction() === "syncRemindersSoon"; });
+    if (!queued) ScriptApp.newTrigger("syncRemindersSoon").timeBased().after(60 * 1000).create();
+  } catch (e) { /* reminders must never break a save */ }
+}
+
+function syncRemindersSoon() {
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === "syncRemindersSoon") ScriptApp.deleteTrigger(t);
+  });
+  syncReminders();
+}
+
+const MONTH_NAMES = ["January","February","March","April","May","June","July",
+                     "August","September","October","November","December"];
+
+// Total Expense amount in one month sheet; isoDay limits it to a single day
+function remSpent(ss, monthIdx, year, isoDay) {
+  const user  = String(remProps().getProperty("REMINDER_USER") || "").trim();
+  const sheet = ss.getSheetByName(monthSheetKey(MONTHS[monthIdx], year));
+  const data  = sheet ? sheet.getDataRange().getValues() : [];
+  let spent = 0;
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    if (!row[0] || String(row[3]).trim() !== "Expense") continue;
+    if (user && String(row[2]).trim() !== user) continue;
+    if (isoDay && finDate(row[1]) !== isoDay) continue;
+    spent += parseFloat(row[5]) || 0;
+  }
+  return spent;
+}
+
+// One summary event per key: replaces any earlier copy, popup at start time
+function remSummaryEvent(key, title, isoDate, h) {
+  const cal = remCalendar();
+  cal.getEvents(remAt(isoDate, 0), remAt(remAddDays(isoDate, 1), 0))
+    .forEach(function(e) { if (e.getTag("mb") === key) e.deleteEvent(); });
+  const e = cal.createEvent(title, remAt(isoDate, h, 0), remAt(isoDate, h, 15));
+  e.setTag("mb", key);
+  e.removeAllReminders();
+  e.addPopupReminder(0);
+}
+
+// 9 PM: today's spend; on the month's last day also the month total
+function dailyExpenseSummary() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet(), now = new Date(), today = remToday();
+  remSummaryEvent("sum|" + today, "Today spent " + inr(remSpent(ss, now.getMonth(), now.getFullYear(), today)), today, 21);
+  if (remAddDays(today, 1).slice(5, 7) !== today.slice(5, 7)) {
+    remSummaryEvent("sum|m|" + today.slice(0, 7),
+      MONTH_NAMES[now.getMonth()] + " total expenses " + inr(remSpent(ss, now.getMonth(), now.getFullYear())), today, 21);
+  }
+}
+
+// 1st of the month, 9 AM: what last month added up to
+function lastMonthSummary() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet(), today = remToday();
+  const prev = new Date(remAt(today, 12)); prev.setDate(0);   // last day of previous month
+  const label = "1–" + prev.getDate() + " " + MONTHS[prev.getMonth()];
+  remSummaryEvent("sum|lm|" + today.slice(0, 7),
+    "Last month (" + label + ") total expenses " + inr(remSpent(ss, prev.getMonth(), prev.getFullYear())), today, 9);
+}
+
+// 6 AM daily job: calendar sync, plus last month's total on the 1st
+function morningReminders() {
+  syncReminders();
+  if (remToday().slice(8) === "01") lastMonthSummary();
+}
+
+// One-time setup — run from the Apps Script editor (asks Calendar permission)
+function setupReminders() {
+  const cal = remCalendar();
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    const fn = t.getHandlerFunction();
+    if (fn === "syncReminders" || fn === "morningReminders" || fn === "dailyExpenseSummary" || fn === "syncRemindersSoon") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  ScriptApp.newTrigger("morningReminders").timeBased().everyDays(1).atHour(6).create();
+  // Runs ~8:15–8:45 PM and books the summary at 9:00 PM, so the popup fires at 9
+  ScriptApp.newTrigger("dailyExpenseSummary").timeBased().everyDays(1).atHour(20).nearMinute(30).create();
+  syncReminders();
+  Logger.log("Reminders ready in calendar: " + cal.getName() + " (" + cal.getId() + ")");
 }
 
 function createLoginSheet(ss) {
