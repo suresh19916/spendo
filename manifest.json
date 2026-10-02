@@ -1,6 +1,6 @@
 {
-  "name": "SB Monthly Ledger",
-  "short_name": "Spendo",
+  "name": "Suresh Money Book",
+  "short_name": "Money Book",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
