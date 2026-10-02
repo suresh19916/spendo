@@ -1,6 +1,6 @@
 // Spendo service worker — caches the app shell so the installed app
 // opens instantly and works offline. Apps Script API calls are never cached.
-const CACHE = "spendo-v15";
+const CACHE = "spendo-v17";
 const SHELL = [
   "./",
   "index.html",

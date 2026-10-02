@@ -387,6 +387,14 @@ img{-webkit-user-drag:none}
 .fin-yes{color:var(--gr);font-weight:700}.fin-no{color:var(--rd);font-weight:700}
 #fin-month-bd,#chit-month-bd{z-index:210}
 html.popup-open{overflow:hidden}
+/* Pull-to-refresh indicator (native one is disabled by overscroll-behavior) */
+#ptr{position:fixed;left:50%;top:calc(var(--st) - 46px);z-index:150;width:38px;height:38px;margin-left:-19px;border-radius:50%;
+  background:var(--sur2);border:1px solid var(--bdr2);box-shadow:0 4px 16px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;
+  pointer-events:none;opacity:0;transition:transform .2s,opacity .2s}
+#ptr.pulling{transition:none}
+#ptr .ptr-ico{color:var(--ac);font-weight:800;font-size:1.05rem;transition:transform .15s}
+#ptr.ready .ptr-ico{transform:rotate(180deg)}
+#ptr.loading .ptr-ico{width:16px;height:16px;border-radius:50%;border:2px solid rgba(34,227,154,.25);border-top-color:var(--ac);font-size:0;animation:spin .65s linear infinite}
 .chit-fit td{vertical-align:middle}
 .chit-fit tr.chit-2nd td{background:var(--acbg)}
 .chit-fit .sm.fin-yes{color:var(--gr)}
@@ -441,7 +449,7 @@ html.popup-open{overflow:hidden}
 .report-btn:active{background:rgba(34,227,154,.18)}
 
 /* ════ v2.4 — Back button ════ */
-.back-btn{background:none;border:1px solid var(--bdr2);border-radius:8px;color:var(--tx2);padding:.28rem .45rem;cursor:pointer;display:flex;align-items:center;transition:all .14s;flex-shrink:0}
+.back-btn{background:none;border:1px solid var(--bdr2);border-radius:8px;color:var(--tx2);padding:.28rem .6rem .28rem .45rem;cursor:pointer;display:flex;align-items:center;gap:.3rem;font-family:inherit;font-size:.8rem;font-weight:600;transition:all .14s;flex-shrink:0}
 .back-btn:active{background:var(--sur2)}
 
 /* ════ v2.4 — Report screen ════ */
@@ -988,7 +996,7 @@ html.popup-open{overflow:hidden}
       </div>
 
       <div id="fin-person-view" style="display:none">
-        <button class="fin-back" onclick="closeFinPerson()">‹ Dashboard</button>
+        <button class="fin-back" onclick="closeFinPerson()">‹ Back</button>
         <div class="budget-card" id="fin-p-head"></div>
         <div class="fin-sec">Monthly Interest <span style="text-transform:none;font-weight:400">· tap a row to update</span></div>
         <div id="fin-p-table"></div>
@@ -1002,7 +1010,7 @@ html.popup-open{overflow:hidden}
           <div id="chit-list"></div>
         </div>
         <div id="chit-view" style="display:none">
-          <button class="fin-back" onclick="closeChit()">‹ Dashboard</button>
+          <button class="fin-back" onclick="closeChit()">‹ Back</button>
           <div class="budget-card" id="chit-head"></div>
           <div class="fin-sec">Monthly Bids <span style="text-transform:none;font-weight:400">· tap a row to enter bid</span></div>
           <div id="chit-table"></div>
@@ -1074,7 +1082,7 @@ html.popup-open{overflow:hidden}
   <div class="topbar">
     <div class="topbar-row1">
       <button class="back-btn" onclick="hideReport()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg><span>Back</span>
       </button>
       <div class="topbar-logo" style="margin-left:.5rem">
         <img src="logo-sm.png" alt="Suresh Money Book" class="topbar-logo-img" style="width:26px;height:26px"/>
@@ -1228,7 +1236,7 @@ html.popup-open{overflow:hidden}
   <div class="topbar">
     <div class="topbar-row1">
       <button class="back-btn" onclick="hideMasterData()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg><span>Back</span>
       </button>
       <div class="topbar-logo" style="margin-left:.5rem">
         <img src="logo-sm.png" alt="Suresh Money Book" class="topbar-logo-img" style="width:26px;height:26px"/>
@@ -1379,6 +1387,7 @@ html.popup-open{overflow:hidden}
   </div>
 </div>
 
+<div id="ptr"><div class="ptr-ico">↓</div></div>
 <div id="toasts"></div>
 <div id="offline-pill">Offline — changes need internet</div>
 <div id="install-bar">
@@ -1528,7 +1537,7 @@ function bootApp() {
   g("main-fab").textContent = "＋ Add Transaction";
 
   startTimer();
-  loadAll();
+  loadAll().then(() => { loadFinance(); loadChits(); });   // warm Finance while user is on home
 }
 
 // ════════════════════════════════════════
@@ -2461,6 +2470,7 @@ async function loadSummary() {
     const res = await apiGET({ action:"getSummary", month:S.month, userName:userParam });
     if (res.success) {
       renderSummary(res);
+      S.freshSummary = { month: S.month, netBalance: parseFloat(res.netBalance) || 0, at: Date.now() };
     } else {
       renderSummary({ income:0, expense:0, balance:0, prevMonthBalance:0, netBalance:0, budgetUsed:0, topCategories:[] });
       toast("Dashboard error: " + (res.error || "unknown"), "error");
@@ -2879,7 +2889,10 @@ async function saveTransaction() {
   // calculate the exact overflow amount (the portion that exceeds available
   // salary balance and must be deducted from Savings).
   let salaryBalanceBefore = null;
-  if (!editId && S.txType === "Expense") {
+  const fresh = S.freshSummary;
+  if (!editId && S.txType === "Expense" && fresh && fresh.month === S.month && Date.now() - fresh.at < 120000) {
+    salaryBalanceBefore = fresh.netBalance;   // dashboard already has it — saves a round trip
+  } else if (!editId && S.txType === "Expense") {
     try {
       const preSumRes = await apiGET({
         action   : "getSummary",
@@ -3147,12 +3160,16 @@ const finListUser = () => S.isAdmin ? "" : (S.userName || S.userId);
 
 function applyFinPersons(persons) {
   F.persons = persons || [];
+  F.fetchedAt = Date.now();
   cacheSet("fin", F.persons);
   renderFinList();
   if (F.activeId) renderFinPerson();
 }
 
-async function loadFinance() {
+// force = pull-to-refresh; otherwise data fetched in the last 60s is reused
+async function loadFinance(force) {
+  const at = F.fetchedAt || 0;
+  if (!force && Date.now() - at < 60000) return;
   if (!F.persons.length) {
     const cached = cacheGet("fin");
     if (cached) { F.persons = cached; renderFinList(); }
@@ -3161,6 +3178,7 @@ async function loadFinance() {
   try {
     const res = await apiGET({ action: "getFinance", userName: finListUser() });
     if (!res.success) { toast(res.error || "Could not load finance", "error"); return; }
+    F.fetchedAt = Date.now();
     applyFinPersons(res.persons);
   } catch (e) {
     if (!F.persons.length) g("fin-list").innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div>Could not load. Check internet.</div>';
@@ -3216,19 +3234,21 @@ function renderFinPerson() {
     ${row("Principal Amount", fmtINR(p.amount))}
     ${row("Rate Of Interest", p.roi + "% / month")}
     ${row("Interest / Month", fmtINR(p.interest))}
+    ${row("Collected Interest", fmtINR(p.rows.reduce((t, r) => t + (r.collected || 0), 0)), "pos")}
     ${row("Pending Interest", fmtINR(p.pending), p.pending > 0 ? "neg" : "pos")}
     ${row("Pending Months", p.pendingMonths ? p.pendingMonths + " month" + (p.pendingMonths > 1 ? "s" : "") : "No due", p.pendingMonths ? "neg" : "pos")}`;
 
   g("fin-p-table").innerHTML = p.rows.length ? `
     <div class="fin-table-wrap"><table class="fin-table fit">
-      <colgroup><col style="width:27%"><col style="width:24%"><col style="width:21%"><col style="width:28%"></colgroup>
-      <thead><tr><th>Month<span class="sm">Interest</span></th><th>Received</th><th>Pending</th><th>Mode<span class="sm">Remarks</span></th></tr></thead>
+      <colgroup><col style="width:24%"><col style="width:17%"><col style="width:20%"><col style="width:19%"><col style="width:20%"></colgroup>
+      <thead><tr><th>Month<span class="sm">Interest</span></th><th>Received</th><th>Collected</th><th>Pending</th><th>Mode<span class="sm">Remarks</span></th></tr></thead>
       <tbody>${p.rows.map((r, i) => `
         <tr data-month="${esc(r.month)}">
           <td><b>${esc(r.label)}</b><span class="sm">${fmtINR(r.interest)}</span></td>
           <td class="${r.received === "Yes" ? "fin-yes" : r.upcoming ? "" : "fin-no"}">${
-            r.received === "Yes" ? `Yes<span class="sm">${fmtINR(r.collected)}</span>`
+            r.received === "Yes" ? "Yes"
             : r.upcoming ? `<span style="color:var(--tx3)">Upcoming</span><span class="sm">${fmtShortDate(r.dueDate)}</span>` : "No"}</td>
+          <td class="${r.received === "Yes" ? "fin-yes" : ""}">${r.received === "Yes" ? fmtINR(r.collected) : "—"}</td>
           ${r.upcoming && r.received !== "Yes" ? "<td>—</td>"
             : `<td class="${r.pending > 0 ? "fin-no" : "fin-yes"}">${fmtINR(r.pending)}${finPendingNote(r, i ? p.rows[i - 1].pending : 0)}</td>`}
           <td>${esc(r.transaction) || "—"}${r.remarks ? `<span class="sm">${esc(r.remarks)}</span>` : ""}</td>
@@ -3408,12 +3428,16 @@ function closeChitForm() { g("chit-form-bd").classList.remove("open"); }
 
 function applyChits(chits) {
   C.chits = chits || [];
+  C.fetchedAt = Date.now();
   cacheSet("chit", C.chits);
   renderChitList();
   if (C.activeId) renderChit();
 }
 
-async function loadChits() {
+// force = pull-to-refresh; otherwise data fetched in the last 60s is reused
+async function loadChits(force) {
+  const at = C.fetchedAt || 0;
+  if (!force && Date.now() - at < 60000) return;
   if (!C.chits.length) {
     const cached = cacheGet("chit");
     if (cached) { C.chits = cached; renderChitList(); }
@@ -3422,6 +3446,7 @@ async function loadChits() {
   try {
     const res = await apiGET({ action: "getChits", userName: finListUser() });
     if (!res.success) { toast(res.error || "Could not load chits", "error"); return; }
+    C.fetchedAt = Date.now();
     applyChits(res.chits);
   } catch (e) {
     if (!C.chits.length) g("chit-list").innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div>Could not load. Check internet.</div>';
@@ -3653,6 +3678,51 @@ g("chit-table").addEventListener("click", e => {
 ["chit-month-bd", "chit-form-bd"].forEach(id => {
   g(id).addEventListener("click", e => { if (e.target === g(id)) g(id).classList.remove("open"); });
 });
+
+// ════════════════════════════════════════
+//  PULL TO REFRESH — swipe down at the top of a page reloads its data
+// ════════════════════════════════════════
+(function () {
+  const ptr = g("ptr"), PULL = 70, MAX = 110;
+  let startY = null, dist = 0, busy = false;
+
+  // Data loader for whichever screen is showing (null = nothing to refresh)
+  function loaderForScreen() {
+    if (g("report-screen").style.display === "flex") return loadReport;
+    if (g("master-data-screen").style.display === "flex") return loadMasterData;
+    if (g("app").style.display !== "flex") return null;
+    if (g("finance-section").style.display === "none") return loadAll;
+    return F.sub === "chit" ? () => loadChits(true) : () => loadFinance(true);
+  }
+  function place(y) { ptr.style.transform = `translateY(${y}px)`; ptr.style.opacity = Math.min(1, y / PULL); }
+
+  document.addEventListener("touchstart", e => {
+    if (busy || window.scrollY > 0 || document.documentElement.classList.contains("popup-open") || !loaderForScreen()) return;
+    startY = e.touches[0].clientY; dist = 0;
+  }, { passive: true });
+
+  document.addEventListener("touchmove", e => {
+    if (startY === null) return;
+    dist = e.touches[0].clientY - startY;
+    if (dist <= 0 || window.scrollY > 0) { startY = null; place(0); return; }
+    ptr.classList.add("pulling");
+    place(Math.min(MAX, dist * 0.55));
+    ptr.classList.toggle("ready", dist * 0.55 >= PULL);
+  }, { passive: true });
+
+  document.addEventListener("touchend", async () => {
+    if (startY === null) return;
+    startY = null;
+    ptr.classList.remove("pulling");
+    const load = loaderForScreen();
+    if (dist * 0.55 < PULL || !load) { ptr.classList.remove("ready"); place(0); return; }
+    busy = true;
+    ptr.classList.remove("ready"); ptr.classList.add("loading"); place(PULL);
+    try { await load(); toast(navigator.onLine ? "Refreshed" : "Offline — showing saved data", navigator.onLine ? "success" : "error"); }
+    catch (e) { toast("Refresh failed. Check internet.", "error"); }
+    finally { busy = false; ptr.classList.remove("loading"); place(0); }
+  });
+})();
 
 // ════════════════════════════════════════
 //  APP MODE — service worker, install, back button, offline

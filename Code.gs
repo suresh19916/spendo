@@ -20,6 +20,34 @@ const SHEET_CHIT    = "ChitFunds"; // v4.1 — Finance → Chit Funds
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 // ─────────────────────────────────────────────────────────────
+//  Cell alignment (v4.3) — every data row in every sheet:
+//  numbers and dates centred, text left, empty cells untouched.
+// ─────────────────────────────────────────────────────────────
+function alignCell(v) {
+  if (v === "" || v === null || v === undefined) return "normal";
+  return typeof v === "number" || Object.prototype.toString.call(v) === "[object Date]" ? "center" : "left";
+}
+
+// Aligns `rows` (already written) starting at sheet row `startRow`
+function alignRows(sheet, startRow, rows) {
+  if (!rows || !rows.length) return;
+  sheet.getRange(startRow, 1, rows.length, rows[0].length)
+    .setHorizontalAlignments(rows.map(function(r) { return r.map(alignCell); }));
+}
+
+// One-time / repair: re-align the data rows of every sheet (run from the editor).
+// Finance and ChitFunds align themselves on every save; Login is left alone.
+function alignAllSheets() {
+  SpreadsheetApp.getActiveSpreadsheet().getSheets().forEach(function(sheet) {
+    const name = sheet.getName();
+    if (name === SHEET_LOGIN || name === SHEET_FINANCE || name === SHEET_CHIT) return;
+    const last = sheet.getLastRow(), cols = sheet.getLastColumn();
+    if (last < 2 || cols < 1) return;
+    alignRows(sheet, 2, sheet.getRange(2, 1, last - 1, cols).getValues());
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
 //  Entry points
 // ─────────────────────────────────────────────────────────────
 
@@ -245,6 +273,7 @@ function mergeSplitRowsInSheet(sheet) {
 
   sheet.getRange(2, 1, lastRow - 1, MONTH_SHEET_COLS).clearContent();
   if (merged.length) sheet.getRange(2, 1, merged.length, MONTH_SHEET_COLS).setValues(merged);
+  alignRows(sheet, 2, merged);
   return merged;
 }
 
@@ -347,6 +376,7 @@ function rebuildMonthSheetOrder(sheet) {
   // rebuild doesn't linger on a row that's no longer the divider.
   sheet.getRange(2, 1, lastRow - 1, MONTH_SHEET_COLS).clear();
   sheet.getRange(2, 1, outRows.length, MONTH_SHEET_COLS).setValues(outRows);
+  alignRows(sheet, 2, outRows);
   if (dividerRowNum > 0) {
     sheet.getRange(dividerRowNum, 1, 1, MONTH_SHEET_COLS)
       .setBackground("#f4cccc") // light red — visually flags overuse
@@ -890,6 +920,7 @@ function refreshMasterSheet(ss, year, monthly) {
     rows.push(["", ""]); // spacer between months
   });
   if (rows.length) sheet.getRange(2, 1, rows.length, 2).setValues(rows);
+  alignRows(sheet, 2, rows);
   highlightDividerRows(sheet, dividerRows, "#c9daf8"); // v3.6 — month divider highlight (light blue)
 
   sheet.setColumnWidth(1, 220);
@@ -924,6 +955,7 @@ function refreshOverExpenseSheet(ss, year, monthly) {
   });
 
   if (rows.length) sheet.getRange(2, 1, rows.length, 2).setValues(rows);
+  alignRows(sheet, 2, rows);
   highlightDividerRows(sheet, dividerRows, "#f4cccc"); // v3.6 — month divider highlight (light red, overuse context)
   sheet.setColumnWidth(1, 220);
   sheet.setColumnWidth(2, 130);
@@ -963,6 +995,7 @@ function refreshSummarySheet(ss, year, monthly) {
   });
 
   if (rows.length) sheet.getRange(2, 1, rows.length, 2).setValues(rows);
+  alignRows(sheet, 2, rows);
   highlightDividerRows(sheet, dividerRows, "#c9daf8"); // v3.6 — month divider highlight (light blue, same as Master_)
   sheet.setColumnWidth(1, 220);
   sheet.setColumnWidth(2, 130);
@@ -1354,7 +1387,7 @@ function recoverSavingFromSalary(p) {
   var newBalance  = prevBalance + recoveryAmount;
 
   // Append Recovery row (same 11-column layout as other saving rows)
-  sheet.appendRow([
+  const savingRow = [
     id,
     dateStr,
     userName,
@@ -1366,7 +1399,9 @@ function recoverSavingFromSalary(p) {
     newBalance,                               // RemainingSavingBalance
     new Date().toISOString(),                 // CreatedAt
     "Salary"                                  // Category
-  ]);
+  ];
+  sheet.appendRow(savingRow);
+  alignRows(sheet, sheet.getLastRow(), [savingRow]);
 
   return {
     success           : true,
@@ -1409,7 +1444,7 @@ function addSavingTransaction(p) {
     newBalance = prevBalance - amount;
   }
 
-  sheet.appendRow([
+  const savingRow = [
     id,
     dateStr,
     userName,
@@ -1421,7 +1456,9 @@ function addSavingTransaction(p) {
     newBalance,
     new Date().toISOString(),
     category
-  ]);
+  ];
+  sheet.appendRow(savingRow);
+  alignRows(sheet, sheet.getLastRow(), [savingRow]);
 
   return { success: true, id: id, remainingSavingBalance: newBalance };
 }
@@ -1699,14 +1736,16 @@ function installTriggers() {
 //  Finance tab  (v4.0) — money given at a monthly ROI
 //
 //  The "Finance" sheet is the only storage. One block per person:
-//    Title    : Name                                   | G: ID  H: UserName
+//    Title    : Name                                   | H: ID  I: UserName
 //    Details  : Hand Loan Date | date | Principal Amount | amt | Rate Of Interest % | roi
 //    Summary  : Monthly Interest | x | Pending Interest | x | Pending Months | x
-//    Header   : Month | Interest Amount | Received Interest | Pending Interest Amount
-//               | Transaction Mode | Remarks              | G: (month key)
-//    Months   : one row per month                      | G: yyyy-MM
+//    Header   : Month | Interest Amount | Received Interest | Collected Interest
+//               | Pending Interest Amount | Transaction Mode | Remarks | H: (month key)
+//    Months   : one row per month                      | H: yyyy-MM
 //    (blank row between blocks)
-//  Columns G:H are hidden. The sheet is parsed on every request and fully
+//  Columns H:I are hidden. Blocks written before v4.3 have no Collected
+//  Interest column (metadata in G:H); the parser reads both and the next
+//  write upgrades them. The sheet is parsed on every request and fully
 //  rewritten after every change; Summary/Pending cells are recomputed.
 //
 //  Interest per month = Principal × ROI / 100 (editable per month). The
@@ -1717,7 +1756,7 @@ function installTriggers() {
 //  early; it adds to Pending only once its due date has passed.
 // ─────────────────────────────────────────────────────────────
 
-const FIN_COLS = 8;   // A–F visible, G–H hidden metadata
+const FIN_COLS = 9;   // A–G visible, H–I hidden metadata
 
 function finDate(v) {
   const tz = Session.getScriptTimeZone();
@@ -1758,9 +1797,12 @@ function parseFinance(ss) {
 
     if (a && next === "Hand Loan Date") {             // title row
       const d = data[r + 1];
+      // o = 1 when the block has the Collected Interest column (v4.3+)
+      const o = data[r + 3] && String(data[r + 3][3] || "").trim() === "Collected Interest" ? 1 : 0;
       cur = {
-        id      : String(row[6] || "").trim() || Utilities.getUuid().substring(0, 8),
-        userName: String(row[7] || "").trim(),
+        o       : o,
+        id      : String(row[6 + o] || "").trim() || Utilities.getUuid().substring(0, 8),
+        userName: String(row[7 + o] || "").trim(),
         name    : a,
         date    : finDate(d[1]),
         amount  : parseFloat(d[3]) || 0,
@@ -1776,14 +1818,15 @@ function parseFinance(ss) {
     if (!a) { inTable = false; continue; }
     if (!inTable) continue;
 
-    const key = finMonthKey(row[6]);
+    const o   = cur.o;
+    const key = finMonthKey(row[6 + o]);
     if (!/^\d{4}-\d{2}$/.test(key)) continue;
     const interest = row[1] === "" || row[1] === null ? null : (parseFloat(row[1]) || 0);
     months[cur.id + "|" + key] = {
       received   : /^yes/i.test(String(row[2] || "").trim()) ? "Yes" : "No",
       interest   : interest,
-      transaction: String(row[4] || ""),
-      remarks    : String(row[5] || "")
+      transaction: String(row[4 + o] || ""),
+      remarks    : String(row[5 + o] || "")
     };
   }
   return { persons: persons, months: months };
@@ -1826,25 +1869,38 @@ function computeFinance(model) {
   return model.persons;
 }
 
+// Month (data) rows: numbers centred, text left-aligned; other rows untouched.
+// Returns one alignment per cell so a single setHorizontalAlignments() call does it.
+function dataAlignments(out, dataRows, visibleCols) {
+  return out.map(function(row, i) {
+    return row.map(function(v, c) {
+      return dataRows[i] && c < visibleCols ? alignCell(v) : "normal";
+    });
+  });
+}
+
 function writeFinance(ss, model) {
   const sheet   = finSheetObj(ss);
   const persons = computeFinance(model);
-  const out = [], titles = [], infos = [], heads = [];
+  const out = [], titles = [], infos = [], heads = [], data = {};
   const pad = function(a) { while (a.length < FIN_COLS) a.push(""); return a; };
 
   persons.forEach(function(pr) {
     titles.push(out.length + 1);
-    out.push(pad([pr.name, "", "", "", "", "", pr.id, pr.userName]));
+    out.push(pad([pr.name, "", "", "", "", "", "", pr.id, pr.userName]));
     infos.push(out.length + 1);
     out.push(pad(["Hand Loan Date", pr.date, "Principal Amount", pr.amount, "Rate Of Interest %", pr.roi]));
     infos.push(out.length + 1);
     out.push(pad(["Monthly Interest", pr.interest, "Pending Interest", pr.pending,
                   "Pending Months", pr.pendingMonths ? pr.pendingMonths : "No due"]));
     heads.push(out.length + 1);
-    out.push(pad(["Month", "Interest Amount", "Received Interest", "Pending Interest Amount", "Transaction Mode", "Remarks"]));
+    out.push(pad(["Month", "Interest Amount", "Received Interest", "Collected Interest", "Pending Interest Amount",
+                  "Transaction Mode", "Remarks"]));
     pr.rows.forEach(function(r) {
+      data[out.length] = true;
       out.push(pad([r.label, r.interest,
-        r.received === "Yes" ? "Yes (" + r.collected + ")" : r.upcoming ? "Due " + r.dueDate : "No",
+        r.received === "Yes" ? "Yes" : r.upcoming ? "Due " + r.dueDate : "No",
+        r.received === "Yes" ? r.collected : "",
         r.upcoming && r.received !== "Yes" ? "" : r.pending, r.transaction, r.remarks, r.month]));
     });
     out.push(pad([]));
@@ -1856,11 +1912,11 @@ function writeFinance(ss, model) {
 
   // Month labels / keys must stay text — Sheets would turn "Oct 2026" into a date
   sheet.getRange(1, 1, out.length, 1).setNumberFormat("@");
-  sheet.getRange(1, 7, out.length, 2).setNumberFormat("@");
+  sheet.getRange(1, 8, out.length, 2).setNumberFormat("@");
   sheet.getRange(1, 1, out.length, FIN_COLS).setValues(out);
 
   // Batched formatting — a few calls total instead of several per person
-  const rows = function(list) { return list.map(function(r) { return "A" + r + ":F" + r; }); };
+  const rows = function(list) { return list.map(function(r) { return "A" + r + ":G" + r; }); };
   if (titles.length) sheet.getRangeList(rows(titles)).setFontWeight("bold").setFontSize(12)
     .setBackground("#1e7d55").setFontColor("#ffffff");
   if (infos.length) {
@@ -1869,11 +1925,14 @@ function writeFinance(ss, model) {
       .setFontWeight("bold");
   }
   if (heads.length) sheet.getRangeList(rows(heads)).setFontWeight("bold").setBackground("#d9d9d9");
+  sheet.getRange(1, 1, out.length, FIN_COLS).setHorizontalAlignments(dataAlignments(out, data, 7));
 
   // Layout only needs setting once
-  if (!sheet.isColumnHiddenByUser(7)) {
-    [130, 130, 140, 170, 140, 220].forEach(function(w, i) { sheet.setColumnWidth(i + 1, w); });
-    sheet.hideColumns(7, 2);
+  // First run, or a pre-v4.3 sheet where G was the hidden ID column
+  if (!sheet.isColumnHiddenByUser(8) || sheet.isColumnHiddenByUser(7)) {
+    sheet.showColumns(7);
+    [130, 130, 140, 140, 170, 140, 220].forEach(function(w, i) { sheet.setColumnWidth(i + 1, w); });
+    sheet.hideColumns(8, 2);
   }
   return persons;
 }
@@ -2120,7 +2179,7 @@ function computeChits(model) {
 function writeChits(ss, model) {
   const sheet = chitSheetObj(ss);
   const chits = computeChits(model);
-  const out = [], titles = [], infos = [], heads = [];
+  const out = [], titles = [], infos = [], heads = [], data = {};
   const pad = function(a) { while (a.length < CHIT_COLS) a.push(""); return a; };
   const v   = function(x) { return x === null ? "" : x; };
 
@@ -2140,6 +2199,7 @@ function writeChits(ss, model) {
          "Remain Chits", "Interest On", "Interest %"]
       : ["Month", "Date", "Bid Amount", "Comm Owner", "By Hand", "Payable Amount", "Remain Chits"]));
     ch.rows.forEach(function(r) {
+      data[out.length] = true;
       out.push(pad(saving
         ? [r.second ? r.month + " (2nd)" : r.month, r.label, v(r.bid), v(r.byHand), v(r.payable),
            v(r.interest), v(r.holding), r.remain, r.second ? "" : v(r.intBase), r.second ? "" : v(r.intPct),
@@ -2166,6 +2226,7 @@ function writeChits(ss, model) {
       .setFontWeight("bold");
   }
   if (heads.length) sheet.getRangeList(rows(heads)).setFontWeight("bold").setBackground("#d9d9d9");
+  sheet.getRange(1, 1, out.length, CHIT_COLS).setHorizontalAlignments(dataAlignments(out, data, 10));
 
   if (!sheet.isColumnHiddenByUser(11)) {
     [90, 110, 110, 110, 120, 110, 120, 100, 110, 90].forEach(function(w, i) { sheet.setColumnWidth(i + 1, w); });
@@ -2298,6 +2359,7 @@ function setupSpreadsheet() {
   var curYear = new Date().getFullYear();
   MONTHS.forEach(function(m) { getMonthSheet(ss, monthSheetKey(m, curYear), true); });
   refreshAllYears(); // v3.3 — builds Master_<year>/OverExpense_<year> for every year found
+  alignAllSheets();  // v4.3 — numbers centred, text left in existing data
   SpreadsheetApp.getUi().alert(
     "✅ Spendo v3.0 setup complete!\n\n" +
     "Login sheet columns: User_ID | Name | Password | API_Key | Expire_Date | Script_URL\n" +
