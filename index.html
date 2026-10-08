@@ -1609,7 +1609,7 @@ async function doLogin() {
       showErr("l-err", res.error || "Invalid credentials. Check User ID and Password.");
     }
   } catch (e) {
-    showErr("l-err", "Could not reach the API. Please check the URL and try again.");
+    showErr("l-err", e.message || "Could not reach the API. Please check the URL and try again.");
   }
 
   setBtn("l-btn", false, "Sign In");
@@ -1650,7 +1650,7 @@ async function doReLogin() {
       showErr("r-err", res.error || "Incorrect credentials.");
     }
   } catch (e) {
-    showErr("r-err", "Connection error. Try again.");
+    showErr("r-err", e.message || "Connection error. Try again.");
   }
 
   setBtn("r-btn", false, "Sign In Again");
@@ -2970,7 +2970,8 @@ async function saveTransaction() {
       toast(res.error || "Save failed", "error");
     }
   } catch (e) {
-    toast("Error saving transaction", "error");
+    toast((e.message || "Error saving transaction") + " Check the list before saving again.", "error");
+    loadAll();
   }
 
   saveBtn.disabled    = false;
@@ -2989,17 +2990,45 @@ async function apiGET(params) {
   return apiFetch(S.url, params);
 }
 
+// Apps Script answers a crash/timeout/quota error with an HTML page that has
+// no CORS header, so the browser reports it as a network failure. Read-only
+// actions are retried once after a short pause; writes never are (a retry
+// could save the same transaction twice).
+const API_TIMEOUT_MS = 60000;
 async function apiFetch(url, params) {
   const clean = {};
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== "") clean[k] = v;
   }
-  const qs  = new URLSearchParams(clean).toString();
-  const res = await fetch(`${url}?${qs}`, { redirect:"follow" });
-  if (!res.ok) throw new Error("HTTP " + res.status);
+  const qs   = new URLSearchParams(clean).toString();
+  const read = /^get/.test(clean.action || "");
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await apiFetchOnce(`${url}?${qs}`);
+    } catch (e) {
+      if (!read || attempt >= 1) throw e;
+      await new Promise(r => setTimeout(r, 1500));
+    }
+  }
+}
+
+async function apiFetchOnce(fullUrl) {
+  const ctrl  = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), API_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(fullUrl, { redirect:"follow", signal: ctrl.signal });
+  } catch (e) {
+    throw new Error(e.name === "AbortError"
+      ? "Server took too long to respond. Please try again."
+      : (navigator.onLine === false ? "No internet connection." : "Could not reach the server. Please try again."));
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new Error("Server error (HTTP " + res.status + "). Please try again.");
   const text = await res.text();
   try { return JSON.parse(text); }
-  catch (e) { throw new Error("Non-JSON response: " + text.slice(0, 100)); }
+  catch (e) { throw new Error("Server is busy. Please try again in a moment."); }
 }
 
 // ════════════════════════════════════════

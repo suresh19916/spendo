@@ -453,7 +453,7 @@ function addTransaction(p) {
   ]);
 
   rebuildMonthSheetOrder(sheet); // v3.5 — re-partition around the Over Usage divider
-  refreshReports({ year: txYear, month: month }); // v3.3 — keep that year's Master/OverExpense in sync; v3.7 — month scopes the recompute to just this month
+  refreshReportsQuick({ year: txYear, month: month }); // v4.5 — sheets rewritten in background; v3.3 — keep that year's Master/OverExpense in sync; v3.7 — month scopes the recompute to just this month
   return { success: true, id: id, month: month };
 }
 
@@ -497,8 +497,8 @@ function updateTransaction(p) {
       createdAt
     ]]);
     rebuildMonthSheetOrder(sheet); // v3.5 — re-partition around the Over Usage divider
-    refreshReports({ year: newYear, month: month }); // v3.3 — keep that year's Master/OverExpense in sync; v3.7 — month scopes the recompute to just this month
-    if (oldYear && oldYear !== newYear) refreshReports({ year: oldYear, month: month });
+    refreshReportsQuick({ year: newYear, month: month }); // v4.5 — sheets rewritten in background; v3.3 — keep that year's Master/OverExpense in sync; v3.7 — month scopes the recompute to just this month
+    if (oldYear && oldYear !== newYear) refreshReportsQuick({ year: oldYear, month: month });
     return { success: true };
   }
   return { success: false, error: "Transaction ID '" + p.id + "' not found in " + sheetKey + "." };
@@ -519,7 +519,7 @@ function deleteTransaction(p) {
       const delYear = rowYear(data[r]) || new Date().getFullYear();
       sheet.deleteRow(r + 2);
       rebuildMonthSheetOrder(sheet); // v3.5 — re-partition around the Over Usage divider
-      refreshReports({ year: delYear, month: month }); // v3.3 — keep that year's Master/OverExpense in sync; v3.7 — month scopes the recompute to just this month
+      refreshReportsQuick({ year: delYear, month: month }); // v4.5 — sheets rewritten in background; v3.3 — keep that year's Master/OverExpense in sync; v3.7 — month scopes the recompute to just this month
       return { success: true };
     }
   }
@@ -1038,11 +1038,48 @@ function refreshReports(p) {
 
   const monthly = buildYearReportFromRaw(rawTotals, year);
   cacheYearReport(year, monthly);
+  writeReportSheets(ss, year, monthly);
+  return { success: true, year: year };
+}
 
+function writeReportSheets(ss, year, monthly) {
   refreshMasterSheet(ss, year, monthly);
   refreshOverExpenseSheet(ss, year, monthly);
   refreshSummarySheet(ss, year, monthly);
+}
+
+// v4.5 — used by add/update/delete. Rewriting Master_/OverExpense_/Summary_
+// (dozens of sheet writes) was most of a save's time, and the API never reads
+// those sheets — only people do. So a save just patches the report caches
+// and marks the year dirty; flushReportSheets() (5-min trigger, installed by
+// installTriggers()) rewrites the sheets. Until that trigger exists, the
+// sheets are still written inline as before.
+function refreshReportsQuick(p) {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty("REPORT_FLUSH") !== "on") return refreshReports(p);
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet(), year = resolveYear(p);
+  const rawTotals = getRawTotalsCached(ss, year);
+  const idx = MONTHS.indexOf(p.month);
+  if (idx >= 0) rawTotals[idx] = computeMonthTotals(ss, p.month, year);
+  cacheRawTotals(year, rawTotals);
+  cacheYearReport(year, buildYearReportFromRaw(rawTotals, year));
+
+  const dirty = String(props.getProperty("REPORTS_DIRTY") || "").split(",").filter(String);
+  if (dirty.indexOf(String(year)) < 0) {
+    dirty.push(String(year));
+    props.setProperty("REPORTS_DIRTY", dirty.join(","));
+  }
   return { success: true, year: year };
+}
+
+// 5-minute trigger: full recompute + rewrite of every year marked dirty
+function flushReportSheets() {
+  const props = PropertiesService.getScriptProperties();
+  const years = String(props.getProperty("REPORTS_DIRTY") || "").split(",").filter(String);
+  if (!years.length) return;
+  props.deleteProperty("REPORTS_DIRTY");
+  years.forEach(function(y) { refreshReports({ year: parseInt(y, 10) }); });
 }
 
 // v3.3 — available to ALL logged-in users (not admin-gated): returns the
@@ -1715,8 +1752,13 @@ function installTriggers() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   ScriptApp.getProjectTriggers().forEach(function(t) {
     const fn = t.getHandlerFunction();
-    if (fn === "monthlyAutoMaintenance" || fn === "onChangeSyncReports") ScriptApp.deleteTrigger(t);
+    if (fn === "monthlyAutoMaintenance" || fn === "onChangeSyncReports" || fn === "flushReportSheets") ScriptApp.deleteTrigger(t);
   });
+  ScriptApp.newTrigger("flushReportSheets")   // v4.5 — background report-sheet rewrite
+    .timeBased()
+    .everyMinutes(5)
+    .create();
+  PropertiesService.getScriptProperties().setProperty("REPORT_FLUSH", "on");
   ScriptApp.newTrigger("monthlyAutoMaintenance")
     .timeBased()
     .onMonthDay(1)
@@ -2497,18 +2539,32 @@ function remSpent(ss, monthIdx, year, isoDay) {
   return spent;
 }
 
-// One summary event per key: replaces any earlier copy, popup at start time
+// One summary event per key. An existing copy is updated in place (same event
+// id), not deleted + recreated: phones schedule the popup when they sync the
+// event, so a brand-new event booked minutes before its start often never pops.
 function remSummaryEvent(key, title, isoDate, h) {
-  const cal = remCalendar();
-  cal.getEvents(remAt(isoDate, 0), remAt(remAddDays(isoDate, 1), 0))
-    .forEach(function(e) { if (e.getTag("mb") === key) e.deleteEvent(); });
-  const e = cal.createEvent(title, remAt(isoDate, h, 0), remAt(isoDate, h, 15));
-  e.setTag("mb", key);
-  e.removeAllReminders();
-  e.addPopupReminder(0);
+  const cal = remCalendar(), start = remAt(isoDate, h, 0);
+  let e = null;
+  cal.getEvents(remAt(isoDate, 0), remAt(remAddDays(isoDate, 1), 0)).forEach(function(x) {
+    if (x.getTag("mb") !== key) return;
+    if (e) x.deleteEvent(); else e = x;   // drop duplicates
+  });
+  if (!e) {
+    e = cal.createEvent(title, start, remAt(isoDate, h, 15));
+    e.setTag("mb", key);
+  } else if (e.getTitle() !== title) {
+    e.setTitle(title);
+  }
+  const pops = e.getPopupReminders();
+  if (pops.length !== 1 || pops[0] !== 0 || e.getEmailReminders().length) {
+    e.removeAllReminders();
+    e.addPopupReminder(0);
+  }
 }
 
-// 9 PM: today's spend; on the month's last day also the month total
+// Today's spend at 9 PM; on the month's last day also the month total.
+// Runs at 6 AM (books the 9 PM events early so devices sync them in time)
+// and again ~8:30 PM (refreshes the amounts on the same events).
 function dailyExpenseSummary() {
   const ss = SpreadsheetApp.getActiveSpreadsheet(), now = new Date(), today = remToday();
   remSummaryEvent("sum|" + today, "Today spent " + inr(remSpent(ss, now.getMonth(), now.getFullYear(), today)), today, 21);
@@ -2527,9 +2583,11 @@ function lastMonthSummary() {
     "Last month (" + label + ") total expenses " + inr(remSpent(ss, prev.getMonth(), prev.getFullYear())), today, 9);
 }
 
-// 6 AM daily job: calendar sync, plus last month's total on the 1st
+// 6 AM daily job: calendar sync, today's 9 PM summary placeholder,
+// plus last month's total on the 1st
 function morningReminders() {
   syncReminders();
+  dailyExpenseSummary();
   if (remToday().slice(8) === "01") lastMonthSummary();
 }
 
