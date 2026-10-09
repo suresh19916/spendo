@@ -2620,7 +2620,7 @@ function remDesiredEvents(ss) {
 // deleted + recreated: phones schedule the popup when they sync the event.
 function syncReminders() {
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(30000)) return;
+  if (!lock.tryLock(30000)) return false;
   try {
     remMigrateOldCalendar();
     const ss = SpreadsheetApp.getActiveSpreadsheet(), cal = remCalendar();
@@ -2648,6 +2648,7 @@ function syncReminders() {
     // pre-v4.8 built-in events (loan|, chit|, sum|)
     Object.keys(have).forEach(function(k) { have[k].deleteEvent(); });
     remScheduleLead(desired);
+    return true;
   } finally {
     lock.releaseLock();
   }
@@ -2905,19 +2906,26 @@ function getNotifications(p) {
 function withNotifications(p, fn) {
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  let res;
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet(), list = parseNotifications(ss);
-    const res = fn(list);
+    res = fn(list);
     if (res.success) {
       writeNotifications(ss, res.list || list);
       delete res.list;
-      queueReminderSync();
       res.notifications = notifyList(ss, p.listUser);
     }
-    return res;
   } finally {
     lock.releaseLock();
   }
+  // Book the calendar right away, so even a reminder a minute ahead reaches
+  // the phone in time; if that can't run now, the queued sync does it
+  if (res.success) {
+    let synced = false;
+    try { synced = remReady() && syncReminders(); } catch (e) { /* reminders must never break a save */ }
+    if (!synced) queueReminderSync();
+  }
+  return res;
 }
 
 function newNotification(n, userName) {
