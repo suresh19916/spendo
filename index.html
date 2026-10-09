@@ -1320,6 +1320,7 @@ html.popup-open{overflow:hidden}
       <button class="btn btn-ghost" onclick="closeFinForm()">Cancel</button>
       <button class="btn btn-primary" id="fin-submit" onclick="saveFinPerson()">Submit</button>
     </div>
+    <button class="btn btn-ghost" id="fin-close-acc" style="width:100%;margin-top:.6rem;color:var(--rd);display:none" onclick="closeFinAccount()">🔒 Close Account</button>
   </div>
 </div>
 
@@ -3256,6 +3257,7 @@ function openFinForm(p) {
   g("fin-roi").value    = p ? p.roi : "";
   g("fin-form-title").textContent = p ? "Edit " + p.name : "Add Hand Loan";
   g("fin-submit").textContent     = p ? "Update" : "Submit";
+  g("fin-close-acc").style.display = p ? "" : "none";
   finHint();
   g("fin-form-bd").classList.add("open");
 }
@@ -3404,6 +3406,25 @@ async function deleteFinPerson() {
     closeFinPerson();
     applyFinPersons(res.persons);
   } catch (e) { toast("Delete failed. Check internet.", "error"); }
+}
+
+// v4.11 — Close Account: hidden from the app, rows stay in the Finance sheet
+async function closeFinAccount() {
+  const p = F.persons.find(x => x.id === g("fin-id").value);
+  if (!p || !confirm(`Close ${p.name}'s account? It will be hidden from the app; its records stay in the sheet.`)) return;
+  setBtn("fin-close-acc", true);
+  try {
+    const res = await apiGET({ action: "closeFinancePerson", id: p.id, listUser: finListUser() });
+    if (!res.success) { toast(res.error || "Close failed", "error"); return; }
+    toast("Account closed", "success");
+    closeFinForm();
+    closeFinPerson();
+    applyFinPersons(res.persons);
+  } catch (e) {
+    toast("Close failed. Check internet.", "error");
+  } finally {
+    setBtn("fin-close-acc", false, "🔒 Close Account");
+  }
 }
 
 // Explains a Pending cell: what was carried in vs. this month's interest

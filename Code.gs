@@ -89,6 +89,7 @@ function handleRequest(e) {
       case "addFinancePerson":    return respond(saveFinancePerson(p));
       case "updateFinancePerson": return respond(saveFinancePerson(p));
       case "deleteFinancePerson": return respond(deleteFinancePerson(p));
+      case "closeFinancePerson":  return respond(closeFinancePerson(p));
       case "saveFinanceMonth":    return respond(saveFinanceMonth(p));
       // v4.1 — Chit Funds
       case "getChits":            return respond(getChits(p));
@@ -1784,14 +1785,14 @@ function installTriggers() {
 //  Finance tab  (v4.0) — money given at a monthly ROI
 //
 //  The "Finance" sheet is the only storage. One block per person:
-//    Title    : Name                                   | H: ID  I: UserName
+//    Title    : Name                       | H: ID  I: UserName  J: Closed date
 //    Details  : Hand Loan Date | date | Principal Amount | amt | Rate Of Interest % | roi
 //    Summary  : Monthly Interest | x | Pending Interest | x | Pending Months | x
 //    Header   : Month | Interest Amount | Received Interest | Collected Interest
 //               | Pending Interest Amount | Transaction Mode | Remarks | H: (month key)
 //    Months   : one row per month                      | H: yyyy-MM
 //    (blank row between blocks)
-//  Columns H:I are hidden. Blocks written before v4.3 have no Collected
+//  Columns H:J are hidden. Blocks written before v4.3 have no Collected
 //  Interest column (metadata in G:H); the parser reads both and the next
 //  write upgrades them. The sheet is parsed on every request and fully
 //  rewritten after every change; Summary/Pending cells are recomputed.
@@ -1802,9 +1803,13 @@ function installTriggers() {
 //  collects everything pending plus that month, so Pending resets to 0.
 //  The next not-yet-due month is listed (upcoming) so it can be updated
 //  early; it adds to Pending only once its due date has passed.
+//
+//  Close Account (v4.11) stamps the close date in J. A closed loan keeps
+//  its block in the sheet, stops listing months due after that date, and
+//  is left out of the app lists and reminders.
 // ─────────────────────────────────────────────────────────────
 
-const FIN_COLS = 9;   // A–G visible, H–I hidden metadata
+const FIN_COLS = 10;  // A–G visible, H–J hidden metadata
 
 function finDate(v) {
   const tz = Session.getScriptTimeZone();
@@ -1854,7 +1859,8 @@ function parseFinance(ss) {
         name    : a,
         date    : finDate(d[1]),
         amount  : parseFloat(d[3]) || 0,
-        roi     : parseFloat(d[5]) || 0
+        roi     : parseFloat(d[5]) || 0,
+        closed  : row[8 + o] ? finDate(row[8 + o]) : ""
       };
       persons.push(cur);
       inTable = false;
@@ -1890,8 +1896,10 @@ function computeFinance(model) {
     pr.rows = [];
     pr.nextDue = "";
     let pending = 0;
+    const closedOn = pr.closed ? new Date(pr.closed + "T00:00:00") : null;
     for (let k = 1; /^\d{4}-\d{2}-\d{2}$/.test(pr.date) && k <= 600; k++) {
       const due      = finAddMonths(pr.date, k);
+      if (closedOn && due > closedOn) break;        // closed: nothing falls due after
       const upcoming = due > today;
       if (upcoming) pr.nextDue = Utilities.formatDate(due, tz, "yyyy-MM-dd");
       const key = Utilities.formatDate(due, tz, "yyyy-MM");
@@ -1935,7 +1943,7 @@ function writeFinance(ss, model) {
 
   persons.forEach(function(pr) {
     titles.push(out.length + 1);
-    out.push(pad([pr.name, "", "", "", "", "", "", pr.id, pr.userName]));
+    out.push(pad([pr.name, "", "", "", "", "", "", pr.id, pr.userName, pr.closed || ""]));
     infos.push(out.length + 1);
     out.push(pad(["Hand Loan Date", pr.date, "Principal Amount", pr.amount, "Rate Of Interest %", pr.roi]));
     infos.push(out.length + 1);
@@ -1960,7 +1968,7 @@ function writeFinance(ss, model) {
 
   // Month labels / keys must stay text — Sheets would turn "Oct 2026" into a date
   sheet.getRange(1, 1, out.length, 1).setNumberFormat("@");
-  sheet.getRange(1, 8, out.length, 2).setNumberFormat("@");
+  sheet.getRange(1, 8, out.length, 3).setNumberFormat("@");
   sheet.getRange(1, 1, out.length, FIN_COLS).setValues(out);
 
   // Batched formatting — a few calls total instead of several per person
@@ -1976,11 +1984,12 @@ function writeFinance(ss, model) {
   sheet.getRange(1, 1, out.length, FIN_COLS).setHorizontalAlignments(dataAlignments(out, data, 7));
 
   // Layout only needs setting once
-  // First run, or a pre-v4.3 sheet where G was the hidden ID column
-  if (!sheet.isColumnHiddenByUser(8) || sheet.isColumnHiddenByUser(7)) {
+  // First run, a pre-v4.3 sheet where G was the hidden ID column, or a
+  // pre-v4.11 sheet without the hidden Closed column J
+  if (!sheet.isColumnHiddenByUser(8) || sheet.isColumnHiddenByUser(7) || !sheet.isColumnHiddenByUser(10)) {
     sheet.showColumns(7);
     [130, 130, 140, 140, 170, 140, 220].forEach(function(w, i) { sheet.setColumnWidth(i + 1, w); });
-    sheet.hideColumns(8, 2);
+    sheet.hideColumns(8, 3);
   }
   return persons;
 }
@@ -1998,7 +2007,7 @@ function withFinance(p, fn) {
     if (res.success) {
       const listUser = String(p.listUser || "").trim();
       res.persons = writeFinance(ss, model)
-        .filter(function(pr) { return !listUser || pr.userName === listUser; });
+        .filter(function(pr) { return !pr.closed && (!listUser || pr.userName === listUser); });
       queueReminderSync();
     }
     return res;
@@ -2010,7 +2019,7 @@ function withFinance(p, fn) {
 function getFinance(p) {
   const userFilter = String(p.userName || "").trim();
   const persons = computeFinance(parseFinance(SpreadsheetApp.getActiveSpreadsheet()))
-    .filter(function(pr) { return !userFilter || pr.userName === userFilter; });
+    .filter(function(pr) { return !pr.closed && (!userFilter || pr.userName === userFilter); });
   return { success: true, persons: persons };
 }
 
@@ -2047,6 +2056,17 @@ function deleteFinancePerson(p) {
     const before = model.persons.length;
     model.persons = model.persons.filter(function(x) { return x.id !== id; });
     if (model.persons.length === before) return { success: false, error: "Person not found." };
+    return { success: true };
+  });
+}
+
+// Close Account: hides the loan from the app; its sheet block stays as is
+function closeFinancePerson(p) {
+  const id = String(p.id || "");
+  return withFinance(p, function(model) {
+    const pr = model.persons.find(function(x) { return x.id === id; });
+    if (!pr) return { success: false, error: "Person not found." };
+    pr.closed = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
     return { success: true };
   });
 }
@@ -2104,6 +2124,9 @@ function saveFinanceMonth(p) {
 //    can finish before Members months. Holding may go negative; if it is
 //    still negative after the last month, that shortfall ÷ Members is added
 //    to the last month's Payable Amount and Holding ends at 0.
+//
+//  (v4.11) A chit closes on its own once its last month's date has passed:
+//  it stays in the sheet but is left out of the app lists and reminders.
 // ─────────────────────────────────────────────────────────────
 
 const CHIT_COLS = 12;   // A–J visible, K–L hidden metadata
@@ -2163,6 +2186,7 @@ function parseChits(ss) {
 
 function computeChits(model) {
   const tz  = Session.getScriptTimeZone();
+  const today = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
   const r2  = function(n) { return Math.round(n * 100) / 100; };
   const get = function(o, k) { return Object.prototype.hasOwnProperty.call(o, k) ? o[k] : null; };
   model.chits.forEach(function(ch) {
@@ -2221,6 +2245,9 @@ function computeChits(model) {
     }
     ch.paid   = r2(ch.paid);
     ch.remain = Math.max(0, n - done);
+    // Every month listed (Remain Chits hit 0) and the last one is past
+    const end = ch.rows[ch.rows.length - 1];
+    ch.closed = !!end && end.remain === 0 && end.date < today;
   });
   return model.chits;
 }
@@ -2295,7 +2322,7 @@ function withChits(p, fn) {
     if (res.success) {
       const listUser = String(p.listUser || "").trim();
       res.chits = writeChits(ss, model)
-        .filter(function(ch) { return !listUser || ch.userName === listUser; });
+        .filter(function(ch) { return !ch.closed && (!listUser || ch.userName === listUser); });
       queueReminderSync();
     }
     return res;
@@ -2307,7 +2334,7 @@ function withChits(p, fn) {
 function getChits(p) {
   const userFilter = String(p.userName || "").trim();
   const chits = computeChits(parseChits(SpreadsheetApp.getActiveSpreadsheet()))
-    .filter(function(ch) { return !userFilter || ch.userName === userFilter; });
+    .filter(function(ch) { return !ch.closed && (!userFilter || ch.userName === userFilter); });
   return { success: true, chits: chits };
 }
 
@@ -2557,7 +2584,7 @@ function remDesiredEvents(ss) {
 
     if (n.type === "loan") {
       persons = persons || computeFinance(parseFinance(ss));
-      persons.filter(mine).forEach(function(pr) {
+      persons.filter(function(pr) { return !pr.closed && mine(pr); }).forEach(function(pr) {
         pr.rows.forEach(function(r) {
           if (!inWin(r.dueDate)) return;
           if (r.received === "Yes") ev(key + pr.id + "|" + r.month, pr.name + " " + inr(r.collected) + " interest received",
@@ -2570,7 +2597,7 @@ function remDesiredEvents(ss) {
       });
     } else if (n.type === "chit") {
       chits = chits || computeChits(parseChits(ss));
-      chits.filter(mine).forEach(function(ch) {
+      chits.filter(function(ch) { return !ch.closed && mine(ch); }).forEach(function(ch) {
         const due = ch.type === "saving" ? ch.installment : ch.monthlyDue;
         ch.rows.forEach(function(r) {
           if (r.second || !inWin(r.date)) return;

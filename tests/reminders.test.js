@@ -192,6 +192,24 @@ test("several loans / chits: one event each, even on the same day", () => {
   ]);
 });
 
+test("closed loans / chits get no reminders", () => {
+  const env = makeEnv({ nowIso: "2026-10-09T06:00", props: { REM_READY: "on" } });
+  const row = { month: "2026-10", dueDate: "2026-10-12", received: "No", interest: 2000, collected: 0 };
+  env.ctx.computeFinance = () => [
+    { id: "p1", name: "Yog",  userName: "u", pending: 6000, rows: [row], closed: "2026-10-01" },
+    { id: "p2", name: "Ravi", userName: "u", pending: 0,    rows: [row], closed: "" }
+  ];
+  const chit = (id, name, closed) => ({ id, name, userName: "u", type: "commission", monthlyDue: 5000, closed,
+                                        rows: [{ month: 1, date: "2026-10-15", payable: null }] });
+  env.ctx.computeChits = () => [chit("c1", "Old chit", true), chit("c2", "Office chit", false)];
+  add(env.ctx, { type: "loan", title: "Loans", time: "09:00", userName: "u" });
+  add(env.ctx, { type: "chit", title: "Chits", time: "09:00", userName: "u" });
+  env.ctx.syncReminders();
+
+  const titles = plain(env.events.map(e => e.title).sort());
+  assert.deepEqual(titles, ["Office chit ₹5,000 due", "Ravi ₹2,000 interest due"]);
+});
+
 test("sync strips email reminders left on events by earlier versions", () => {
   const env = makeEnv({ nowIso: "2026-10-09T06:00", props: { REM_READY: "on" } });
   const id = add(env.ctx, { title: "X", date: "2026-10-09", repeat: "none" });
