@@ -17,6 +17,7 @@ const SHEET_LOGIN  = "Login";
 const SHEET_SAVING = "Saving";
 const SHEET_FINANCE = "Finance";   // v4.0 — Finance tab (single storage sheet)
 const SHEET_CHIT    = "ChitFunds"; // v4.1 — Finance → Chit Funds
+const SHEET_NOTIFY  = "Notifications"; // v4.7 — custom reminders
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 // ─────────────────────────────────────────────────────────────
@@ -95,6 +96,11 @@ function handleRequest(e) {
       case "updateChit":          return respond(saveChit(p));
       case "deleteChit":          return respond(deleteChit(p));
       case "saveChitMonth":       return respond(saveChitMonth(p));
+      // v4.7 — custom reminders
+      case "getNotifications":    return respond(getNotifications(p));
+      case "saveNotification":    return respond(saveNotification(p));
+      case "deleteNotification":  return respond(deleteNotification(p));
+      case "addDefaultNotifications": return respond(addDefaultNotifications(p));   // v4.8
       default: return respond({ success: false, error: "Unknown action: " + action });
     }
   } catch (err) {
@@ -2380,40 +2386,95 @@ function saveChitMonth(p) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Calendar reminders  (v4.4)
+//  Calendar reminders  (v4.4, v4.8, v4.10)
 //
-//  Events go to the "Money Book Reminders" Google Calendar of the account
-//  that owns this script (found by Script Property CAL_ID, else by name,
-//  else created). Every event we own carries the tag mb=<key>, so a sync
-//  can update/remove its own events and never touches anything else.
+//  v4.10 — events go to the script owner's normal (default) Google Calendar,
+//  the one every phone with that account shows and notifies for. (Before,
+//  a separate "Money Book Reminders" calendar was used; its events are
+//  removed by the first sync — see remMigrateOldCalendar.) Every event we
+//  own carries the tag mb=<key>, so a sync can update/remove its own events
+//  and never touches anything else in the calendar.
 //
-//  Every reminder is one line, no description:
-//    Hand Loan : "Yog ₹6,000 interest due" (9:00, popups 1 day before + on the day)
-//                "Yog ₹6,000 interest received" (no popup)
-//                "Yog ₹12,000 interest pending" (today 9:30)
-//    Chit Fund : "Office chit ₹5,000 due" (9:00, popups 1 day before + on the day)
-//    Expenses  : "Today spent ₹370" at 21:00 (popup at 21:00)
-//                last day of month 21:00 → "September total expenses ₹30,000"
-//                1st of month 09:00      → "Last month (1–30 Sep) total expenses ₹30,000"
+//  11 minutes before each reminder time a one-off trigger (remindersLeadSync)
+//  re-syncs: the event is created if missing and its amount is brought up to
+//  date, so it fires exactly at its time with the latest numbers.
 //
-//  Optional Script Properties: CAL_ID, REMINDER_USER (only that user's
-//  entries; empty = everyone).
-//  Run setupReminders() once from the editor to authorise and install.
+//  v4.8 — every reminder is set in the app's Reminders tab ("Notifications"
+//  sheet); nothing is built in any more. Each reminder has a type:
+//    text        : its title, at its date / time / repeat
+//    today_spend : "<title> ₹370"     — today's expenses
+//    month_spend : "<title> ₹30,000"  — this month's expenses so far
+//    last_month  : "<title> ₹30,000"  — last month's total expenses
+//    loan        : "Yog ₹6,000 interest due" on every hand loan due date at
+//                  its time (popup a day before too), "… interest received"
+//                  (no alert), "… ₹12,000 interest pending" today
+//    chit        : "Office chit ₹5,000 due" on every chit date at its time
+//                  (popup a day before too)
+//  Amounts are those of the reminder's user. Every alert is a Google
+//  Calendar popup (phone notification) at the event time — no email (v4.9).
+//  Spend amounts on today's events are also refreshed every 30 minutes
+//  (refreshReminderAmounts).
+//
+//  Optional Script Property: REMINDER_USER (only that user's reminders reach
+//  the calendar; empty = everyone).
+//  Run setupReminders() once from the editor to authorise and install
+//  (again after v4.10 — calendar and triggers changed).
+//  testNotifications() books a test event 3 minutes ahead.
 // ─────────────────────────────────────────────────────────────
 
-const REM_CAL_NAME = "Money Book Reminders";
-const REM_DAYS     = 92;   // how far ahead events are kept
+const REM_DAYS     = 92;   // how far ahead loan / chit due events are kept
+const REM_LEAD_MS  = 11 * 60 * 1000;   // re-sync this long before each reminder time
 
 function remProps() { return PropertiesService.getScriptProperties(); }
 
-function remCalendar() {
+function remCalendar() { return CalendarApp.getDefaultCalendar(); }
+
+// setupReminders has run (CAL_ID = set by the pre-v4.10 setup)
+function remReady() {
   const props = remProps();
-  const id = props.getProperty("CAL_ID");
-  let cal = id ? CalendarApp.getCalendarById(id) : null;
-  if (!cal) cal = CalendarApp.getCalendarsByName(REM_CAL_NAME)[0] || null;
-  if (!cal) cal = CalendarApp.createCalendar(REM_CAL_NAME, { color: CalendarApp.Color.GREEN });
-  if (cal.getId() !== id) props.setProperty("CAL_ID", cal.getId());
-  return cal;
+  return props.getProperty("REM_READY") === "on" || !!props.getProperty("CAL_ID");
+}
+
+// Once: deletes our tagged events from the old separate calendar (CAL_ID),
+// so nothing alerts twice now that events live in the default calendar.
+// The old calendar itself is left alone — remove it in Calendar settings.
+function remMigrateOldCalendar() {
+  const props = remProps(), id = props.getProperty("CAL_ID");
+  if (!id) return;
+  const old = CalendarApp.getCalendarById(id);
+  if (old && old.getId() !== remCalendar().getId()) {
+    const today = remToday();
+    old.getEvents(remAt(today, 0), remAt(remAddDays(today, REM_DAYS + 2), 0)).forEach(function(e) {
+      if (e.getTag("mb")) e.deleteEvent();
+    });
+  }
+  props.deleteProperty("CAL_ID");
+  props.setProperty("REM_READY", "on");
+}
+
+function remClearTrigger(handler) {
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === handler) ScriptApp.deleteTrigger(t);
+  });
+}
+
+// One trigger, 11 min before the next reminder time in the next 2 days
+// (only alerting events; times closer than a minute away are skipped)
+function remScheduleLead(desired) {
+  remClearTrigger("remindersLeadSync");
+  const now = Date.now();
+  let next = null;
+  desired.forEach(function(d) {
+    if (!d.popups.length) return;
+    const at = d.start.getTime() - REM_LEAD_MS;
+    if (at > now + 60000 && at <= now + 2 * 864e5 && (next === null || at < next)) next = at;
+  });
+  if (next !== null) ScriptApp.newTrigger("remindersLeadSync").timeBased().at(new Date(next)).create();
+}
+
+function remindersLeadSync() {
+  remClearTrigger("remindersLeadSync");
+  syncReminders();   // books the trigger for the reminder after this one
 }
 
 // ₹1,23,456 — Indian digit grouping
@@ -2440,92 +2501,10 @@ function remUserOk(userName) {
   return !only || String(userName || "").trim() === only;
 }
 
-// What the calendar should contain from today to today + REM_DAYS
-function remDesiredEvents(ss) {
-  const today = remToday(), end = remAddDays(today, REM_DAYS);
-  const inWin = function(d) { return d >= today && d <= end; };
-  const out = [];
-  const ev = function(key, title, iso, h, m, mins, popups) {
-    out.push({ key: key, title: title, start: remAt(iso, h, m), end: remAt(iso, h, m + mins),
-               desc: "", popups: popups });
-  };
-
-  computeFinance(parseFinance(ss)).forEach(function(pr) {
-    if (!remUserOk(pr.userName)) return;
-    pr.rows.forEach(function(r) {
-      if (!inWin(r.dueDate)) return;
-      if (r.received === "Yes") ev("loan|" + pr.id + "|" + r.month, pr.name + " " + inr(r.collected) + " interest received",
-                                   r.dueDate, 9, 0, 15, []);
-      else ev("loan|" + pr.id + "|" + r.month, pr.name + " " + inr(r.interest) + " interest due", r.dueDate, 9, 0, 15, [1440, 0]);
-    });
-    if (pr.pending > 0) ev("loanpend|" + pr.id + "|" + today, pr.name + " " + inr(pr.pending) + " interest pending",
-                           today, 9, 30, 15, [0]);
-  });
-
-  computeChits(parseChits(ss)).forEach(function(ch) {
-    if (!remUserOk(ch.userName)) return;
-    const due = ch.type === "saving" ? ch.installment : ch.monthlyDue;
-    ch.rows.forEach(function(r) {
-      if (r.second || !inWin(r.date)) return;
-      // Payable once the month's bid is known, otherwise the regular monthly amount
-      const amt = r.payable !== null && r.payable !== undefined ? r.payable : due;
-      ev("chit|" + ch.id + "|" + r.month, ch.name + " " + inr(amt) + " due", r.date, 9, 0, 15, [1440, 0]);
-    });
-  });
-  return out;
-}
-
-// Creates / updates / removes our tagged events so the calendar matches remDesiredEvents
-function syncReminders() {
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(30000)) return;
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet(), cal = remCalendar();
-    const today = remToday();
-    const from = remAt(today, 0), to = remAt(remAddDays(today, REM_DAYS + 1), 0);
-    const have = {};
-    cal.getEvents(from, to).forEach(function(e) {
-      const k = e.getTag("mb");
-      if (k && k.indexOf("sum|") !== 0) have[k] = e;   // daily summaries are managed separately
-    });
-    remDesiredEvents(ss).forEach(function(d) {
-      let e = have[d.key];
-      delete have[d.key];
-      if (e && e.getTitle() === d.title && e.getStartTime().getTime() === d.start.getTime() && e.getDescription() === d.desc) return;
-      if (e) { e.setTitle(d.title); e.setTime(d.start, d.end); e.setDescription(d.desc); }
-      else { e = cal.createEvent(d.title, d.start, d.end, { description: d.desc }); e.setTag("mb", d.key); }
-      e.removeAllReminders();
-      d.popups.forEach(function(m) { e.addPopupReminder(m); });
-    });
-    Object.keys(have).forEach(function(k) { have[k].deleteEvent(); });   // loan/chit deleted or changed
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-// Called after every Finance / Chit save: runs the sync a minute later in
-// the background so the save itself stays fast. No-op until setupReminders ran.
-function queueReminderSync() {
-  try {
-    if (!remProps().getProperty("CAL_ID")) return;
-    const queued = ScriptApp.getProjectTriggers().some(function(t) { return t.getHandlerFunction() === "syncRemindersSoon"; });
-    if (!queued) ScriptApp.newTrigger("syncRemindersSoon").timeBased().after(60 * 1000).create();
-  } catch (e) { /* reminders must never break a save */ }
-}
-
-function syncRemindersSoon() {
-  ScriptApp.getProjectTriggers().forEach(function(t) {
-    if (t.getHandlerFunction() === "syncRemindersSoon") ScriptApp.deleteTrigger(t);
-  });
-  syncReminders();
-}
-
-const MONTH_NAMES = ["January","February","March","April","May","June","July",
-                     "August","September","October","November","December"];
-
-// Total Expense amount in one month sheet; isoDay limits it to a single day
-function remSpent(ss, monthIdx, year, isoDay) {
-  const user  = String(remProps().getProperty("REMINDER_USER") || "").trim();
+// Total Expense amount in one month sheet; isoDay limits it to a single day,
+// user to one person's entries (empty = everyone)
+function remSpent(ss, monthIdx, year, isoDay, user) {
+  user = String(user || "").trim();
   const sheet = ss.getSheetByName(monthSheetKey(MONTHS[monthIdx], year));
   const data  = sheet ? sheet.getDataRange().getValues() : [];
   let spent = 0;
@@ -2539,72 +2518,450 @@ function remSpent(ss, monthIdx, year, isoDay) {
   return spent;
 }
 
-// One summary event per key. An existing copy is updated in place (same event
-// id), not deleted + recreated: phones schedule the popup when they sync the
-// event, so a brand-new event booked minutes before its start often never pops.
-function remSummaryEvent(key, title, isoDate, h) {
-  const cal = remCalendar(), start = remAt(isoDate, h, 0);
-  let e = null;
-  cal.getEvents(remAt(isoDate, 0), remAt(remAddDays(isoDate, 1), 0)).forEach(function(x) {
-    if (x.getTag("mb") !== key) return;
-    if (e) x.deleteEvent(); else e = x;   // drop duplicates
+const NOTIFY_SPEND_TYPES = ["today_spend", "month_spend", "last_month"];
+
+// Event title for occurrence d of n. Spend amounts only on today's occurrence
+// (a future amount isn't known yet), so later days show just the title.
+function remTitle(ss, n, d, today) {
+  if (NOTIFY_SPEND_TYPES.indexOf(n.type) < 0 || d !== today) return n.title;
+  const m = parseInt(today.slice(5, 7), 10) - 1, y = parseInt(today.slice(0, 4), 10);
+  let amt;
+  if (n.type === "today_spend") amt = remSpent(ss, m, y, today, n.userName);
+  else if (n.type === "month_spend") amt = remSpent(ss, m, y, null, n.userName);
+  else amt = remSpent(ss, (m + 11) % 12, m ? y : y - 1, null, n.userName);
+  return n.title + " " + inr(amt);
+}
+
+// What the calendar should contain from today on
+function remDesiredEvents(ss) {
+  const today = remToday(), end = remAddDays(today, REM_DAYS), nEnd = remAddDays(today, NOTIFY_DAYS);
+  const inWin = function(d) { return d >= today && d <= end; };
+  const out = [];
+  const ev = function(key, title, iso, h, m, popups, desc) {
+    out.push({ key: key, title: title, start: remAt(iso, h, m), end: remAt(iso, h, m + 15),
+               desc: desc || "", popups: popups });
+  };
+  let persons = null, chits = null;   // parsed only when a loan / chit reminder needs them
+
+  parseNotifications(ss).forEach(function(n) {
+    if (n.active !== "Yes" || !remUserOk(n.userName)) return;
+    const t = n.time.split(":").map(Number), key = "cn|" + n.id + "|";
+    const mine = function(x) { return !n.userName || x.userName === n.userName; };
+    // Popups: at the time + "Notify Before" (default 1 hour), plus a day before for dues
+    const pops = function(dayBefore) {
+      const p = [0];
+      if (n.before > 0) p.push(n.before);
+      if (dayBefore && p.indexOf(1440) < 0) p.push(1440);
+      return p;
+    };
+
+    if (n.type === "loan") {
+      persons = persons || computeFinance(parseFinance(ss));
+      persons.filter(mine).forEach(function(pr) {
+        pr.rows.forEach(function(r) {
+          if (!inWin(r.dueDate)) return;
+          if (r.received === "Yes") ev(key + pr.id + "|" + r.month, pr.name + " " + inr(r.collected) + " interest received",
+                                       r.dueDate, t[0], t[1], []);
+          else ev(key + pr.id + "|" + r.month, pr.name + " " + inr(r.interest) + " interest due",
+                  r.dueDate, t[0], t[1], pops(true));
+        });
+        if (pr.pending > 0) ev(key + "pend|" + pr.id + "|" + today, pr.name + " " + inr(pr.pending) + " interest pending",
+                               today, t[0], t[1], pops(false));
+      });
+    } else if (n.type === "chit") {
+      chits = chits || computeChits(parseChits(ss));
+      chits.filter(mine).forEach(function(ch) {
+        const due = ch.type === "saving" ? ch.installment : ch.monthlyDue;
+        ch.rows.forEach(function(r) {
+          if (r.second || !inWin(r.date)) return;
+          // Payable once the month's bid is known, otherwise the regular monthly amount
+          const amt = r.payable !== null && r.payable !== undefined ? r.payable : due;
+          ev(key + ch.id + "|" + r.month, ch.name + " " + inr(amt) + " due", r.date, t[0], t[1], pops(true));
+        });
+      });
+    } else {
+      notifyDates(n, today, nEnd).forEach(function(d) {
+        ev(key + d, remTitle(ss, n, d, today), d, t[0], t[1], pops(false), n.note);
+      });
+    }
   });
-  if (!e) {
-    e = cal.createEvent(title, start, remAt(isoDate, h, 15));
-    e.setTag("mb", key);
-  } else if (e.getTitle() !== title) {
-    e.setTitle(title);
-  }
-  const pops = e.getPopupReminders();
-  if (pops.length !== 1 || pops[0] !== 0 || e.getEmailReminders().length) {
-    e.removeAllReminders();
-    e.addPopupReminder(0);
+  return out;
+}
+
+// Creates / updates / removes our tagged events so the calendar matches
+// remDesiredEvents. An existing event is updated in place (same event id), not
+// deleted + recreated: phones schedule the popup when they sync the event.
+function syncReminders() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) return;
+  try {
+    remMigrateOldCalendar();
+    const ss = SpreadsheetApp.getActiveSpreadsheet(), cal = remCalendar();
+    const today = remToday();
+    const from = remAt(today, 0), to = remAt(remAddDays(today, REM_DAYS + 1), 0);
+    const desired = remDesiredEvents(ss);
+    const have = {};
+    cal.getEvents(from, to).forEach(function(e) {
+      const k = e.getTag("mb");
+      if (!k) return;
+      if (have[k]) e.deleteEvent(); else have[k] = e;   // drop duplicates
+    });
+    desired.forEach(function(d) {
+      let e = have[d.key];
+      delete have[d.key];
+      if (e && e.getTitle() === d.title && e.getStartTime().getTime() === d.start.getTime() &&
+          e.getDescription() === d.desc && sameList(e.getPopupReminders(), d.popups) &&
+          !e.getEmailReminders().length) return;   // v4.9 — phone popups only, no email
+      if (e) { e.setTitle(d.title); e.setTime(d.start, d.end); e.setDescription(d.desc); }
+      else { e = cal.createEvent(d.title, d.start, d.end, { description: d.desc }); e.setTag("mb", d.key); }
+      e.removeAllReminders();
+      d.popups.forEach(function(m) { e.addPopupReminder(m); });
+    });
+    // Reminder deleted / switched off / changed, loan or chit removed, and
+    // pre-v4.8 built-in events (loan|, chit|, sum|)
+    Object.keys(have).forEach(function(k) { have[k].deleteEvent(); });
+    remScheduleLead(desired);
+  } finally {
+    lock.releaseLock();
   }
 }
 
-// Today's spend at 9 PM; on the month's last day also the month total.
-// Runs at 6 AM (books the 9 PM events early so devices sync them in time)
-// and again ~8:30 PM (refreshes the amounts on the same events).
-function dailyExpenseSummary() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet(), now = new Date(), today = remToday();
-  remSummaryEvent("sum|" + today, "Today spent " + inr(remSpent(ss, now.getMonth(), now.getFullYear(), today)), today, 21);
-  if (remAddDays(today, 1).slice(5, 7) !== today.slice(5, 7)) {
-    remSummaryEvent("sum|m|" + today.slice(0, 7),
-      MONTH_NAMES[now.getMonth()] + " total expenses " + inr(remSpent(ss, now.getMonth(), now.getFullYear())), today, 21);
-  }
+function sameList(a, b) {
+  a = a.slice().sort(); b = b.slice().sort();
+  return a.length === b.length && a.every(function(v, i) { return v === b[i]; });
 }
 
-// 1st of the month, 9 AM: what last month added up to
-function lastMonthSummary() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet(), today = remToday();
-  const prev = new Date(remAt(today, 12)); prev.setDate(0);   // last day of previous month
-  const label = "1–" + prev.getDate() + " " + MONTHS[prev.getMonth()];
-  remSummaryEvent("sum|lm|" + today.slice(0, 7),
-    "Last month (" + label + ") total expenses " + inr(remSpent(ss, prev.getMonth(), prev.getFullYear())), today, 9);
+// Called after every Finance / Chit / Reminder save: runs the sync a minute
+// later in the background so the save itself stays fast. No-op until
+// setupReminders ran.
+function queueReminderSync() {
+  try {
+    if (!remReady()) return;
+    const queued = ScriptApp.getProjectTriggers().some(function(t) { return t.getHandlerFunction() === "syncRemindersSoon"; });
+    if (!queued) ScriptApp.newTrigger("syncRemindersSoon").timeBased().after(60 * 1000).create();
+  } catch (e) { /* reminders must never break a save */ }
 }
 
-// 6 AM daily job: calendar sync, today's 9 PM summary placeholder,
-// plus last month's total on the 1st
-function morningReminders() {
+function syncRemindersSoon() {
+  remClearTrigger("syncRemindersSoon");
   syncReminders();
-  dailyExpenseSummary();
-  if (remToday().slice(8) === "01") lastMonthSummary();
 }
+
+// Every 30 min: marks fired one-time reminders completed, and puts the latest
+// spend amount on today's spend events, so the alert shows what was spent up
+// to ~30 minutes before it fires
+function refreshReminderAmounts() {
+  completeNotifications();
+  if (!remReady()) return;
+  const ss = SpreadsheetApp.getActiveSpreadsheet(), today = remToday();
+  const want = {};
+  parseNotifications(ss).forEach(function(n) {
+    if (n.active !== "Yes" || !remUserOk(n.userName) || NOTIFY_SPEND_TYPES.indexOf(n.type) < 0) return;
+    if (notifyDates(n, today, today).length) want["cn|" + n.id + "|" + today] = remTitle(ss, n, today, today);
+  });
+  if (!Object.keys(want).length) return;
+  remCalendar().getEvents(remAt(today, 0), remAt(remAddDays(today, 1), 0)).forEach(function(e) {
+    const title = want[e.getTag("mb")];
+    if (title && e.getTitle() !== title) e.setTitle(title);
+  });
+}
+
+// Pre-v4.8 trigger name — kept so an old trigger doesn't fail before setupReminders is re-run
+function dailyExpenseSummary() { refreshReminderAmounts(); }
+
+// 6 AM daily job: rolls the calendar forward (today's spend titles, loan
+// pending, new due dates)
+function morningReminders() { syncReminders(); }
 
 // One-time setup — run from the Apps Script editor (asks Calendar permission)
 function setupReminders() {
   const cal = remCalendar();
   ScriptApp.getProjectTriggers().forEach(function(t) {
     const fn = t.getHandlerFunction();
-    if (fn === "syncReminders" || fn === "morningReminders" || fn === "dailyExpenseSummary" || fn === "syncRemindersSoon") {
+    if (fn === "syncReminders" || fn === "morningReminders" || fn === "dailyExpenseSummary" ||
+        fn === "syncRemindersSoon" || fn === "refreshReminderAmounts" ||
+        fn === "sendDuePushes") {   // last one: removed v4.9 phone push
       ScriptApp.deleteTrigger(t);
     }
   });
   ScriptApp.newTrigger("morningReminders").timeBased().everyDays(1).atHour(6).create();
-  // Runs ~8:15–8:45 PM and books the summary at 9:00 PM, so the popup fires at 9
-  ScriptApp.newTrigger("dailyExpenseSummary").timeBased().everyDays(1).atHour(20).nearMinute(30).create();
-  syncReminders();
-  Logger.log("Reminders ready in calendar: " + cal.getName() + " (" + cal.getId() + ")");
+  ScriptApp.newTrigger("refreshReminderAmounts").timeBased().everyMinutes(30).create();
+  remProps().setProperty("REM_READY", "on");
+  syncReminders();   // also books the 11-min-before trigger
+  Logger.log("Reminders ready in calendar: " + cal.getName() + " (" + cal.getId() + "), time zone " +
+             Session.getScriptTimeZone());
+}
+
+// Run from the editor to check reminders: a calendar event 3 minutes
+// from now with a phone popup when it starts.
+// No popup on the phone → that phone's Google Calendar app isn't signed in
+// to the script owner's account, or its notifications are off.
+function testNotifications() {
+  const cal = remCalendar(), start = new Date(Date.now() + 3 * 60 * 1000);
+  const e = cal.createEvent("Spendo test reminder", start, new Date(start.getTime() + 5 * 60 * 1000));
+  e.removeAllReminders();
+  e.addPopupReminder(0);
+  Logger.log("Test event at " + start + " in " + cal.getName() + " (owner " + Session.getEffectiveUser().getEmail() +
+             "), script time zone " + Session.getScriptTimeZone() + ". Triggers: " +
+             ScriptApp.getProjectTriggers().map(function(t) { return t.getHandlerFunction(); }).join(", "));
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Reminders tab  (v4.7, v4.8 types)
+//
+//  "Notifications" sheet, one row per reminder:
+//    ID | UserName | Title | Date | Time | Repeat | Active | Note | CreatedAt | Type | Completed On
+//    | Notify Before (min)  — extra popup that many minutes early (0 / 10 / 30 / 60 / 120 / 1440,
+//      empty = 60), on top of the popup at the time
+//  Date yyyy-MM-dd = first occurrence, Time HH:mm, Repeat none / daily /
+//  weekly / monthly / yearly (monthly on the 31st falls on the month's last
+//  day). Type: see the Calendar reminders header (empty = text). Loan / chit
+//  reminders ignore Date and Repeat — they follow the due dates.
+//  syncReminders() books occurrences NOTIFY_DAYS ahead; a save re-syncs
+//  about a minute later. A one-time reminder whose time has passed gets
+//  "Completed On" filled in (completeNotifications, every 30 min) and is no
+//  longer listed in the app; the row stays in the sheet.
+// ─────────────────────────────────────────────────────────────
+
+const NOTIFY_HEAD    = ["ID", "UserName", "Title", "Date", "Time", "Repeat", "Active", "Note", "CreatedAt", "Type", "Completed On",
+                        "Notify Before (min)"];
+const NOTIFY_BEFORE  = [0, 10, 30, 60, 120, 1440];   // extra Calendar popup this many minutes early
+const NOTIFY_BEFORE_DEFAULT = 60;
+
+function notifyBefore(v) {
+  if (v === "" || v === null || v === undefined) return NOTIFY_BEFORE_DEFAULT;
+  const m = parseInt(v, 10);
+  return NOTIFY_BEFORE.indexOf(m) >= 0 ? m : NOTIFY_BEFORE_DEFAULT;
+}
+const NOTIFY_REPEATS = ["none", "daily", "weekly", "monthly", "yearly"];
+const NOTIFY_TYPES   = ["text", "today_spend", "month_spend", "last_month", "loan", "chit"];
+const NOTIFY_DAYS    = 31;
+
+function notifySheet(ss) {
+  let sheet = ss.getSheetByName(SHEET_NOTIFY);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NOTIFY);
+    sheet.appendRow(NOTIFY_HEAD);
+    sheet.getRange(1, 1, 1, NOTIFY_HEAD.length).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+// Time cell may come back from Sheets as a Date (if typed in by hand)
+function notifyTime(v) {
+  if (Object.prototype.toString.call(v) === "[object Date]") return Utilities.formatDate(v, Session.getScriptTimeZone(), "HH:mm");
+  const m = String(v || "").trim().match(/^(\d{1,2}):(\d{2})/);
+  return m ? ("0" + m[1]).slice(-2) + ":" + m[2] : "";
+}
+
+function parseNotifications(ss) {
+  const sheet = ss.getSheetByName(SHEET_NOTIFY);
+  const data  = sheet ? sheet.getDataRange().getValues() : [];
+  const out = [];
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    if (!row[0]) continue;
+    const repeat = String(row[5] || "").trim().toLowerCase(), type = String(row[9] || "").trim().toLowerCase();
+    out.push({
+      id: String(row[0]), userName: String(row[1] || "").trim(), title: String(row[2] || ""),
+      date: finDate(row[3]), time: notifyTime(row[4]) || "09:00",
+      repeat: NOTIFY_REPEATS.indexOf(repeat) >= 0 ? repeat : "none",
+      active: String(row[6] || "").trim() === "No" ? "No" : "Yes",
+      note: String(row[7] || ""), createdAt: String(row[8] || ""),
+      type: NOTIFY_TYPES.indexOf(type) >= 0 ? type : "text",
+      completedAt: Object.prototype.toString.call(row[10]) === "[object Date]"
+        ? Utilities.formatDate(row[10], Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm") : String(row[10] || "").trim(),
+      before: notifyBefore(row[11])
+    });
+  }
+  return out;
+}
+
+function writeNotifications(ss, list) {
+  const sheet = notifySheet(ss);
+  sheet.getRange(1, 1, 1, NOTIFY_HEAD.length).setValues([NOTIFY_HEAD]);   // older sheets lack Type / Completed On
+  const last = sheet.getLastRow();
+  if (last > 1) sheet.getRange(2, 1, last - 1, NOTIFY_HEAD.length).clearContent();
+  if (!list.length) return;
+  const rows = list.map(function(n) {
+    return [n.id, n.userName, n.title, n.date, n.time, n.repeat, n.active, n.note, n.createdAt, n.type, n.completedAt || "", String(n.before)];
+  });
+  const range = sheet.getRange(2, 1, rows.length, NOTIFY_HEAD.length);
+  range.setNumberFormat("@");   // keep Date / Time as typed text, never auto-converted
+  range.setValues(rows);
+  alignRows(sheet, 2, rows);
+}
+
+function isoOf(d) {
+  return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+}
+
+// Occurrence dates of n between from and to (yyyy-MM-dd, inclusive)
+function notifyDates(n, from, to) {
+  const step = { daily: [0, 1], weekly: [0, 7], monthly: [1, 0], yearly: [12, 0] }[n.repeat];
+  if (!step) return n.date >= from && n.date <= to ? [n.date] : [];
+  const p = n.date.split("-").map(Number), f = from.split("-").map(Number);
+  // Jump close to `from` instead of walking from the first date
+  let k = step[1]
+    ? Math.floor((Date.UTC(f[0], f[1] - 1, f[2]) - Date.UTC(p[0], p[1] - 1, p[2])) / 864e5 / step[1])
+    : Math.floor(((f[0] - p[0]) * 12 + f[1] - p[1]) / step[0]) - 1;
+  const out = [];
+  for (k = Math.max(0, k); ; k++) {
+    const iso = isoOf(step[1] ? new Date(p[0], p[1] - 1, p[2] + k * step[1]) : finAddMonths(n.date, k * step[0]));
+    if (iso > to) break;
+    if (iso >= from) out.push(iso);
+  }
+  return out;
+}
+
+// Next time n fires ("yyyy-MM-dd HH:mm"), or "" when it never will again /
+// it follows due dates (loan, chit)
+function notifyNext(n) {
+  if (n.active !== "Yes" || n.type === "loan" || n.type === "chit") return "";
+  const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm");
+  const today = now.slice(0, 10);
+  const next = notifyDates(n, today, remAddDays(today, 400)).map(function(d) { return d + " " + n.time; })
+    .filter(function(s) { return s > now; })[0];
+  return next || "";
+}
+
+function remNow() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm"); }
+
+// A one-time reminder (not loan / chit) is complete once its time has passed
+function notifyFinished(n, now) {
+  return n.repeat === "none" && n.type !== "loan" && n.type !== "chit" && n.date + " " + n.time <= now;
+}
+
+// Every 30 min (from refreshReminderAmounts): fills in "Completed On" for
+// one-time reminders that have fired. Rows are kept, only hidden in the app.
+function completeNotifications() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) return;
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet(), list = parseNotifications(ss), now = remNow();
+    let changed = false;
+    list.forEach(function(n) {
+      if (n.completedAt || n.active !== "Yes" || !notifyFinished(n, now)) return;
+      n.completedAt = now;
+      changed = true;
+    });
+    if (changed) writeNotifications(ss, list);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// What the app lists: the user's reminders, minus completed ones (also those
+// that just fired and aren't marked yet)
+function notifyList(ss, userName) {
+  const user = String(userName || "").trim(), now = remNow();
+  return parseNotifications(ss)
+    .filter(function(n) { return !user || n.userName === user; })
+    .filter(function(n) { return !n.completedAt && !(n.active === "Yes" && notifyFinished(n, now)); })
+    .map(function(n) { n.next = notifyNext(n); return n; })
+    .sort(function(a, b) {   // upcoming first (soonest on top), then due-date ones, then finished / off
+      const rank = function(n) { return n.next ? 0 : n.active === "Yes" && (n.type === "loan" || n.type === "chit") ? 1 : 2; };
+      if (rank(a) !== rank(b)) return rank(a) - rank(b);
+      return (a.next || a.time) < (b.next || b.time) ? -1 : 1;
+    });
+}
+
+// calendarOwner: the Google account whose calendar (and phone) gets the alerts
+function getNotifications(p) {
+  let owner = "";
+  try { owner = Session.getEffectiveUser().getEmail(); } catch (e) { /* not authorised yet */ }
+  return { success: true, notifications: notifyList(SpreadsheetApp.getActiveSpreadsheet(), p.userName),
+           calendarOwner: owner };
+}
+
+function withNotifications(p, fn) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet(), list = parseNotifications(ss);
+    const res = fn(list);
+    if (res.success) {
+      writeNotifications(ss, res.list || list);
+      delete res.list;
+      queueReminderSync();
+      res.notifications = notifyList(ss, p.listUser);
+    }
+    return res;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function newNotification(n, userName) {
+  n.id = Utilities.getUuid().substring(0, 8);
+  n.userName = String(userName || "").trim();
+  n.createdAt = new Date().toISOString();
+  return n;
+}
+
+// Add (no p.id) or update one reminder
+function saveNotification(p) {
+  const n = {
+    title: String(p.title || "").trim(), date: String(p.date || "").trim(), time: notifyTime(p.time),
+    repeat: String(p.repeat || "none").trim().toLowerCase(), active: p.active === "No" ? "No" : "Yes",
+    note: String(p.note || "").trim(), type: String(p.type || "text").trim().toLowerCase(),
+    before: notifyBefore(p.before)
+  };
+  if (NOTIFY_TYPES.indexOf(n.type) < 0) return { success: false, error: "Unknown type: " + n.type };
+  if (n.type === "loan" || n.type === "chit") {   // follow the due dates
+    n.repeat = "none";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(n.date)) n.date = remToday();
+  }
+  if (!n.title) return { success: false, error: "Enter a title." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(n.date)) return { success: false, error: "Enter a valid date." };
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(n.time)) return { success: false, error: "Enter a valid time." };
+  if (NOTIFY_REPEATS.indexOf(n.repeat) < 0) return { success: false, error: "Unknown repeat: " + n.repeat };
+  const id = String(p.id || "");
+  return withNotifications(p, function(list) {
+    if (id) {
+      const cur = list.filter(function(x) { return x.id === id; })[0];
+      if (!cur) return { success: false, error: "Reminder not found." };
+      Object.keys(n).forEach(function(k) { cur[k] = n[k]; });
+      cur.completedAt = "";   // edited → counts again (e.g. moved to a later date)
+      return { success: true, id: id };
+    }
+    list.push(newNotification(n, p.userName));
+    return { success: true, id: n.id };
+  });
+}
+
+function deleteNotification(p) {
+  const id = String(p.id || "");
+  return withNotifications(p, function(list) {
+    const left = list.filter(function(x) { return x.id !== id; });
+    if (left.length === list.length) return { success: false, error: "Reminder not found." };
+    return { success: true, list: left };
+  });
+}
+
+// The pre-v4.8 built-in reminders, added for p.userName as editable ones.
+// Skips any type the user already has.
+function addDefaultNotifications(p) {
+  const user = String(p.userName || "").trim(), y = remToday().slice(0, 4);
+  const defs = [
+    { type: "today_spend", title: "Today spent",                       date: y + "-01-01", time: "21:00", repeat: "daily" },
+    { type: "text",        title: "Update today's expenses in Spendo", date: y + "-01-01", time: "21:00", repeat: "daily" },
+    { type: "month_spend", title: "This month total expenses",         date: y + "-01-31", time: "21:00", repeat: "monthly" },
+    { type: "last_month",  title: "Last month total expenses",         date: y + "-01-01", time: "09:00", repeat: "monthly" },
+    { type: "loan",        title: "Hand loan dues",                    date: remToday(),   time: "09:00", repeat: "none" },
+    { type: "chit",        title: "Chit fund dues",                    date: remToday(),   time: "09:00", repeat: "none" }
+  ];
+  return withNotifications(p, function(list) {
+    const has = {};
+    list.forEach(function(n) { if (n.userName === user) has[n.type === "text" ? n.title : n.type] = true; });
+    defs.forEach(function(d) {
+      if (has[d.type === "text" ? d.title : d.type]) return;
+      d.active = "Yes"; d.note = ""; d.before = NOTIFY_BEFORE_DEFAULT;
+      list.push(newNotification(d, user));
+    });
+    return { success: true };
+  });
 }
 
 function createLoginSheet(ss) {

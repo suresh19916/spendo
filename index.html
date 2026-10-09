@@ -420,6 +420,15 @@ html.popup-open{overflow:hidden}
 .fin-subtabs{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.9rem;background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r2);padding:.25rem}
 .fin-subtab{background:none;border:none;border-radius:8px;color:var(--tx2);font-family:inherit;font-size:.82rem;font-weight:600;padding:.5rem;cursor:pointer}
 .fin-subtab.active{background:var(--acbg);color:var(--ac2)}
+/* v4.7 — Reminders tab */
+#rem-fab{display:none}
+.rem-note{font-size:.72rem;color:var(--tx3);margin:-.4rem 0 .9rem}
+.rem-card.off{opacity:.55}
+.rem-time{font-family:'Syne',sans-serif;font-weight:800;font-size:.85rem;text-align:right;white-space:nowrap;color:var(--ac2)}
+.rem-time .sm{display:block;font-family:inherit;font-weight:600;font-size:.66rem;color:var(--tx3);margin-top:.15rem}
+.rem-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.rem-grid input{min-width:0}
+.rem-del{width:100%;margin-top:.6rem;color:var(--rd);display:none}
 #fm-month{opacity:.65}
 
 /* ════ App install banner & offline pill ════ */
@@ -588,6 +597,10 @@ html.popup-open{overflow:hidden}
 /* ════ v3.0 — Salary / Saving Tabs ════ */
 .module-tabs-row{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem}
 .module-tabs-row .module-tabs{flex:1;margin-bottom:0}
+/* v4.8 — main tabs use the Finance sub-tab look */
+.module-tabs-row .module-subtabs{flex:1;min-width:0;margin-bottom:0;grid-template-columns:repeat(3,1fr);gap:.15rem;padding:.2rem}
+.module-subtabs .fin-subtab{padding:.55rem 0;font-size:.76rem;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.module-tabs-row{gap:.4rem}
 .module-tabs{
   display:grid;grid-template-columns:1fr;gap:.45rem;
   margin-bottom:1rem;
@@ -888,9 +901,10 @@ html.popup-open{overflow:hidden}
 
     <!-- v3.4 — Saving tab removed; single Expenses Dashboard heading remains -->
     <div class="module-tabs-row">
-      <div class="module-tabs" style="grid-template-columns:1fr 1fr">
-        <div class="module-tab active" id="mt-exp" onclick="switchModule('exp')">📊 Expenses</div>
-        <div class="module-tab" id="mt-fin" onclick="switchModule('fin')">💼 Finance</div>
+      <div class="fin-subtabs module-subtabs">
+        <button class="fin-subtab active" id="mt-exp" onclick="switchModule('exp')">📊 Expenses</button>
+        <button class="fin-subtab" id="mt-fin" onclick="switchModule('fin')">💼 Finance</button>
+        <button class="fin-subtab" id="mt-rem" onclick="switchModule('rem')">🔔 Reminders</button>
       </div>
       <!-- Eye toggle: hide/show all amounts -->
       <button class="eye-toggle-btn" id="eye-toggle" onclick="toggleAmounts()" title="Show / Hide amounts">
@@ -1018,6 +1032,13 @@ html.popup-open{overflow:hidden}
       </div>
     </div>
 
+    <!-- ── REMINDERS SECTION (v4.7) ── -->
+    <div id="reminder-section" style="display:none">
+      <div class="fin-title">Reminders</div>
+      <div class="rem-note">Every alert is an event in your normal Google Calendar, with a notification at the time you set.<span id="rem-owner"></span></div>
+      <div id="rem-list"></div>
+    </div>
+
   </div><!-- end content -->
 
   <!-- v3.4 — Saving tab removed; the Saving Google Sheet and its historical
@@ -1025,6 +1046,7 @@ html.popup-open{overflow:hidden}
        Transaction Details. -->
   <button class="fab" id="main-fab" onclick="onFabClick()">＋ Add Transaction</button>
   <button class="fab" id="fin-fab" onclick="F.sub === 'chit' ? openChitForm() : openFinForm()">＋ Add Person</button>
+  <button class="fab" id="rem-fab" onclick="openRemForm()">＋ Add Reminder</button>
 </div>
 
 <!-- ════════════ ADD/EDIT SHEET ════════════ -->
@@ -1298,6 +1320,57 @@ html.popup-open{overflow:hidden}
       <button class="btn btn-ghost" onclick="closeFinForm()">Cancel</button>
       <button class="btn btn-primary" id="fin-submit" onclick="saveFinPerson()">Submit</button>
     </div>
+  </div>
+</div>
+
+<!-- Reminder add / edit (v4.7) -->
+<div class="backdrop" id="rem-form-bd">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="rem-form-title">Add Reminder</div>
+    <div class="field"><label>Type</label>
+      <div class="sel-wrap"><select id="rem-type" onchange="remTypeChanged()">
+        <option value="text">Message</option>
+        <option value="today_spend">Today's spend amount</option>
+        <option value="month_spend">This month's spend amount</option>
+        <option value="last_month">Last month's spend amount</option>
+        <option value="loan">Hand loan dues</option>
+        <option value="chit">Chit fund dues</option>
+      </select></div>
+    </div>
+    <div class="fin-hint" id="rem-type-hint"></div>
+    <div class="field"><label>Title</label><input type="text" id="rem-title" placeholder="e.g. Pay credit card bill" autocomplete="off" maxlength="120"/></div>
+    <div class="rem-grid">
+      <div class="field" id="rem-date-f"><label>Date</label><input type="date" id="rem-date"/></div>
+      <div class="field"><label>Time</label><input type="time" id="rem-time"/></div>
+    </div>
+    <div class="field" id="rem-repeat-f"><label>Repeat</label>
+      <div class="sel-wrap"><select id="rem-repeat">
+        <option value="none">Does not repeat</option>
+        <option value="daily">Every day</option>
+        <option value="weekly">Every week</option>
+        <option value="monthly">Every month</option>
+        <option value="yearly">Every year</option>
+      </select></div>
+    </div>
+    <div class="field"><label>Notify</label>
+      <div class="sel-wrap"><select id="rem-before">
+        <option value="60">1 hour before + at the time</option>
+        <option value="30">30 minutes before + at the time</option>
+        <option value="10">10 minutes before + at the time</option>
+        <option value="120">2 hours before + at the time</option>
+        <option value="1440">1 day before + at the time</option>
+        <option value="0">Only at the time</option>
+      </select></div>
+    </div>
+    <div class="field"><label>Note <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><textarea id="rem-note" placeholder="Shown in the calendar event"></textarea></div>
+    <label class="chit-check"><input type="checkbox" id="rem-active" checked/> Reminder on</label>
+    <input type="hidden" id="rem-id"/>
+    <div class="sh-actions">
+      <button class="btn btn-ghost" onclick="closeRemForm()">Cancel</button>
+      <button class="btn btn-primary" id="rem-submit" onclick="saveReminder()">Save</button>
+    </div>
+    <button class="btn btn-ghost rem-del" id="rem-del" onclick="deleteReminder()">🗑 Delete Reminder</button>
   </div>
 </div>
 
@@ -3138,13 +3211,17 @@ const F = { persons: [], activeId: null, month: null, received: "No", sub: "loan
 const C = { chits: [], activeId: null, month: null, type: "commission" };   // v4.1 — Chit Funds
 
 function switchModule(m) {
-  const fin = m === "fin";
-  g("mt-exp").classList.toggle("active", !fin);
+  const fin = m === "fin", rem = m === "rem";
+  g("mt-exp").classList.toggle("active", !fin && !rem);
   g("mt-fin").classList.toggle("active", fin);
-  g("salary-section").style.display  = fin ? "none" : "";
-  g("finance-section").style.display = fin ? "" : "none";
-  g("main-fab").style.display        = fin ? "none" : "";
+  g("mt-rem").classList.toggle("active", rem);
+  g("salary-section").style.display   = fin || rem ? "none" : "";
+  g("finance-section").style.display  = fin ? "" : "none";
+  g("reminder-section").style.display = rem ? "" : "none";
+  g("main-fab").style.display         = fin || rem ? "none" : "";
+  g("rem-fab").style.display          = rem ? "flex" : "none";
   if (fin) switchFinSub(F.sub); else g("fin-fab").style.display = "none";
+  if (rem) loadReminders();
 }
 
 // Finance sub-tabs: "loan" (Hand Loan) | "chit" (Chit Funds)
@@ -3412,6 +3489,173 @@ g("fin-p-table").addEventListener("click", e => {
 ["fin-month-bd", "fin-form-bd"].forEach(id => {
   g(id).addEventListener("click", e => { if (e.target === g(id)) g(id).classList.remove("open"); });
 });
+
+// ════════════════════════════════════════
+//  REMINDERS  (v4.7)
+//  Custom reminders (title, date, time, repeat) saved in the "Notifications"
+//  sheet. The backend books them as events in the owner's default Google
+//  Calendar, which sends the phone notification (popup).
+// ════════════════════════════════════════
+const RM = { list: [] };
+const REM_REPEAT = { none: "Once", daily: "Every day", weekly: "Every week", monthly: "Every month", yearly: "Every year" };
+const REM_TYPE = {
+  text:        { label: "Message",         hint: "" },
+  today_spend: { label: "Today's spend",   hint: "Shows today's expenses after the title, e.g. “Today spent ₹370”.", title: "Today spent" },
+  month_spend: { label: "Month spend",     hint: "Shows this month's expenses so far. Tip: date on a 31st + every month = last day of each month.", title: "This month total expenses" },
+  last_month:  { label: "Last month",      hint: "Shows last month's total expenses. Tip: date on a 1st + every month.", title: "Last month total expenses" },
+  loan:        { label: "Hand loan dues",  hint: "One alert on every hand loan due date at this time (and a popup the day before), plus pending interest today.", title: "Hand loan dues" },
+  chit:        { label: "Chit fund dues",  hint: "One alert on every chit date at this time (and a popup the day before).", title: "Chit fund dues" }
+};
+const remByDue = n => n.type === "loan" || n.type === "chit";
+const REM_BEFORE = { 0: "", 10: "10 min before", 30: "30 min before", 60: "1 hr before", 120: "2 hrs before", 1440: "1 day before" };
+
+function fmtTime12(t) {
+  const [h, m] = String(t || "00:00").split(":").map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+
+function applyReminders(list) {
+  RM.list = list || [];
+  RM.fetchedAt = Date.now();
+  cacheSet("rem", RM.list);
+  renderReminders();
+}
+
+// force = pull-to-refresh; otherwise data fetched in the last 60s is reused
+async function loadReminders(force) {
+  if (!force && Date.now() - (RM.fetchedAt || 0) < 60000) return;
+  if (!RM.list.length) {
+    const cached = cacheGet("rem");
+    if (cached) { RM.list = cached; renderReminders(); }
+    else g("rem-list").innerHTML = '<div class="empty"><div class="btn-spin" style="margin:0 auto .5rem"></div>Loading…</div>';
+  }
+  try {
+    const res = await apiGET({ action: "getNotifications", userName: finListUser() });
+    if (!res.success) { toast(res.error || "Could not load reminders", "error"); return; }
+    applyReminders(res.notifications);
+    if (res.calendarOwner) {
+      g("rem-owner").innerHTML = ` They pop up on phones whose Google Calendar app is signed in to <b>${esc(res.calendarOwner)}</b>.`;
+    }
+  } catch (e) {
+    if (!RM.list.length) g("rem-list").innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div>Could not load. Check internet.</div>';
+  }
+}
+
+function renderReminders() {
+  const addDefaults = `<button class="btn btn-ghost" id="rem-defaults" style="width:100%;margin-top:.4rem" onclick="addDefaultReminders()">＋ Add spend, loan &amp; chit reminders</button>`;
+  if (!RM.list.length) {
+    g("rem-list").innerHTML = `<div class="empty"><div class="empty-ico">🔔</div>No reminders yet. Tap “Add Reminder”, or add the usual ones:</div>${addDefaults}`;
+    return;
+  }
+  g("rem-list").innerHTML = RM.list.map(n => {
+    const due  = remByDue(n) && n.active === "Yes";
+    const when = n.next
+      ? `${fmtShortDate(n.next.slice(0, 10))}<span class="sm">${fmtTime12(n.next.slice(11))}</span>`
+      : `<span class="sm">${due ? "On due dates" : n.active === "Yes" ? "Done" : "Off"}</span>`;
+    const sched = remByDue(n) ? `Due dates · ${fmtTime12(n.time)}`
+      : `${REM_REPEAT[n.repeat] || "Once"} · ${fmtTime12(n.time)}${n.repeat === "none" ? " · " + fmtShortDate(n.date) : ""}`;
+    const label = n.type && n.type !== "text" ? REM_TYPE[n.type].label : "";
+    const type  = label && label !== n.title ? `${label} · ` : "";
+    const early = REM_BEFORE[n.before ?? 60] ? ` · 🔔 ${REM_BEFORE[n.before ?? 60]}` : "";
+    return `
+      <div class="fin-card rem-card${n.next || due ? "" : " off"}" data-id="${esc(n.id)}">
+        <div style="min-width:0">
+          <div class="fin-name">${esc(n.title)}</div>
+          <div class="fin-sub">${type}${sched}${early}${n.active === "Yes" ? "" : " · Off"}</div>
+        </div>
+        <div class="rem-time">${when}</div>
+      </div>`;
+  }).join("");
+}
+
+async function addDefaultReminders() {
+  setBtn("rem-defaults", true);
+  try {
+    const res = await apiGET({ action: "addDefaultNotifications", userName: S.userName || S.userId, listUser: finListUser() });
+    if (!res.success) { toast(res.error || "Could not add reminders", "error"); return; }
+    toast("Added — edit or switch off any of them", "success");
+    applyReminders(res.notifications);
+  } catch (e) {
+    toast("Could not add reminders. Check internet.", "error");
+  } finally {
+    if (g("rem-defaults")) setBtn("rem-defaults", false, "＋ Add spend, loan & chit reminders");
+  }
+}
+
+// Date / Repeat don't apply to due-date types; prefill a fitting title
+function remTypeChanged() {
+  const type = g("rem-type").value, t = REM_TYPE[type];
+  const byDue = remByDue({ type });
+  g("rem-date-f").style.display   = byDue ? "none" : "";
+  g("rem-repeat-f").style.display = byDue ? "none" : "";
+  g("rem-type-hint").textContent  = t.hint;
+  const title = g("rem-title");
+  if (t.title && (!title.value.trim() || Object.values(REM_TYPE).some(x => x.title === title.value.trim()))) title.value = t.title;
+}
+
+function openRemForm(n) {
+  g("rem-id").value     = n ? n.id : "";
+  g("rem-type").value   = n ? n.type || "text" : "text";
+  g("rem-title").value  = n ? n.title : "";
+  g("rem-date").value   = n ? n.date : todayISO();
+  g("rem-time").value   = n ? n.time : "21:00";
+  g("rem-repeat").value = n ? n.repeat : "none";
+  g("rem-note").value   = n ? n.note : "";
+  g("rem-before").value = String(n ? n.before ?? 60 : 60);
+  g("rem-active").checked = !n || n.active === "Yes";
+  remTypeChanged();
+  g("rem-form-title").textContent = n ? "Edit Reminder" : "Add Reminder";
+  g("rem-del").style.display = n ? "block" : "none";
+  g("rem-form-bd").classList.add("open");
+}
+
+function closeRemForm() { g("rem-form-bd").classList.remove("open"); }
+
+async function saveReminder() {
+  const id = g("rem-id").value;
+  const params = {
+    action: "saveNotification", id, type: g("rem-type").value,
+    title: g("rem-title").value.trim(), date: g("rem-date").value, time: g("rem-time").value,
+    repeat: g("rem-repeat").value, note: g("rem-note").value.trim(), before: g("rem-before").value,
+    active: g("rem-active").checked ? "Yes" : "No",
+    userName: S.userName || S.userId, listUser: finListUser()
+  };
+  if (!params.title || (!params.date && !remByDue(params)) || !params.time) {
+    toast("Enter title, date and time", "error");
+    return;
+  }
+  setBtn("rem-submit", true);
+  try {
+    const res = await apiGET(params);
+    if (!res.success) { toast(res.error || "Save failed", "error"); return; }
+    toast(id ? "Updated — calendar syncs in a minute" : "Saved — calendar syncs in a minute", "success");
+    closeRemForm();
+    applyReminders(res.notifications);
+  } catch (e) {
+    toast("Save failed. Check internet.", "error");
+  } finally {
+    setBtn("rem-submit", false, "Save");
+  }
+}
+
+async function deleteReminder() {
+  const id = g("rem-id").value;
+  const n = RM.list.find(x => x.id === id);
+  if (!n || !confirm(`Delete reminder “${n.title}”?`)) return;
+  try {
+    const res = await apiGET({ action: "deleteNotification", id, listUser: finListUser() });
+    if (!res.success) { toast(res.error || "Delete failed", "error"); return; }
+    toast("Deleted", "success");
+    closeRemForm();
+    applyReminders(res.notifications);
+  } catch (e) { toast("Delete failed. Check internet.", "error"); }
+}
+
+g("rem-list").addEventListener("click", e => {
+  const card = e.target.closest(".rem-card");
+  if (card) openRemForm(RM.list.find(x => x.id === card.dataset.id));
+});
+g("rem-form-bd").addEventListener("click", e => { if (e.target === g("rem-form-bd")) closeRemForm(); });
 
 // ════════════════════════════════════════
 //  CHIT FUNDS  (v4.1)
@@ -3720,6 +3964,7 @@ g("chit-table").addEventListener("click", e => {
     if (g("report-screen").style.display === "flex") return loadReport;
     if (g("master-data-screen").style.display === "flex") return loadMasterData;
     if (g("app").style.display !== "flex") return null;
+    if (g("reminder-section").style.display !== "none") return () => loadReminders(true);
     if (g("finance-section").style.display === "none") return loadAll;
     return F.sub === "chit" ? () => loadChits(true) : () => loadFinance(true);
   }
