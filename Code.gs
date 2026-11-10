@@ -2444,7 +2444,8 @@ function saveChitMonth(p) {
 //  Columns I:J are hidden and hold every detail (several part payments a
 //  month, meter readings, IDs), so A–H are the readable view: parsed from I:J
 //  on every request and fully rewritten on save — hand edits in A–H are
-//  overwritten. A house spanning years has a block in each year's sheet; a
+//  overwritten; deleting rows (or clearing cell A) deletes that house /
+//  month. A house spanning years has a block in each year's sheet; a
 //  house with no month yet sits in its start year with no month rows.
 //
 //  A house lists every month from Start (month of its first due date) till
@@ -2489,7 +2490,11 @@ function rentModel(ss) {
     let cur = null;
     sh.getDataRange().getValues().forEach(function(row) {
       const key = finMonthKey(row[8]), json = String(row[9] || "");
-      if (!json) return;
+      // A row whose visible cell A was cleared in the sheet counts as deleted
+      // (a cleared title drops the whole house block)
+      const shown = String(row[0] === null || row[0] === undefined ? "" : row[0]).trim() !== "";
+      if (key === "house" && !shown) { cur = null; return; }
+      if (!json || !shown) return;
       let o;
       try { o = JSON.parse(json); } catch (e) { return; }
       if (key === "house") {

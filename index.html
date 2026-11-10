@@ -467,6 +467,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 #rent-pay-bd,#house-close-bd{z-index:210}
 #water-form-bd{z-index:220}
 #remind-bd{z-index:230}
+.dash-pay{text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
 .rm-btn{background:var(--acbg);border:1px solid rgba(34,227,154,.3);border-radius:8px;color:var(--ac2);font-size:.72rem;font-weight:700;padding:.2rem .45rem;cursor:pointer;margin-top:.25rem;font-family:inherit}
 .hc-in{display:flex;align-items:center;gap:.15rem}
 .hc-in input{width:6.2rem;text-align:right;background:var(--sur2);border:1.5px solid var(--bdr2);border-radius:8px;padding:.35rem .5rem;color:var(--tx);font-family:'Syne',sans-serif;font-weight:700;font-size:.92rem}
@@ -1091,6 +1092,11 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
         <button class="fin-subtab" id="rst-rent" onclick="switchRentSub('rent')">🏠 House Rent</button>
         <button class="fin-subtab" id="rst-water" onclick="switchRentSub('water')">💧 Water</button>
       </div>
+      <div class="fin-head-row" style="justify-content:center;gap:.8rem;margin-bottom:.7rem">
+        <button class="fin-icon-btn" onclick="rentDashMove(-1)">‹</button>
+        <div class="fin-title" style="flex:0 1 auto;text-align:center" id="rent-month-label"></div>
+        <button class="fin-icon-btn" onclick="rentDashMove(1)">›</button>
+      </div>
       <div id="rent-dash-view">
         <div id="rent-dash"></div>
       </div>
@@ -1100,7 +1106,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
         <div id="rent-list"></div>
       </div>
       <div id="rent-house-view" style="display:none">
-        <button class="fin-back" onclick="closeRentHouse()">← All houses</button>
+        <button class="fin-back" onclick="closeRentHouse()">‹ Back</button>
         <div id="rent-h-head"></div>
         <div class="fin-sec" id="rent-h-sec">Month-wise rent</div>
         <div id="rent-h-table"></div>
@@ -1475,12 +1481,13 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="field" id="wb-house-f"><label>House</label>
       <div class="sel-wrap"><select id="wb-house" onchange="waterFormHouse()"></select></div>
     </div>
+    <div class="fin-hint" id="wb-house-hint"></div>
     <div id="wb-who">
       <div class="field"><label>House No.</label><input type="text" id="wb-name" placeholder="e.g. 1*1" autocomplete="off" maxlength="80"/></div>
       <div class="field"><label>Tenant Name</label><input type="text" id="wb-tenant" placeholder="e.g. Suresh" autocomplete="off" maxlength="80"/></div>
       <div class="field"><label>Tenant Phone <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="tel" id="wb-phone" placeholder="e.g. 98765 43210" autocomplete="off" maxlength="20" inputmode="tel"/></div>
     </div>
-    <div class="field"><label>Month</label><input type="month" id="wb-month" onchange="waterFormPrev()"/></div>
+    <div class="field"><label>Month</label><input type="month" id="wb-month" onchange="waterHouseOptions(); waterFormHouse()"/></div>
     <div class="rem-grid">
       <div class="field"><label>Present Reading</label><input type="number" id="wb-present" min="0" step="1" inputmode="decimal" placeholder="e.g. 1500" oninput="waterCalc()"/></div>
       <div class="field"><label>Previous Reading</label><input type="number" id="wb-prev" min="0" step="1" inputmode="decimal" placeholder="e.g. 1200" oninput="waterCalc()"/></div>
@@ -1511,7 +1518,6 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <button class="btn btn-primary" onclick="sendRemind()">WhatsApp</button>
       <button class="btn btn-ghost" onclick="copyRemind()">📋 Copy</button>
     </div>
-    <button class="btn btn-ghost" id="rm-next" style="width:100%;margin-top:.6rem" onclick="nextRemind()">Next ›</button>
   </div>
 </div>
 
@@ -4015,8 +4021,17 @@ async function loadRent(force) {
   }
 }
 
+// One month for Dashboard, House Rent and Water (‹ Nov 2026 ›)
+const rentYm = () => RT.dashMonth || (RT.dashMonth = ymNow());
+
 function renderRent() {
-  if (RT.dash) { renderRentDash(); maskRent(); return; }
+  g("rent-month-label").textContent = ymLabel(rentYm());
+  if (RT.dash) {
+    renderRentDash();
+    if (g("rent-pay-bd").classList.contains("open")) renderRentPay();
+    maskRent();
+    return;
+  }
   renderRentList();
   if (RT.activeId) renderRentHouse();
   if (g("rent-pay-bd").classList.contains("open")) renderRentPay();
@@ -4036,39 +4051,32 @@ function renderRentDash() {
   const stat = (l, v) => `<div class="rent-stat"><div class="l">${l}</div><div class="v" style="color:var(--gr)">${fmtINR(v)}</div><div class="s">${ymLabel(ym)}</div></div>`;
   const cls = r => !r ? "" : r.balance > 0 ? "fin-no" : "fin-yes";
   let tRent = 0, tWater = 0, tPaid = 0, tDue = 0;
-  const dueIds = [];
   const rows = RT.houses
     .sort((a, b) => houseLabel(a).localeCompare(houseLabel(b)))
     .map(h => {
       const r = +h.rent > 0 ? rentMonths(h, "rent").find(x => x.month === ym) : null;
       const w = rentMonths(h, "water").find(x => x.month === ym);
-      if (!r && !w) return "";
-      if ((r ? r.balance : 0) + (w ? w.balance : 0) > 0) dueIds.push(h.id);
-      const amt = (r ? r.rent : 0) + (w ? w.rent : 0);
+      const prev = rentPrevDue(h, ym);   // earlier months still unpaid, carried in
+      if (!r && !w && !prev.amt) return "";
+      const amt = (r ? r.rent : 0) + (w ? w.rent : 0) + prev.amt;
       const paid = (r ? r.paid : 0) + (w ? w.paid : 0);
-      const due = (r ? r.balance : 0) + (w ? w.balance : 0);
+      const due = (r ? r.balance : 0) + (w ? w.balance : 0) + prev.amt;
       tRent += r ? r.rent : 0; tWater += w ? w.rent : 0; tPaid += paid; tDue += due;
       return `
         <tr data-id="${esc(h.id)}">
           <td><b>${esc(h.name)}</b>${h.tenant ? `<span class="sm">${esc(h.tenant)}</span>` : ""}</td>
-          <td class="${cls(r)}">${r ? fmtINR(r.rent) : "—"}</td>
-          <td class="${cls(w)}">${w ? fmtINR(w.rent) : "—"}</td>
-          <td class="${due > 0 ? "fin-no" : "fin-yes"}">${due > 0 ? fmtINR(due) + " Due" : fmtINR(amt) + " Paid"}${due > 0 && paid > 0 ? `<span class="sm">Paid ${fmtINR(paid)}</span>` : ""}${due > 0 ? `<br><button class="rm-btn" data-remind="${esc(h.id)}">📲 Remind</button>` : ""}</td>
+          <td class="${cls(r)}">${r ? `<span class="dash-pay" data-pay="rent">${fmtINR(r.rent)}</span>` : "—"}</td>
+          <td class="${cls(w)}">${w ? `<span class="dash-pay" data-pay="water">${fmtINR(w.rent)}</span>` : "—"}</td>
+          <td class="${due > 0 ? "fin-no" : "fin-yes"}">${due > 0 ? fmtINR(due) + " Due" : fmtINR(amt) + " Paid"}${prev.amt ? `<span class="sm">incl. ${fmtINR(prev.amt)} previous (${prev.months.join(", ")})</span>` : ""}${due > 0 && paid > 0 ? `<span class="sm">Paid ${fmtINR(paid)}</span>` : ""}${due > 0 ? `<br><button class="rm-btn" data-remind="${esc(h.id)}">📲 Remind</button>` : ""}</td>
         </tr>`;
     }).join("");
 
   g("rent-dash").innerHTML = `
-    <div class="fin-head-row" style="justify-content:center;gap:.8rem;margin-bottom:.7rem">
-      <button class="fin-icon-btn" onclick="rentDashMove(-1)">‹</button>
-      <div class="fin-title" style="flex:0 1 auto;text-align:center">${ymLabel(ym)}</div>
-      <button class="fin-icon-btn" onclick="rentDashMove(1)">›</button>
-    </div>
     <div class="rent-stats">
       ${stat("Rent Received", sum(forMonth.filter(x => payKind(x) === "rent")))}
       ${stat("Water Received", sum(forMonth.filter(x => payKind(x) === "water")))}
       ${stat("Total Received", sum(forMonth))}
     </div>
-    ${dueIds.length ? `<button class="btn btn-ghost" style="width:100%;margin-bottom:.7rem" onclick="openRemind(${esc(JSON.stringify(dueIds))}, '${ym}')">📲 Remind all due (${dueIds.length})</button>` : ""}
     ${rows ? `
     <div class="fin-table-wrap"><table class="fin-table fit">
       <colgroup><col style="width:25%"><col style="width:22%"><col style="width:20%"><col style="width:33%"></colgroup>
@@ -4096,7 +4104,7 @@ function renderRentList() {
     g("rent-list").innerHTML = `<div class="empty"><div class="empty-ico">${RT.sub === "water" ? "💧" : "🏠"}</div>${RT.houses.length ? sub.empty : RENT_SUB.rent.empty}</div>`;
     return;
   }
-  const now = ymNow();
+  const now = rentYm();
   let expected = 0, received = 0, totalDue = 0, pendMonths = 0;
   const card = h => {
     const rows = rentMonths(h), cur = rows.find(r => r.month === now), due = rentDue(rows);
@@ -4115,7 +4123,7 @@ function renderRentList() {
             ? `Last: ${rows[0].label} · ${fmtL(rows[0].bill.usage)} · ${fmtINR(rows[0].rent)}`
             : `${fmtINR(sub.amt(h))}/month · Due ${ordinal(h.dueDay || 1)}`}</div>
         </div>
-        <div class="rent-right">${badge}<span class="sm">${due > 0 ? "Total due " + fmtINR(due) : "No dues"}</span></div>
+        <div class="rent-right">${badge}<span class="sm">${due > 0 ? "Total due " + fmtINR(due) : "No dues"}</span>${(cur && cur.balance > 0) || rentPrevDue(h, now, RT.sub).amt > 0 ? `<button class="rm-btn" data-remind="${esc(h.id)}">📲 Remind</button>` : ""}</div>
       </div>`;
   };
   const byLabel = (a, b) => houseLabel(a).localeCompare(houseLabel(b));
@@ -4123,7 +4131,7 @@ function renderRentList() {
   g("rent-summary").innerHTML = `
     <div class="rent-stats">
       <div class="rent-stat"><div class="l">${MONTHS[+now.slice(5) - 1]} ${sub.short}</div><div class="v">${fmtINR(expected)}</div><div class="s">Expected</div></div>
-      <div class="rent-stat"><div class="l">Received</div><div class="v" style="color:var(--gr)">${fmtINR(received)}</div><div class="s">This month</div></div>
+      <div class="rent-stat"><div class="l">Received</div><div class="v" style="color:var(--gr)">${fmtINR(received)}</div><div class="s">${ymLabel(now)}</div></div>
       <div class="rent-stat"><div class="l">Total Due</div><div class="v" style="color:${totalDue > 0 ? "var(--rd)" : "var(--gr)"}">${fmtINR(totalDue)}</div><div class="s">${pendMonths ? pendMonths + " month" + (pendMonths > 1 ? "s" : "") : "All clear"}</div></div>
     </div>`;
   g("rent-list").innerHTML = cards;
@@ -4156,7 +4164,7 @@ function renderRentHouse() {
     <div class="fin-head-row">
       <div class="fin-title">${houseLabelHtml(h)}</div>
       ${RT.sub === "water" ? `<button class="fin-icon-btn" onclick="openWaterForm(null, RT.activeId)">＋ Reading</button>` : ""}
-      <button class="fin-icon-btn" onclick="openRemind([RT.activeId], ymNow())">📲</button>
+      <button class="fin-icon-btn" onclick="openRemind([RT.activeId], rentYm(), RT.sub)">📲</button>
       <button class="fin-icon-btn" onclick="editRentHouse()">✏️ Edit</button>
       ${RT.sub === "rent" ? `<button class="fin-icon-btn del" onclick="openHouseClose()">🔒 Close</button>` : ""}
     </div>
@@ -4270,16 +4278,14 @@ async function saveHouse() {
 // Previous reading is filled from the house's last reading before the month.
 function openWaterForm(bill, houseId) {
   const edit = !!bill, hid = bill ? bill.houseId : houseId || "";
-  const houses = RT.houses.slice().sort((a, b) => houseLabel(a).localeCompare(houseLabel(b)));
-  g("wb-house").innerHTML = `<option value="">➕ New house</option>` +
-    houses.map(x => `<option value="${esc(x.id)}">${esc(houseLabel(x))}</option>`).join("");
-  g("wb-house").value   = hid;
-  g("wb-house-f").style.display = edit || houseId ? "none" : "";
+  RT.wbFixed = edit || !!houseId;   // house chosen already (edit / from a house page)
+  g("wb-house-f").style.display = RT.wbFixed ? "none" : "";
   g("wb-name").value    = "";
   g("wb-tenant").value  = "";
   g("wb-phone").value   = "";
   g("wb-id").value      = bill ? bill.id : "";
-  g("wb-month").value   = bill ? bill.month : ymNow();
+  g("wb-month").value   = bill ? bill.month : rentYm();
+  waterHouseOptions(hid);
   g("wb-present").value = bill ? bill.present : "";
   g("wb-prev").value    = bill ? bill.prev : "";
   g("wb-rate-l").innerHTML = `Charge <span style="color:var(--tx3);font-size:.68rem">(usage × ₹${WATER_RATE} / litre)</span>`;
@@ -4291,6 +4297,27 @@ function openWaterForm(bill, houseId) {
 }
 
 function closeWaterForm() { g("water-form-bd").classList.remove("open"); }
+
+// House list: only houses with no reading yet for the chosen month
+function waterHouseOptions(keepId) {
+  const sel = g("wb-house"), ym = g("wb-month").value, hint = g("wb-house-hint");
+  const cur = keepId !== undefined ? keepId : sel.value;
+  if (RT.wbFixed) {
+    const h = RT.houses.find(x => x.id === cur);
+    sel.innerHTML = h ? `<option value="${esc(h.id)}">${esc(houseLabel(h))}</option>` : "";
+    sel.value = cur;
+    hint.textContent = "";
+    return;
+  }
+  const done = RT.houses.filter(h => RT.bills.some(b => b.houseId === h.id && b.month === ym));
+  const left = RT.houses.filter(h => !done.includes(h)).sort((a, b) => houseLabel(a).localeCompare(houseLabel(b)));
+  sel.innerHTML = `<option value="">➕ New house</option>` +
+    left.map(x => `<option value="${esc(x.id)}">${esc(houseLabel(x))}</option>`).join("");
+  sel.value = left.some(x => x.id === cur) ? cur : (left[0] ? left[0].id : "");
+  hint.textContent = !RT.houses.length ? ""
+    : !left.length ? `All houses have a reading for ${ymLabel(ym)} — change the Month to add another.`
+    : done.length ? `${done.length} house${done.length > 1 ? "s" : ""} already read for ${ymLabel(ym)} (not listed).` : "";
+}
 
 function waterFormHouse() {
   g("wb-who").style.display = g("wb-house").value ? "none" : "";
@@ -4384,22 +4411,36 @@ function rentPhone(h) {
   return d;
 }
 
-// WhatsApp message (*text* = bold in WhatsApp). Paid + Balance lines only
+// Unpaid balance of months before ym (rent / water / both), carried into ym:
+// { amt, months: ["Sep", "Oct 2026"] }
+function rentPrevDue(h, ym, kind = "both") {
+  const rows = [].concat(kind !== "water" && +h.rent > 0 ? rentMonths(h, "rent") : [], kind !== "rent" ? rentMonths(h, "water") : [])
+    .filter(x => x.month < ym && x.balance > 0);
+  const ms = [...new Set(rows.map(x => x.month))].sort();
+  return { amt: rows.reduce((t, x) => t + x.balance, 0), months: ms.map(m => MONTHS[+m.slice(5) - 1] + (m.slice(0, 4) !== ym.slice(0, 4) ? " " + m.slice(0, 4) : "")) };
+}
+
+// WhatsApp message (*text* = bold in WhatsApp). Older unpaid months are
+// added as "Previous Pending" and counted in Total. kind: "rent" (House Rent
+// tab), "water" (Water tab), "both" (Dashboard). Paid + Balance lines only
 // when part of the month is already paid.
 const MONTH_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-function rentRemindText(h, ym) {
-  const r = +h.rent > 0 ? rentMonths(h, "rent").find(x => x.month === ym) : null;
-  const w = rentMonths(h, "water").find(x => x.month === ym);
-  const amt  = (r ? r.rent : 0) + (w ? w.rent : 0);
+function rentRemindText(h, ym, kind = "both") {
+  const r = kind !== "water" && +h.rent > 0 ? rentMonths(h, "rent").find(x => x.month === ym) : null;
+  const w = kind !== "rent" ? rentMonths(h, "water").find(x => x.month === ym) : null;
+  const prev = rentPrevDue(h, ym, kind);
+  const amt  = (r ? r.rent : 0) + (w ? w.rent : 0) + prev.amt;
   const paid = (r ? r.paid : 0) + (w ? w.paid : 0);
   const items = [];
+  if (!r && !w && !prev.amt) items.push(kind === "water" ? "- No water reading for this month yet" : "- No rent for this month");
   if (r) items.push(`- Rent: ${fmtINR(r.rent)}`);
   if (w) items.push(`- Water Charges: ${fmtINR(w.rent)} (${(+w.bill.usage || 0).toLocaleString("en-IN")} Litres)`);
+  if (prev.amt) items.push(`- Previous Pending (${prev.months.join(", ")}): ${fmtINR(prev.amt)}`);
   items.push(`- *Total: ${fmtINR(amt)}*`);
   if (paid > 0) items.push(`- Paid: ${fmtINR(paid)}`, `- *Balance: ${fmtINR(Math.max(0, amt - paid))}*`);
   return [
     "Hi,", "",
-    `*${MONTH_FULL[+ym.slice(5) - 1]} Month Rent Details:*`, "",
+    `*${MONTH_FULL[+ym.slice(5) - 1]} Month ${kind === "water" ? "Water Charges" : "Rent"} Details:*`, "",
     items.join("\n"), "",
     "Please make the payment via UPI or cash.", "",
     "Also, kindly collect the electricity bill amount from my home.", "",
@@ -4407,8 +4448,9 @@ function rentRemindText(h, ym) {
   ].join("\n");
 }
 
-function openRemind(ids, ym) {
-  RT.remind = { ids: ids.filter(id => RT.houses.some(h => h.id === id)), i: 0, ym };
+// One tenant at a time — each has their own amounts
+function openRemind(ids, ym, kind = "both") {
+  RT.remind = { ids: ids.filter(id => RT.houses.some(h => h.id === id)).slice(0, 1), i: 0, ym, kind };
   if (!RT.remind.ids.length) return;
   showRemind();
   g("remind-bd").classList.add("open");
@@ -4416,30 +4458,23 @@ function openRemind(ids, ym) {
 
 function showRemind() {
   const q = RT.remind, h = RT.houses.find(x => x.id === q.ids[q.i]);
-  g("rm-title").textContent = `📲 Room Rent ${h.name}` + (q.ids.length > 1 ? `  (${q.i + 1} of ${q.ids.length})` : "");
+  g("rm-title").textContent = `📲 Room Rent ${h.name}`;
   const ph = rentPhone(h);
   g("rm-to").textContent = ph ? `To ${h.tenant ? h.tenant + " · " : ""}+${ph}` : "No phone saved — WhatsApp will ask which contact.";
-  g("rm-text").value = rentRemindText(h, q.ym);
-  g("rm-next").style.display = q.ids.length > 1 ? "" : "none";
-  g("rm-next").textContent = q.i + 1 < q.ids.length ? "Next ›" : "Done";
+  g("rm-text").value = rentRemindText(h, q.ym, q.kind);
 }
 
 function sendRemind() {
   const h = RT.houses.find(x => x.id === RT.remind.ids[RT.remind.i]);
   const text = encodeURIComponent(g("rm-text").value), ph = rentPhone(h);
   window.open(ph ? `https://wa.me/${ph}?text=${text}` : `https://wa.me/?text=${text}`, "_blank");
+  // close the popup so coming back from WhatsApp lands on the page (Dashboard / tab)
+  setTimeout(() => g("remind-bd").classList.remove("open"), 300);
 }
 
 async function copyRemind() {
   try { await navigator.clipboard.writeText(g("rm-text").value); toast("Message copied", "success"); }
   catch (e) { g("rm-text").select(); toast("Select and copy the message", "info"); }
-}
-
-function nextRemind() {
-  const q = RT.remind;
-  if (q.i + 1 >= q.ids.length) { g("remind-bd").classList.remove("open"); return; }
-  q.i++;
-  showRemind();
 }
 
 // ── Close account: settle the deposit ──
@@ -4527,20 +4562,31 @@ async function deleteHouse() {
 
 // ── Month payment sheet: full balance or partial ──
 function rentPayCtx() {
-  const h = RT.houses.find(x => x.id === RT.activeId);
+  const h = RT.houses.find(x => x.id === (RT.payHouse || RT.activeId));
   const r = h && rentMonths(h).find(x => x.month === RT.month);
   if (!r) return null;
   const editId = g("rp-id").value, edit = editId ? r.pays.find(x => x.id === editId) : null;
   return { h, r, edit, max: r.balance + (edit ? edit.amount : 0) };
 }
 
-function openRentPay(month) {
+// From the Dashboard: pay one charge (rent | water) of one house for a month,
+// without leaving the Dashboard
+function openRentPayFor(houseId, kind, month) {
+  RT.sub = kind;
+  RT.payHouse = houseId;
   RT.month = month;
   resetRentPayForm();
   g("rent-pay-bd").classList.add("open");
 }
 
-function closeRentPay() { g("rent-pay-bd").classList.remove("open"); }
+function openRentPay(month) {
+  RT.payHouse = null;
+  RT.month = month;
+  resetRentPayForm();
+  g("rent-pay-bd").classList.add("open");
+}
+
+function closeRentPay() { g("rent-pay-bd").classList.remove("open"); RT.payHouse = null; }
 
 function resetRentPayForm() {
   g("rp-id").value      = "";
@@ -4663,7 +4709,9 @@ async function deleteRentPayment(id) {
 // Dashboard: tap a house row → open it in House Rent (or Water)
 g("rent-dash").addEventListener("click", e => {
   const rb = e.target.closest("[data-remind]");
-  if (rb) { openRemind([rb.dataset.remind], RT.dashMonth || ymNow()); return; }
+  if (rb) { openRemind([rb.dataset.remind], rentYm(), "both"); return; }
+  const pb = e.target.closest("[data-pay]"), row = e.target.closest("tr[data-id]");
+  if (pb && row) { openRentPayFor(row.dataset.id, pb.dataset.pay, rentYm()); return; }
   const hd = e.target.closest("tr[data-id]");
   if (!hd) return;
   const h = RT.houses.find(x => x.id === hd.dataset.id);
@@ -4672,6 +4720,8 @@ g("rent-dash").addEventListener("click", e => {
   openRentHouse(h.id);
 });
 g("rent-list").addEventListener("click", e => {
+  const rb = e.target.closest("[data-remind]");
+  if (rb) { openRemind([rb.dataset.remind], rentYm(), RT.sub); return; }   // this tab's charge only
   const card = e.target.closest(".rent-card");
   if (card) openRentHouse(card.dataset.id);
 });
