@@ -2454,7 +2454,8 @@ function saveChitMonth(p) {
 //  bill per meter reading: Usage = Present − Previous, Amount = round(Usage ×
 //  Rate). Close Account: Final Return Deposit = Deposit − close month's unpaid
 //  rent − Paint (one month's rent) − Other; the close month's unpaid rent is
-//  saved as a "Deposit" payment.
+//  saved as a "Deposit" payment. The deposit can come in parts (kind
+//  "deposit" payments); Deposit here = the part received.
 // ─────────────────────────────────────────────────────────────
 
 const RENT_YEAR_PREFIX  = "Rentals ";
@@ -2511,10 +2512,11 @@ function rentModel(ss) {
     houses: vals(houses).map(function(h) {
       return { id: h.id, userName: h.userName || "", name: h.name || "", tenant: h.tenant || "", phone: h.phone || "", rent: rentNum(h.rent),
         deposit: rentNum(h.deposit), occupied: h.occupied || "", dueDay: parseInt(h.dueDay, 10) || 1, start: h.start || "",
-        active: h.active === "No" ? "No" : "Yes", note: h.note || "", closed: h.closed || null, createdAt: h.createdAt || "" };
+        active: h.active === "No" ? "No" : "Yes", note: h.note || "", closed: h.closed || null, depTracked: !!h.depTracked,
+        createdAt: h.createdAt || "" };
     }),
     payments: vals(payments).map(function(x) {
-      return { id: x.id, houseId: x.houseId, kind: x.kind === "water" ? "water" : "rent", month: x.month,
+      return { id: x.id, houseId: x.houseId, kind: x.kind === "water" ? "water" : x.kind === "deposit" ? "deposit" : "rent", month: x.month,
         amount: rentNum(x.amount), paidOn: x.paidOn || "", mode: x.mode || "", remarks: x.remarks || "",
         expected: rentNum(x.expected), closeAdj: !!x.closeAdj };
     }),
@@ -2597,9 +2599,23 @@ function saveHouse(p) {
       Object.keys(h).forEach(function(k) { cur[k] = h[k]; });
       return { success: true, id: id };
     }
+    // depTracked: the deposit is paid in parts (deposit payments); older houses
+    // without it count the whole deposit as received
     const nh = Object.assign({ id: rentId(), userName: String(p.userName || "").trim(), active: "Yes", closed: null,
-      createdAt: new Date().toISOString() }, h);
+      depTracked: true, createdAt: new Date().toISOString() }, h);
     m.houses.push(nh);
+    // deposit given at the start: one or more parts { date, amount }
+    let parts = [];
+    try { parts = JSON.parse(p.depositParts || "[]"); } catch (e) { parts = []; }
+    let left = h.deposit;
+    (Array.isArray(parts) ? parts : []).forEach(function(x) {
+      const amt = Math.min(rentNum(x.amount), left);
+      if (amt <= 0) return;
+      left -= amt;
+      const on = /^\d{4}-\d{2}-\d{2}$/.test(x.date || "") ? x.date : (h.occupied || remToday());
+      m.payments.push({ id: rentId(), houseId: nh.id, kind: "deposit", month: on.slice(0, 7), amount: amt, paidOn: on,
+        mode: "Cash", remarks: "Deposit", expected: h.deposit, closeAdj: false });
+    });
     return { success: true, id: nh.id };
   });
 }
@@ -2617,7 +2633,7 @@ function deleteHouse(p) {
 
 function saveRentPayment(p) {
   const x = {
-    houseId: String(p.houseId || ""), kind: p.kind === "water" ? "water" : "rent", month: String(p.month || "").trim(),
+    houseId: String(p.houseId || ""), kind: p.kind === "water" ? "water" : p.kind === "deposit" ? "deposit" : "rent", month: String(p.month || "").trim(),
     amount: rentNum(p.amount), paidOn: p.paidOn ? finDate(p.paidOn) : "", mode: RENT_MODES.indexOf(p.mode) >= 0 ? p.mode : "Other",
     remarks: String(p.remarks || "").trim(), expected: rentNum(p.expected)
   };
@@ -2629,9 +2645,13 @@ function saveRentPayment(p) {
     const h = m.houses.filter(function(y) { return y.id === x.houseId; })[0];
     if (!h) return { success: false, error: "House not found." };
     // No more than the month's balance (this payment's old amount freed up when editing)
-    const others = m.payments.filter(function(y) { return y.houseId === h.id && y.kind === x.kind && y.month === x.month && y.id !== id; });
+    // (deposit: one balance for the house, whatever the month)
+    const others = m.payments.filter(function(y) {
+      return y.houseId === h.id && y.kind === x.kind && (x.kind === "deposit" || y.month === x.month) && y.id !== id;
+    });
     const bill = m.bills.filter(function(b) { return b.houseId === h.id && b.month === x.month; })[0];
-    const owed = x.kind === "water" ? (bill ? bill.amount : 0)
+    const owed = x.kind === "deposit" ? h.deposit
+      : x.kind === "water" ? (bill ? bill.amount : 0)
       : (others.length && others[0].expected ? others[0].expected : x.expected || h.rent);
     const left = owed - others.reduce(function(t, y) { return t + y.amount; }, 0);
     if (x.amount > left + 0.001) return { success: false, error: "Amount is more than the balance ₹" + Math.max(0, left) + "." };
@@ -2728,16 +2748,24 @@ function closeHouse(p) {
     const ym = date.slice(0, 7);
     const row = rentHouseMonths(h, m.payments).filter(function(r) { return r.month === ym; })[0];
     const monthDue = row ? row.balance : 0, paint = h.rent;
-    const refund = h.deposit - monthDue - paint - other;
+    const received = rentDepositReceived(m, h);
+    const refund = received - monthDue - paint - other;
     if (monthDue > 0) {
       m.payments.push({ id: rentId(), houseId: h.id, kind: "rent", month: ym, amount: monthDue, paidOn: date,
         mode: "Deposit", remarks: "Adjusted from deposit", expected: row.rent, closeAdj: true });
     }
     h.active = "No";
-    h.closed = { date: date, deposit: h.deposit, monthDue: monthDue, paint: paint, other: other,
+    h.closed = { date: date, deposit: received, monthDue: monthDue, paint: paint, other: other,
       refund: refund, note: String(sent.note || "").trim() };
     return { success: true };
   });
+}
+
+// Deposit received so far (houses from before part-deposits: the full deposit)
+function rentDepositReceived(m, h) {
+  if (!h.depTracked) return h.deposit;
+  return m.payments.filter(function(x) { return x.houseId === h.id && x.kind === "deposit"; })
+    .reduce(function(t, x) { return t + x.amount; }, 0);
 }
 
 // Rent months of a house (oldest first) — same rules as the app
@@ -2779,6 +2807,10 @@ function writeRentYearSheets(ss, m) {
       const wp = m.payments.filter(function(x) { return x.houseId === h.id && x.kind === "water" && x.month === b.month; });
       (byMonth[b.month] = byMonth[b.month] || {}).water = { bill: b, paid: wp.reduce(function(t, x) { return t + x.amount; }, 0), pays: wp };
     });
+    m.payments.filter(function(x) { return x.houseId === h.id && x.kind === "deposit"; }).forEach(function(x) {
+      const e = byMonth[x.month] = byMonth[x.month] || {};
+      (e.dep = e.dep || []).push(x);
+    });
     const months = Object.keys(byMonth).sort();
     // No sheet for a year that hasn't started: a month in a later year (advance
     // payment / reading) is kept in this year's sheet
@@ -2789,12 +2821,13 @@ function writeRentYearSheets(ss, m) {
     if (!yearList.length) yearList.push(sheetYear(String(h.start || h.createdAt || remToday())));
     const houseJson = JSON.stringify({ id: h.id, userName: h.userName, name: h.name, tenant: h.tenant, phone: h.phone || "", rent: h.rent,
       deposit: h.deposit, occupied: h.occupied, dueDay: h.dueDay, start: h.start, active: h.active, note: h.note,
-      closed: h.closed || null, createdAt: h.createdAt });
+      closed: h.closed || null, depTracked: !!h.depTracked, createdAt: h.createdAt });
     const strip = function(o, drop) { const c = {}; Object.keys(o).forEach(function(k) { if (drop.indexOf(k) < 0) c[k] = o[k]; }); return c; };
     yearList.forEach(function(y) {
       const out = y === "closed" ? closedOut : (years[y] = years[y] || []);
       out.push({ kind: "title", v: [h.name + (h.tenant ? "  " + h.tenant : "") + (h.closed ? "  (Closed)" : "")], key: "house", data: houseJson });
-      out.push({ kind: "info", v: ["Occupied Date", fmtD(h.occupied), "Deposit Amount", h.deposit, "Rent Monthly", h.rent] });
+      out.push({ kind: "info", v: ["Occupied Date", fmtD(h.occupied), "Deposit Amount", h.deposit, "Rent Monthly", h.rent,
+        "Deposit Received", rentDepositReceived(m, h)] });
       out.push({ kind: "info", v: h.closed
         ? ["Paint Charge", h.closed.paint, "Water / Litre", "₹" + (m.bills.filter(function(b) { return b.houseId === h.id; }).map(function(b) { return b.rate; })[0] || 0.15),
            "Closed On", fmtD(h.closed.date), "Final Return Deposit", h.closed.refund]
@@ -2803,11 +2836,12 @@ function writeRentYearSheets(ss, m) {
         "Pending Rent/Water Amount", "Transaction Mode", "Remarks"] });
       const t = [0, 0, 0, 0, 0];
       months.filter(function(ym) { return y === "closed" || sheetYear(ym) === y; }).forEach(function(ym) {
-        const r = byMonth[ym].rent, w = byMonth[ym].water;
-        const pays = (r ? r.pays : []).concat(w ? w.pays : []);
+        const r = byMonth[ym].rent, w = byMonth[ym].water, dep = byMonth[ym].dep || [];
+        const pays = (r ? r.pays : []).concat(w ? w.pays : [], dep);
         const pending = (r ? r.balance : 0) + (w ? Math.max(0, w.bill.amount - w.paid) : 0);
         const remarks = (w ? [w.bill.usage + " L (" + w.bill.prev + " → " + w.bill.present + ")"] : [])
-          .concat(pays.map(function(x) { return x.remarks; }));
+          .concat(dep.map(function(x) { return "Deposit " + x.amount + " received"; }))
+          .concat(pays.map(function(x) { return x.kind === "deposit" ? "" : x.remarks; }));
         const row = [rentYmLabel(ym), r ? r.rent : "", r ? r.paid : "", w ? w.bill.amount : "", w ? w.paid : "",
           pending, uniq(pays.map(function(x) { return x.mode; })).join(", "), uniq(remarks).join("; ")];
         [1, 2, 3, 4, 5].forEach(function(c, i) { t[i] += rentNum(row[c]); });

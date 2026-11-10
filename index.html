@@ -1462,7 +1462,18 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="field" id="house-rent-f"><label>Rent Amount (₹)</label><input type="number" id="house-rent" min="1" step="1" inputmode="decimal" placeholder="7000"/></div>
     <div class="field" id="house-due-f"><label>Due Date (Every Month)</label><input type="date" id="house-due" oninput="houseDueHint()"/></div>
     <div class="fin-hint" id="house-due-hint"></div>
-    <div class="field" id="house-dep-f"><label>Deposit Amount (₹) <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="number" id="house-deposit" min="0" step="1" inputmode="decimal" placeholder="e.g. 20000"/></div>
+    <div class="field" id="house-dep-f"><label>Deposit Amount (₹) <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="number" id="house-deposit" min="0" step="1" inputmode="decimal" placeholder="e.g. 30000" oninput="houseDepHint()"/></div>
+    <div id="house-depnow-f">
+      <div class="type-toggle">
+        <button class="type-btn income" id="hd-full" onclick="setHouseDepKind('full')">✓ Full</button>
+        <button class="type-btn income" id="hd-part" onclick="setHouseDepKind('part')">½ Partial</button>
+      </div>
+      <div id="hd-part-f">
+        <div id="hd-parts"></div>
+        <button class="fin-back" id="hd-add" style="margin:0 0 .5rem" onclick="addHouseDepPart()">＋ Add another part</button>
+      </div>
+      <div class="fin-hint" id="house-depnow-hint"></div>
+    </div>
     <div class="field"><label>Note <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><textarea id="house-note" placeholder="Agreement date, anything else…"></textarea></div>
     <input type="hidden" id="house-id"/>
     <div class="sh-actions">
@@ -4047,7 +4058,7 @@ function rentDashMove(n) {
 
 function renderRentDash() {
   const ym = RT.dashMonth || (RT.dashMonth = ymNow());
-  const forMonth = RT.payments.filter(x => x.month === ym), sum = l => l.reduce((t, x) => t + x.amount, 0);
+  const forMonth = RT.payments.filter(x => x.month === ym && payKind(x) !== "deposit"), sum = l => l.reduce((t, x) => t + x.amount, 0);
   const stat = (l, v) => `<div class="rent-stat"><div class="l">${l}</div><div class="v" style="color:var(--gr)">${fmtINR(v)}</div><div class="s">${ymLabel(ym)}</div></div>`;
   const cls = r => !r ? "" : r.balance > 0 ? "fin-no" : "fin-yes";
   let tRent = 0, tWater = 0, tPaid = 0, tDue = 0;
@@ -4121,7 +4132,8 @@ function renderRentList() {
           <div class="fin-name">${houseLabelHtml(h)}</div>
           <div class="fin-sub">${RT.sub === "water" && rows[0]
             ? `Last: ${rows[0].label} · ${fmtL(rows[0].bill.usage)} · ${fmtINR(rows[0].rent)}`
-            : `${fmtINR(sub.amt(h))}/month · Due ${ordinal(h.dueDay || 1)}`}</div>
+            : `${fmtINR(sub.amt(h))}/month · Due ${ordinal(h.dueDay || 1)}`}${RT.sub === "rent" && depositInfo(h).pending > 0
+              ? ` · <span style="color:var(--am)">Deposit due ${fmtINR(depositInfo(h).pending)}</span>` : ""}</div>
         </div>
         <div class="rent-right">${badge}<span class="sm">${due > 0 ? "Total due " + fmtINR(due) : "No dues"}</span>${(cur && cur.balance > 0) || rentPrevDue(h, now, RT.sub).amt > 0 ? `<button class="rm-btn" data-remind="${esc(h.id)}">📲 Remind</button>` : ""}</div>
       </div>`;
@@ -4174,7 +4186,13 @@ function renderRentHouse() {
       : row("Rent Amount", fmtINR(h.rent)) +
         (h.occupied ? row("Occupied On", fmtDate(h.occupied)) : "") +
         row("Due Date", ordinal(h.dueDay || 1) + " every month")}
-    ${RT.sub === "rent" && +h.deposit ? row("Deposit", fmtINR(h.deposit)) : ""}
+    ${RT.sub === "rent" && +h.deposit ? (() => {
+      const d = depositInfo(h);
+      return row("Deposit", fmtINR(d.agreed)) +
+        row("Deposit Received", fmtINR(d.received), "pos") +
+        (d.pending > 0 ? row("Deposit Pending", fmtINR(d.pending), "neg") : "") +
+        `<button class="fin-back" style="margin:.1rem 0 .4rem" onclick="openDepositPay()">${d.pending > 0 ? "＋ Add deposit payment" : "💰 Deposit payments"}</button>`;
+    })() : ""}
     ${row(`${RENT_SUB[RT.sub].short} Received`, fmtINR(rows.reduce((t, r) => t + r.paid, 0)), "pos")}
     ${row(`${RENT_SUB[RT.sub].short} Due`, fmtINR(due), due > 0 ? "neg" : "pos")}
     ${row("Pending Months", pend ? pend + " month" + (pend > 1 ? "s" : "") : "No due", pend ? "neg" : "pos")}
@@ -4215,6 +4233,9 @@ function openHouseForm(h) {
   houseDueHint();
   g("house-due-hint").style.display = water ? "none" : "";
   g("house-deposit").value = h && +h.deposit ? h.deposit : "";
+  g("hd-parts").innerHTML = "";
+  g("house-depnow-f").style.display = !h && !water ? "" : "none";   // new house only; later parts from the house page
+  setHouseDepKind("full");
   g("house-note").value    = h ? h.note || "" : "";
   g("house-occ").value     = h ? h.occupied || "" : todayISO();
   g("house-occ-f").style.display   = water ? "none" : "";
@@ -4232,6 +4253,51 @@ function houseDueHint() {
   hint.textContent = /^\d{4}-\d{2}-\d{2}$/.test(v)
     ? `Due on the ${ordinal(+v.slice(8, 10))} of every month, from ${ymLabel(v.slice(0, 7))}.`
     : "Pick the first due date — it repeats on the same day every month.";
+}
+
+// New house deposit: Full (all given, on the occupied date) or Partial
+// (amount + date given now; the rest later from the house page)
+function setHouseDepKind(k) {
+  RT.houseDep = k;
+  g("hd-full").classList.toggle("active", k === "full");
+  g("hd-part").classList.toggle("active", k === "part");
+  g("hd-part-f").style.display = k === "part" ? "" : "none";
+  if (k === "part" && !g("hd-parts").children.length) addHouseDepPart();
+  houseDepHint();
+}
+
+// Partial deposit: one row (date + amount) per part, up to the deposit amount
+function addHouseDepPart() {
+  const left = houseDepParts().left;
+  if (g("hd-parts").children.length && left <= 0) { toast("Parts already add up to the deposit", "info"); return; }
+  const row = document.createElement("div");
+  row.className = "rem-grid hd-part";
+  row.innerHTML = `
+    <div class="field"><label>Date</label><input type="date" class="hd-date" value="${todayISO()}"/></div>
+    <div class="field"><label>Amount (₹)</label><div style="display:flex;gap:.35rem">
+      <input type="number" class="hd-amt" min="1" step="1" inputmode="decimal" placeholder="e.g. 10000" oninput="houseDepHint()" style="min-width:0"/>
+      <button class="fin-icon-btn del" type="button" onclick="this.closest('.hd-part').remove(); houseDepHint()">🗑</button></div></div>`;
+  g("hd-parts").appendChild(row);
+  houseDepHint();
+}
+
+function houseDepParts() {
+  const deposit = parseFloat(g("house-deposit").value) || 0;
+  const parts = [...g("hd-parts").querySelectorAll(".hd-part")].map(r => ({
+    date: r.querySelector(".hd-date").value, amount: parseFloat(r.querySelector(".hd-amt").value) || 0 }));
+  const given = parts.reduce((t, x) => t + x.amount, 0);
+  return { deposit, parts, given, left: deposit - given };
+}
+
+function houseDepHint() {
+  const hint = g("house-depnow-hint");
+  hint.style.color = "";
+  if (RT.houseDep !== "part") { hint.textContent = "Full deposit received."; return; }
+  const d = houseDepParts();
+  if (d.left < 0) { hint.textContent = `Parts add up to ${fmtINR(d.given)} — more than the deposit ${fmtINR(d.deposit)}.`; hint.style.color = "var(--rd)"; return; }
+  hint.textContent = d.left === 0 && d.given
+    ? `Given ${fmtINR(d.given)} — full deposit.`
+    : `Given ${fmtINR(d.given)} of ${fmtINR(d.deposit)} · Pending ${fmtINR(d.left)}` + " (add more parts now or later from the house page).";
 }
 
 function closeHouseForm() { g("house-form-bd").classList.remove("open"); }
@@ -4257,6 +4323,17 @@ async function saveHouse() {
   if (!water && params.rent <= 0) { toast("Enter rent amount", "error"); return; }
   if (!water && !params.occupied) { toast("Select occupied date", "error"); return; }
   if (params.deposit < 0) { toast("Deposit can't be negative", "error"); return; }
+  if (!id && !water) {
+    if (RT.houseDep === "part") {
+      const d = houseDepParts(), parts = d.parts.filter(x => x.amount > 0);
+      if (!parts.length) { toast("Enter at least one deposit part", "error"); return; }
+      if (parts.some(x => !x.date)) { toast("Select a date for each part", "error"); return; }
+      if (d.given > d.deposit) { toast("Parts add up to more than the deposit amount", "error"); return; }
+      params.depositParts = JSON.stringify(parts);
+    } else {
+      params.depositParts = JSON.stringify(params.deposit > 0 ? [{ date: params.occupied, amount: params.deposit }] : []);
+    }
+  }
   const busy = !water && RT.houses.find(x => x.id !== id && +x.rent > 0 && houseKey(x) === params.name.toLowerCase());
   if (busy) { toast(`${busy.name} is still with ${busy.tenant || "a tenant"} — close that account first`, "error"); return; }
   if (!water && !/^\d{4}-\d{2}-\d{2}$/.test(g("house-due").value)) { toast("Select due date", "error"); return; }
@@ -4429,13 +4506,15 @@ function rentRemindText(h, ym, kind = "both") {
   const r = kind !== "water" && +h.rent > 0 ? rentMonths(h, "rent").find(x => x.month === ym) : null;
   const w = kind !== "rent" ? rentMonths(h, "water").find(x => x.month === ym) : null;
   const prev = rentPrevDue(h, ym, kind);
-  const amt  = (r ? r.rent : 0) + (w ? w.rent : 0) + prev.amt;
+  const amt  = (r ? r.rent : 0) + (w ? w.rent : 0) + prev.amt + (kind !== "water" ? depositInfo(h).pending : 0);
   const paid = (r ? r.paid : 0) + (w ? w.paid : 0);
   const items = [];
   if (!r && !w && !prev.amt) items.push(kind === "water" ? "- No water reading for this month yet" : "- No rent for this month");
   if (r) items.push(`- Rent: ${fmtINR(r.rent)}`);
   if (w) items.push(`- Water Charges: ${fmtINR(w.rent)} (${(+w.bill.usage || 0).toLocaleString("en-IN")} Litres)`);
   if (prev.amt) items.push(`- Previous Pending (${prev.months.join(", ")}): ${fmtINR(prev.amt)}`);
+  const depDue = kind !== "water" ? depositInfo(h).pending : 0;
+  if (depDue) items.push(`- Deposit Pending: ${fmtINR(depDue)}`);
   items.push(`- *Total: ${fmtINR(amt)}*`);
   if (paid > 0) items.push(`- Paid: ${fmtINR(paid)}`, `- *Balance: ${fmtINR(Math.max(0, amt - paid))}*`);
   return [
@@ -4487,7 +4566,7 @@ function houseCloseCalc() {
   const h = RT.houses.find(x => x.id === RT.activeId);
   if (!h) return null;
   const date = g("hc-date").value || todayISO(), ym = date.slice(0, 7);
-  const deposit = +h.deposit || 0;
+  const deposit = depositInfo(h).received;   // only what the tenant actually gave
   const paint = +h.rent || 0, other = parseFloat(g("hc-other").value) || 0;
   const rows = rentMonths(h, "rent"), cur = rows.find(r => r.month === ym);
   const monthDue = cur ? cur.balance : 0;
@@ -4563,7 +4642,7 @@ async function deleteHouse() {
 // ── Month payment sheet: full balance or partial ──
 function rentPayCtx() {
   const h = RT.houses.find(x => x.id === (RT.payHouse || RT.activeId));
-  const r = h && rentMonths(h).find(x => x.month === RT.month);
+  const r = h && (RT.payKind === "deposit" ? depositRow(h) : rentMonths(h).find(x => x.month === RT.month));
   if (!r) return null;
   const editId = g("rp-id").value, edit = editId ? r.pays.find(x => x.id === editId) : null;
   return { h, r, edit, max: r.balance + (edit ? edit.amount : 0) };
@@ -4572,6 +4651,7 @@ function rentPayCtx() {
 // From the Dashboard: pay one charge (rent | water) of one house for a month,
 // without leaving the Dashboard
 function openRentPayFor(houseId, kind, month) {
+  RT.payKind = null;
   RT.sub = kind;
   RT.payHouse = houseId;
   RT.month = month;
@@ -4580,13 +4660,35 @@ function openRentPayFor(houseId, kind, month) {
 }
 
 function openRentPay(month) {
+  RT.payKind = null;
   RT.payHouse = null;
   RT.month = month;
   resetRentPayForm();
   g("rent-pay-bd").classList.add("open");
 }
 
-function closeRentPay() { g("rent-pay-bd").classList.remove("open"); RT.payHouse = null; }
+function closeRentPay() { g("rent-pay-bd").classList.remove("open"); RT.payHouse = null; RT.payKind = null; }
+
+// ── Deposit: agreed amount, received in one or more parts ──
+// Houses from before part-deposits (no depTracked) count it all as received.
+function depositInfo(h) {
+  const pays = RT.payments.filter(x => x.houseId === h.id && payKind(x) === "deposit")
+    .sort((a, b) => String(a.paidOn).localeCompare(String(b.paidOn)));
+  const agreed = +h.deposit || 0;
+  const received = h.depTracked ? pays.reduce((t, x) => t + x.amount, 0) : agreed;
+  return { agreed, received, pending: Math.max(0, agreed - received), pays };
+}
+// The pay sheet's "row" for the deposit
+function depositRow(h) {
+  const d = depositInfo(h);
+  return { month: "deposit", label: "Deposit", rent: d.agreed, paid: d.received, balance: d.pending, pays: d.pays };
+}
+function openDepositPay() {
+  RT.payKind = "deposit";
+  RT.payHouse = null;
+  resetRentPayForm();
+  g("rent-pay-bd").classList.add("open");
+}
 
 function resetRentPayForm() {
   g("rp-id").value      = "";
@@ -4601,8 +4703,9 @@ function renderRentPay() {
   const c = rentPayCtx();
   if (!c) { closeRentPay(); return; }
   const { h, r, edit } = c;
-  const short = RENT_SUB[RT.sub].short;
-  g("rp-title").textContent = `${RT.sub === "water" ? "💧" : "🏠"} ${r.label} — ${houseLabel(h)}`;
+  const dep = RT.payKind === "deposit";
+  const short = dep ? "Deposit" : RENT_SUB[RT.sub].short;
+  g("rp-title").textContent = `${dep ? "💰" : RT.sub === "water" ? "💧" : "🏠"} ${r.label} — ${houseLabel(h)}`;
   // water: only a small "Edit reading" link (no reading / usage figures)
   const b = r.bill;
   g("rp-read").style.display = b && !edit ? "" : "none";
@@ -4610,13 +4713,14 @@ function renderRentPay() {
   const showForm = r.balance > 0 || !!edit;
   g("rp-form").style.display = showForm ? "" : "none";
   g("rp-done").style.display = showForm ? "none" : "block";
-  g("rp-done").textContent   = `✓ Full ${short.toLowerCase()} received for this month`;
+  g("rp-done").textContent   = dep ? "✓ Full deposit received" : `✓ Full ${short.toLowerCase()} received for this month`;
   g("rp-kind-l").textContent = edit ? "Edit Payment" : "Payment";
   g("rp-save").textContent   = edit ? "Update Payment" : "Save Payment";
   g("rp-cancel").textContent = edit ? "Cancel Edit" : "Cancel";
   g("rp-cancel").onclick     = edit ? resetRentPayForm : closeRentPay;
   setRentPayKind(RT.kind, true);
   g("rp-hist-l").style.display = r.pays.length ? "" : "none";
+  g("rp-hist-l").textContent = dep ? "Deposit payments" : "Payments this month";
   g("rp-hist").innerHTML = r.pays.map(p => `
     <div class="rent-hist-row${edit && edit.id === p.id ? " editing" : ""}">
       <div class="d">${fmtShortDate(p.paidOn)} · ${esc(p.mode)}${p.remarks ? `<span class="sm">${esc(p.remarks)}</span>` : ""}</div>
@@ -4678,12 +4782,14 @@ async function saveRentPayment() {
   setBtn("rp-save", true);
   try {
     const res = await rentApi({
-      action: "saveRentPayment", id, houseId: c.h.id, kind: RT.sub, month: c.r.month, amount, paidOn,
+      action: "saveRentPayment", id, houseId: c.h.id, kind: RT.payKind || RT.sub,
+      month: RT.payKind === "deposit" ? paidOn.slice(0, 7) : c.r.month, amount, paidOn,
       mode: g("rp-mode").value, remarks: g("rp-remarks").value.trim(), expected: c.r.rent
     });
     if (!res.success) { toast(res.error || "Save failed", "error"); return; }
     const left = c.max - amount;
-    toast(left > 0 ? `Saved — ${fmtINR(left)} still due for ${c.r.label}` : `${c.r.label} ${RENT_SUB[RT.sub].short.toLowerCase()} fully received`, "success");
+    toast(RT.payKind === "deposit" ? (left > 0 ? `Saved — deposit ${fmtINR(left)} still pending` : "Full deposit received")
+      : left > 0 ? `Saved — ${fmtINR(left)} still due for ${c.r.label}` : `${c.r.label} ${RENT_SUB[RT.sub].short.toLowerCase()} fully received`, "success");
     closeRentPay();
     applyRent(res);
   } catch (e) {
