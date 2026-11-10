@@ -1459,8 +1459,10 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="field"><label>Tenant Name</label><input type="text" id="house-tenant" placeholder="e.g. Suresh" autocomplete="off" maxlength="80"/></div>
     <div class="field"><label>Tenant Phone <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="tel" id="house-phone" placeholder="e.g. 98765 43210" autocomplete="off" maxlength="20" inputmode="tel"/></div>
     <div class="field" id="house-occ-f"><label>Occupied Date</label><input type="date" id="house-occ"/></div>
-    <div class="field" id="house-rent-f"><label>Rent Amount (₹)</label><input type="number" id="house-rent" min="1" step="1" inputmode="decimal" placeholder="7000"/></div>
-    <div class="field" id="house-due-f"><label>Due Date (Every Month)</label><input type="date" id="house-due" oninput="houseDueHint()"/></div>
+    <div class="field" id="house-rent-f"><label>Rent Amount (₹)</label><input type="number" id="house-rent" min="1" step="1" inputmode="decimal" placeholder="7000" oninput="houseRentChanged()"/></div>
+    <div class="field" id="house-rentfrom-f" style="display:none"><label>New Rent From (Month)</label><input type="month" id="house-rent-from" oninput="houseRentChanged()"/></div>
+    <div class="fin-hint" id="house-rentfrom-hint" style="display:none"></div>
+    <div class="field" id="house-due-f"><label>First Due Date <span style="color:var(--tx3);font-weight:400;text-transform:none">(rent counted from this month)</span></label><input type="date" id="house-due" oninput="houseDueHint()"/></div>
     <div class="fin-hint" id="house-due-hint"></div>
     <div class="field" id="house-dep-f"><label>Deposit Amount (₹) <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="number" id="house-deposit" min="0" step="1" inputmode="decimal" placeholder="e.g. 30000" oninput="houseDepHint()"/></div>
     <div id="house-depnow-f">
@@ -3918,6 +3920,14 @@ const payKind = x => x.kind || "rent";
 const WATER_RATE = 0.15;   // ₹ per litre (15 paise)
 const fmtL = n => (+n || 0).toLocaleString("en-IN") + " L";
 const paySnap = x => +(x.expected ?? x.rent) || 0;
+// Rent of month ym: a change applies from its month on (rentHistory)
+function rentAt(h, ym) {
+  const hist = (h.rentHistory || []).slice().sort((a, b) => a.from.localeCompare(b.from));
+  if (!hist.length) return +h.rent || 0;
+  let r = hist[0].rent;
+  hist.forEach(x => { if (x.from <= ym) r = x.rent; });
+  return +r || 0;
+}
 const RENT_STATUS = { paid: "Received", part: "Partial", pend: "Pending", up: "Upcoming" };
 
 async function rentApi(params) {
@@ -3952,7 +3962,7 @@ function rentMonths(h, kind = RT.sub) {
   const rows = [], today = todayISO();
   for (let ym = start; ym <= end; ym = ymAdd(ym, 1)) {
     const mp   = pays.filter(x => x.month === ym).sort((a, b) => String(a.paidOn).localeCompare(String(b.paidOn)));
-    const rent = mp.length && paySnap(mp[0]) ? paySnap(mp[0]) : RENT_SUB[kind].amt(h);
+    const rent = mp.length && paySnap(mp[0]) ? paySnap(mp[0]) : kind === "rent" ? rentAt(h, ym) : RENT_SUB[kind].amt(h);
     if (!rent) continue;   // charge removed — only months already paid into stay listed
     const paid = mp.reduce((t, x) => t + x.amount, 0);
     const due  = rentDueDate(h, ym);
@@ -4132,7 +4142,7 @@ function renderRentList() {
           <div class="fin-name">${houseLabelHtml(h)}</div>
           <div class="fin-sub">${RT.sub === "water" && rows[0]
             ? `Last: ${rows[0].label} · ${fmtL(rows[0].bill.usage)} · ${fmtINR(rows[0].rent)}`
-            : `${fmtINR(sub.amt(h))}/month · Due ${ordinal(h.dueDay || 1)}`}${RT.sub === "rent" && depositInfo(h).pending > 0
+            : `${fmtINR(RT.sub === "rent" ? rentAt(h, now) : sub.amt(h))}/month · Due ${ordinal(h.dueDay || 1)}`}${RT.sub === "rent" && depositInfo(h).pending > 0
               ? ` · <span style="color:var(--am)">Deposit due ${fmtINR(depositInfo(h).pending)}</span>` : ""}</div>
         </div>
         <div class="rent-right">${badge}<span class="sm">${due > 0 ? "Total due " + fmtINR(due) : "No dues"}</span>${(cur && cur.balance > 0) || rentPrevDue(h, now, RT.sub).amt > 0 ? `<button class="rm-btn" data-remind="${esc(h.id)}">📲 Remind</button>` : ""}</div>
@@ -4183,7 +4193,9 @@ function renderRentHouse() {
     ${RT.sub === "water"
       ? (rows[0] ? row("Last Reading", `${fmtL(rows[0].bill.present)} <span style="font-size:.7rem;color:var(--tx3)">(${rows[0].label})</span>`) : "") +
         row("Rate", `₹${WATER_RATE} / litre`)
-      : row("Rent Amount", fmtINR(h.rent)) +
+      : row("Rent Amount", fmtINR(rentAt(h, rentYm()))) +
+        ((h.rentHistory || []).length > 1 ? `<div class="fin-sub" style="margin:-.3rem 0 .4rem">${h.rentHistory.slice()
+          .sort((a, b) => a.from.localeCompare(b.from)).map(x => `${fmtINR(x.rent)} from ${ymLabel(x.from)}`).join(" · ")}</div>` : "") +
         (h.occupied ? row("Occupied On", fmtDate(h.occupied)) : "") +
         row("Due Date", ordinal(h.dueDay || 1) + " every month")}
     ${RT.sub === "rent" && +h.deposit ? (() => {
@@ -4227,7 +4239,10 @@ function openHouseForm(h) {
   g("house-name").value    = h ? h.name : "";
   g("house-tenant").value  = h ? h.tenant || "" : "";
   g("house-phone").value   = h ? h.phone || "" : "";
-  g("house-rent").value    = h && +h.rent ? h.rent : "";
+  g("house-rent").value    = h && +h.rent ? rentAt(h, rentYm()) : "";
+  RT.editRent = h ? rentAt(h, rentYm()) : null;
+  g("house-rent-from").value = rentYm();
+  houseRentChanged();
   g("house-due").value     = h ? rentDueDate(h, h.start || ymNow()) : "";   // own date, not tied to occupied date
   g("house-due-f").style.display = water ? "none" : "";
   houseDueHint();
@@ -4250,9 +4265,15 @@ function openHouseForm(h) {
 function houseDueHint() {
   const v = g("house-due").value, hint = g("house-due-hint");
   hint.style.display = "";
-  hint.textContent = /^\d{4}-\d{2}-\d{2}$/.test(v)
-    ? `Due on the ${ordinal(+v.slice(8, 10))} of every month, from ${ymLabel(v.slice(0, 7))}.`
-    : "Pick the first due date — it repeats on the same day every month.";
+  hint.style.color = "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    hint.textContent = "Pick the first due date — it repeats on the same day every month. Old tenant? Pick this month's due date: earlier months are not counted.";
+    return;
+  }
+  const back = (ymNow().slice(0, 4) - v.slice(0, 4)) * 12 + (+ymNow().slice(5) - +v.slice(5, 7));
+  hint.textContent = `Due on the ${ordinal(+v.slice(8, 10))} of every month, from ${ymLabel(v.slice(0, 7))}.` +
+    (back > 1 ? ` ${back} earlier months will be listed as rent due — for an old tenant pick this month instead.` : "");
+  if (back > 1) hint.style.color = "var(--am)";
 }
 
 // New house deposit: Full (all given, on the occupied date) or Partial
@@ -4300,6 +4321,16 @@ function houseDepHint() {
     : `Given ${fmtINR(d.given)} of ${fmtINR(d.deposit)} · Pending ${fmtINR(d.left)}` + " (add more parts now or later from the house page).";
 }
 
+// Editing the rent: ask from which month the new amount applies
+function houseRentChanged() {
+  const show = RT.editRent !== null && !!g("house-id").value && (parseFloat(g("house-rent").value) || 0) !== RT.editRent;
+  g("house-rentfrom-f").style.display = show ? "" : "none";
+  g("house-rentfrom-hint").style.display = show ? "" : "none";
+  const f = g("house-rent-from").value;
+  if (show && f) g("house-rentfrom-hint").textContent =
+    `${fmtINR(g("house-rent").value)} from ${ymLabel(f)} on — months before ${ymLabel(f)} keep ${fmtINR(RT.editRent)}.`;
+}
+
 function closeHouseForm() { g("house-form-bd").classList.remove("open"); }
 
 async function saveHouse() {
@@ -4312,6 +4343,7 @@ async function saveHouse() {
     tenant:  g("house-tenant").value.trim(),
     phone:   g("house-phone").value.trim(),
     rent:    water ? +cur.rent || 0 : parseFloat(g("house-rent").value) || 0,
+    rentFrom: g("house-rentfrom-f").style.display === "" ? g("house-rent-from").value : "",   // only when the rent was changed
     deposit: water ? +cur.deposit || 0 : parseFloat(g("house-deposit").value) || 0,
     occupied: water ? cur.occupied || "" : g("house-occ").value,
     dueDay:  water ? cur.dueDay || 1 : +g("house-due").value.slice(8, 10) || 0,
@@ -4337,6 +4369,10 @@ async function saveHouse() {
   const busy = !water && RT.houses.find(x => x.id !== id && +x.rent > 0 && houseKey(x) === params.name.toLowerCase());
   if (busy) { toast(`${busy.name} is still with ${busy.tenant || "a tenant"} — close that account first`, "error"); return; }
   if (!water && !/^\d{4}-\d{2}-\d{2}$/.test(g("house-due").value)) { toast("Select due date", "error"); return; }
+  if (!water && !id) {   // old tenant entered with an old due date → many months shown as due
+    const back = (ymNow().slice(0, 4) - params.start.slice(0, 4)) * 12 + (+ymNow().slice(5) - +params.start.slice(5));
+    if (back > 1 && !confirm(`Rent will be counted from ${ymLabel(params.start)} — ${back + 1} months will show as due.\n\nOld tenant? Press Cancel and pick this month's due date.`)) return;
+  }
   setBtn("house-submit", true);
   try {
     const res = await rentApi(params);
@@ -4567,7 +4603,7 @@ function houseCloseCalc() {
   if (!h) return null;
   const date = g("hc-date").value || todayISO(), ym = date.slice(0, 7);
   const deposit = depositInfo(h).received;   // only what the tenant actually gave
-  const paint = +h.rent || 0, other = parseFloat(g("hc-other").value) || 0;
+  const paint = rentAt(h, ym), other = parseFloat(g("hc-other").value) || 0;
   const rows = rentMonths(h, "rent"), cur = rows.find(r => r.month === ym);
   const monthDue = cur ? cur.balance : 0;
   const adjust = monthDue > 0 ? [{ kind: "rent", month: ym, amount: monthDue, expected: cur.rent }] : [];
