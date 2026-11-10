@@ -107,6 +107,7 @@ function handleRequest(e) {
       case "getRent":           return respond(getRent(p));
       case "saveHouse":         return respond(saveHouse(p));
       case "deleteHouse":       return respond(deleteHouse(p));
+      case "saveRentNote":      return respond(saveRentNote(p));
       case "saveRentPayment":   return respond(saveRentPayment(p));
       case "deleteRentPayment": return respond(deleteRentPayment(p));
       case "saveWaterBill":     return respond(saveWaterBill(p));
@@ -2604,7 +2605,7 @@ function saveHouse(p) {
       if (from && h.rent !== rentAt(cur, from)) {
         const hist = (cur.rentHistory && cur.rentHistory.length ? cur.rentHistory : [{ from: cur.start || from, rent: cur.rent }])
           .filter(function(x) { return x.from < from; });
-        hist.push({ from: from, rent: h.rent });
+        hist.push({ from: from, rent: h.rent, note: String(p.rentNote || "").trim() });
         cur.rentHistory = hist;
         h.rent = hist.slice().sort(function(a, b) { return a.from.localeCompare(b.from); })[hist.length - 1].rent;   // latest
       } else {
@@ -2633,6 +2634,22 @@ function saveHouse(p) {
         mode: "Cash", remarks: "Deposit", expected: h.deposit, closeAdj: false });
     });
     return { success: true, id: nh.id };
+  });
+}
+
+// Add / change the remark of one rent period (rentHistory entry "from") —
+// also for rents saved before remarks existed
+function saveRentNote(p) {
+  const id = String(p.id || ""), from = String(p.from || "").trim(), note = String(p.note || "").trim();
+  return withRent(p, function(m) {
+    const h = m.houses.filter(function(x) { return x.id === id; })[0];
+    if (!h) return { success: false, error: "House not found." };
+    if (h.closed) return { success: false, error: "A closed house can't be edited." };
+    if (!h.rentHistory || !h.rentHistory.length) h.rentHistory = [{ from: h.start, rent: h.rent }];
+    const e = h.rentHistory.filter(function(x) { return x.from === from; })[0];
+    if (!e) return { success: false, error: "Rent period not found." };
+    e.note = note;
+    return { success: true };
   });
 }
 
@@ -2868,6 +2885,8 @@ function writeRentYearSheets(ss, m) {
         const pays = (r ? r.pays : []).concat(w ? w.pays : [], dep);
         const pending = (r ? r.balance : 0) + (w ? Math.max(0, w.bill.amount - w.paid) : 0);
         const remarks = (w ? [w.bill.usage + " L (" + w.bill.prev + " → " + w.bill.present + ")"] : [])
+          .concat((h.rentHistory || []).filter(function(x) { return x.from === ym && x.note; })
+            .map(function(x) { return "Rent " + x.rent + ": " + x.note; }))
           .concat(dep.map(function(x) { return "Deposit " + x.amount + " received"; }))
           .concat(pays.map(function(x) { return x.kind === "deposit" ? "" : x.remarks; }));
         const row = [rentYmLabel(ym), r ? r.rent : "", r ? r.paid : "", w ? w.bill.amount : "", w ? w.paid : "",

@@ -1462,6 +1462,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="field" id="house-rent-f"><label>Rent Amount (₹)</label><input type="number" id="house-rent" min="1" step="1" inputmode="decimal" placeholder="7000" oninput="houseRentChanged()"/></div>
     <div class="field" id="house-rentfrom-f" style="display:none"><label>New Rent From (Month)</label><input type="month" id="house-rent-from" oninput="houseRentChanged()"/></div>
     <div class="fin-hint" id="house-rentfrom-hint" style="display:none"></div>
+    <div class="field" id="house-rentnote-f" style="display:none"><label>Rent Change Remarks <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="text" id="house-rent-note" placeholder="e.g. Yearly increase" autocomplete="off" maxlength="120"/></div>
     <div class="field" id="house-due-f"><label>First Due Date <span style="color:var(--tx3);font-weight:400;text-transform:none">(rent counted from this month)</span></label><input type="date" id="house-due" oninput="houseDueHint()"/></div>
     <div class="fin-hint" id="house-due-hint"></div>
     <div class="field" id="house-dep-f"><label>Deposit Amount (₹) <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="number" id="house-deposit" min="0" step="1" inputmode="decimal" placeholder="e.g. 30000" oninput="houseDepHint()"/></div>
@@ -4194,8 +4195,9 @@ function renderRentHouse() {
       ? (rows[0] ? row("Last Reading", `${fmtL(rows[0].bill.present)} <span style="font-size:.7rem;color:var(--tx3)">(${rows[0].label})</span>`) : "") +
         row("Rate", `₹${WATER_RATE} / litre`)
       : row("Rent Amount", fmtINR(rentAt(h, rentYm()))) +
-        ((h.rentHistory || []).length > 1 ? `<div class="fin-sub" style="margin:-.3rem 0 .4rem">${h.rentHistory.slice()
-          .sort((a, b) => a.from.localeCompare(b.from)).map(x => `${fmtINR(x.rent)} from ${ymLabel(x.from)}`).join(" · ")}</div>` : "") +
+        `<div class="fin-sub" style="margin:-.3rem 0 .4rem">${rentPeriods(h)
+          .map(x => `${fmtINR(x.rent)} from ${ymLabel(x.from)}${x.note ? ` — 📝 ${esc(x.note)}` : ""}
+            <button class="fin-icon-btn" style="padding:.1rem .35rem;margin-left:.3rem" onclick="editRentNote('${esc(x.from)}')">✏️</button>`).join("<br>")}</div>` +
         (h.occupied ? row("Occupied On", fmtDate(h.occupied)) : "") +
         row("Due Date", ordinal(h.dueDay || 1) + " every month")}
     ${RT.sub === "rent" && +h.deposit ? (() => {
@@ -4217,7 +4219,8 @@ function renderRentHouse() {
         <tr data-month="${esc(r.month)}">
           <td><b>${esc(r.label)}</b><span class="sm">${r.bill ? fmtL(r.bill.usage) : fmtShortDate(r.due)}</span></td>
           <td>${fmtINR(r.rent)}</td>
-          <td class="${r.status === "paid" ? "fin-yes" : r.status === "part" ? "rent-part" : ""}">${r.paid ? fmtINR(r.paid) : "—"}${r.pays.length > 1 ? `<span class="sm">${r.pays.length} payments</span>` : ""}</td>
+          <td class="${r.status === "paid" ? "fin-yes" : r.status === "part" ? "rent-part" : ""}">${r.paid ? fmtINR(r.paid) : "—"}${r.pays.length > 1 ? `<span class="sm">${r.pays.length} payments</span>` : ""}${
+            r.pays.filter(p => p.remarks).map(p => `<span class="sm">📝 ${esc(p.remarks)}</span>`).join("")}</td>
           <td class="${r.balance && r.status !== "up" ? "fin-no" : ""}">${r.balance ? fmtINR(r.balance) : "—"}</td>
           <td>${rentBadge(r.status)}</td>
         </tr>`).join("")}</tbody>
@@ -4242,6 +4245,7 @@ function openHouseForm(h) {
   g("house-rent").value    = h && +h.rent ? rentAt(h, rentYm()) : "";
   RT.editRent = h ? rentAt(h, rentYm()) : null;
   g("house-rent-from").value = rentYm();
+  g("house-rent-note").value = "";
   houseRentChanged();
   g("house-due").value     = h ? rentDueDate(h, h.start || ymNow()) : "";   // own date, not tied to occupied date
   g("house-due-f").style.display = water ? "none" : "";
@@ -4326,9 +4330,31 @@ function houseRentChanged() {
   const show = RT.editRent !== null && !!g("house-id").value && (parseFloat(g("house-rent").value) || 0) !== RT.editRent;
   g("house-rentfrom-f").style.display = show ? "" : "none";
   g("house-rentfrom-hint").style.display = show ? "" : "none";
+  g("house-rentnote-f").style.display = show ? "" : "none";
   const f = g("house-rent-from").value;
   if (show && f) g("house-rentfrom-hint").textContent =
     `${fmtINR(g("house-rent").value)} from ${ymLabel(f)} on — months before ${ymLabel(f)} keep ${fmtINR(RT.editRent)}.`;
+}
+
+// Rent periods: history, or one period from the start for older houses
+function rentPeriods(h) {
+  const hist = (h.rentHistory || []).length ? h.rentHistory : [{ from: h.start || ymNow(), rent: +h.rent || 0 }];
+  return hist.slice().sort((a, b) => a.from.localeCompare(b.from));
+}
+
+// ✏️ on a rent period: add / change its remark (works for existing data too)
+async function editRentNote(from) {
+  const h = RT.houses.find(x => x.id === RT.activeId);
+  const per = h && rentPeriods(h).find(x => x.from === from);
+  if (!per) return;
+  const note = prompt(`Remarks for ${fmtINR(per.rent)} from ${ymLabel(from)}:`, per.note || "");
+  if (note === null) return;
+  try {
+    const res = await rentApi({ action: "saveRentNote", id: h.id, from, note: note.trim() });
+    if (!res.success) { toast(res.error || "Save failed", "error"); return; }
+    toast("Remarks saved", "success");
+    applyRent(res);
+  } catch (e) { toast("Save failed. Check internet.", "error"); }
 }
 
 function closeHouseForm() { g("house-form-bd").classList.remove("open"); }
@@ -4344,6 +4370,7 @@ async function saveHouse() {
     phone:   g("house-phone").value.trim(),
     rent:    water ? +cur.rent || 0 : parseFloat(g("house-rent").value) || 0,
     rentFrom: g("house-rentfrom-f").style.display === "" ? g("house-rent-from").value : "",   // only when the rent was changed
+    rentNote: g("house-rent-note").value.trim(),
     deposit: water ? +cur.deposit || 0 : parseFloat(g("house-deposit").value) || 0,
     occupied: water ? cur.occupied || "" : g("house-occ").value,
     dueDay:  water ? cur.dueDay || 1 : +g("house-due").value.slice(8, 10) || 0,
