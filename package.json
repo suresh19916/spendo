@@ -1,7 +1,0 @@
-{
-  "name": "spendo",
-  "private": true,
-  "scripts": {
-    "test": "TZ=Asia/Kolkata node --test tests/*.test.js"
-  }
-}

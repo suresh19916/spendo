@@ -42,6 +42,7 @@ function alignAllSheets() {
   SpreadsheetApp.getActiveSpreadsheet().getSheets().forEach(function(sheet) {
     const name = sheet.getName();
     if (name === SHEET_LOGIN || name === SHEET_FINANCE || name === SHEET_CHIT) return;
+    if (name.indexOf("Rent") === 0) return;   // v4.12 — Rentals storage / year sheets format themselves
     const last = sheet.getLastRow(), cols = sheet.getLastColumn();
     if (last < 2 || cols < 1) return;
     alignRows(sheet, 2, sheet.getRange(2, 1, last - 1, cols).getValues());
@@ -102,6 +103,15 @@ function handleRequest(e) {
       case "saveNotification":    return respond(saveNotification(p));
       case "deleteNotification":  return respond(deleteNotification(p));
       case "addDefaultNotifications": return respond(addDefaultNotifications(p));   // v4.8
+      // v4.12 — Rentals (House Rent + Water Charges)
+      case "getRent":           return respond(getRent(p));
+      case "saveHouse":         return respond(saveHouse(p));
+      case "deleteHouse":       return respond(deleteHouse(p));
+      case "saveRentPayment":   return respond(saveRentPayment(p));
+      case "deleteRentPayment": return respond(deleteRentPayment(p));
+      case "saveWaterBill":     return respond(saveWaterBill(p));
+      case "deleteWaterBill":   return respond(deleteWaterBill(p));
+      case "closeHouse":        return respond(closeHouse(p));
       default: return respond({ success: false, error: "Unknown action: " + action });
     }
   } catch (err) {
@@ -2410,6 +2420,441 @@ function saveChitMonth(p) {
     }
     return { success: true };
   });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Rentals  (v4.12) — House Rent + Water Charges (Rentals tab)
+//
+//  Like ChitFunds, the sheets are the only storage: one "Rentals <year>"
+//  sheet per year, a block per house with months in that year:
+//    Title   : 1*1  Yogendra                         | I: "house"  J: house JSON
+//    Info    : Occupied Date | date | Deposit Amount | amt | Rent Monthly | amt
+//    Info    : Paint Charge | 1 month rent (amt) | Water / Litre | ₹0.15
+//              (closed: … | Closed On | date | Final Return Deposit | amt)
+//    Header  : Month | Rent Monthly | Rent Received | Water Amount | Water Received
+//              | Pending Rent/Water Amount | Transaction Mode | Remarks
+//    Months  : one row per month                    | I: yyyy-MM  J: {p: payments, b: reading}
+//    Total   : sums of the month rows
+//    (blank row between blocks)
+//  A closed house (Close Account) moves to the "Closed Rentals" sheet — one
+//  block with all its months — and leaves the year sheets and the app; the
+//  new tenant's house takes its place in "Rentals <year>".
+//  Sheets are made only for years that have started — a later-year month
+//  (advance payment) is kept in the current year's sheet.
+//  Columns I:J are hidden and hold every detail (several part payments a
+//  month, meter readings, IDs), so A–H are the readable view: parsed from I:J
+//  on every request and fully rewritten on save — hand edits in A–H are
+//  overwritten. A house spanning years has a block in each year's sheet; a
+//  house with no month yet sits in its start year with no month rows.
+//
+//  A house lists every month from Start (month of its first due date) till
+//  now; once closed, till the close month. A month's rent is the Expected
+//  saved with its first payment, else the house's current rent. Water is one
+//  bill per meter reading: Usage = Present − Previous, Amount = round(Usage ×
+//  Rate). Close Account: Final Return Deposit = Deposit − close month's unpaid
+//  rent − Paint (one month's rent) − Other; the close month's unpaid rent is
+//  saved as a "Deposit" payment.
+// ─────────────────────────────────────────────────────────────
+
+const RENT_YEAR_PREFIX  = "Rentals ";
+const RENT_CLOSED_SHEET = "Closed Rentals";
+const RENT_YEAR_COLS   = 10;   // A–H visible, I–J hidden data
+const RENT_MODES       = ["Cash", "UPI", "Bank Transfer", "Cheque", "Deposit", "Other"];
+
+function rentNum(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function rentId() { return Utilities.getUuid().substring(0, 8); }
+function rentNow() { return remToday().slice(0, 7); }
+function rentYmAdd(ym, n) {
+  const p = ym.split("-").map(Number), t = p[0] * 12 + (p[1] - 1) + n;
+  return Math.floor(t / 12) + "-" + ("0" + (t % 12 + 1)).slice(-2);
+}
+function rentYmLabel(ym) { return MONTHS[+ym.slice(5, 7) - 1] + " " + ym.slice(0, 4); }
+
+function rentYearSheets(ss) {
+  return ss.getSheets().filter(function(sh) {
+    return /^\d{4}$/.test(sh.getName().slice(RENT_YEAR_PREFIX.length)) && sh.getName().indexOf(RENT_YEAR_PREFIX) === 0;
+  }).sort(function(a, b) { return a.getName().localeCompare(b.getName()); });
+}
+
+// Every sheet holding rentals: the year sheets, then Closed Rentals
+function rentDataSheets(ss) {
+  const closed = ss.getSheetByName(RENT_CLOSED_SHEET);
+  return rentYearSheets(ss).concat(closed ? [closed] : []);
+}
+
+// Year sheets (hidden I:J) → { houses, payments, bills }
+function rentModel(ss) {
+  const houses = {}, payments = {}, bills = {};
+  rentDataSheets(ss).forEach(function(sh) {
+    let cur = null;
+    sh.getDataRange().getValues().forEach(function(row) {
+      const key = finMonthKey(row[8]), json = String(row[9] || "");
+      if (!json) return;
+      let o;
+      try { o = JSON.parse(json); } catch (e) { return; }
+      if (key === "house") {
+        cur = o.id;
+        houses[o.id] = o;   // a later year's copy wins
+      } else if (cur && /^\d{4}-\d{2}$/.test(key)) {
+        (o.p || []).forEach(function(x) { x.houseId = cur; x.month = key; payments[x.id] = x; });
+        if (o.b) { o.b.houseId = cur; o.b.month = key; bills[o.b.id] = o.b; }
+      }
+    });
+  });
+  const vals = function(map) { return Object.keys(map).map(function(k) { return map[k]; }); };
+  return {
+    houses: vals(houses).map(function(h) {
+      return { id: h.id, userName: h.userName || "", name: h.name || "", tenant: h.tenant || "", phone: h.phone || "", rent: rentNum(h.rent),
+        deposit: rentNum(h.deposit), occupied: h.occupied || "", dueDay: parseInt(h.dueDay, 10) || 1, start: h.start || "",
+        active: h.active === "No" ? "No" : "Yes", note: h.note || "", closed: h.closed || null, createdAt: h.createdAt || "" };
+    }),
+    payments: vals(payments).map(function(x) {
+      return { id: x.id, houseId: x.houseId, kind: x.kind === "water" ? "water" : "rent", month: x.month,
+        amount: rentNum(x.amount), paidOn: x.paidOn || "", mode: x.mode || "", remarks: x.remarks || "",
+        expected: rentNum(x.expected), closeAdj: !!x.closeAdj };
+    }),
+    bills: vals(bills).map(function(b) {
+      return { id: b.id, houseId: b.houseId, month: b.month, prev: rentNum(b.prev), present: rentNum(b.present),
+        usage: rentNum(b.usage), rate: rentNum(b.rate), amount: rentNum(b.amount) };
+    })
+  };
+}
+
+// The app's view: houses of listUser (all for admin) + their payments / readings
+// Closed houses are left out; only their last meter reading is sent (meters),
+// so a new tenant's first reading continues from it.
+function rentResult(m, listUser) {
+  const user = String(listUser || "").trim();
+  const mine = m.houses.filter(function(h) { return !user || h.userName === user; });
+  const houses = mine.filter(function(h) { return !h.closed; });
+  const meters = [];
+  mine.filter(function(h) { return h.closed; }).forEach(function(h) {
+    const last = m.bills.filter(function(b) { return b.houseId === h.id; })
+      .sort(function(a, b) { return b.month.localeCompare(a.month); })[0];
+    if (last) meters.push({ name: h.name, tenant: h.tenant, month: last.month, present: last.present });
+  });
+  const ids = {};
+  houses.forEach(function(h) { ids[h.id] = true; });
+  const strip = function(h) { const o = {}; Object.keys(h).forEach(function(k) { if (k !== "createdAt") o[k] = h[k]; }); return o; };
+  return {
+    houses: houses.map(strip),
+    payments: m.payments.filter(function(x) { return ids[x.houseId]; }),
+    bills: m.bills.filter(function(b) { return ids[b.houseId]; }),
+    meters: meters
+  };
+}
+
+// Read-modify-write under the script lock; on success the storage and the
+// year sheets are rewritten and the caller gets the fresh lists back.
+function withRent(p, fn) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet(), m = rentModel(ss);
+    const res = fn(m);
+    if (!res.success) return res;
+    writeRentYearSheets(ss, m);
+    const out = rentResult(m, p.listUser);
+    res.houses = out.houses; res.payments = out.payments; res.bills = out.bills; res.meters = out.meters;
+    return res;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getRent(p) {
+  const out = rentResult(rentModel(SpreadsheetApp.getActiveSpreadsheet()), p.listUser);
+  return { success: true, houses: out.houses, payments: out.payments, bills: out.bills, meters: out.meters };
+}
+
+function saveHouse(p) {
+  const h = {
+    name: String(p.name || "").trim(), tenant: String(p.tenant || "").trim(),
+    rent: rentNum(p.rent), deposit: rentNum(p.deposit), occupied: p.occupied ? finDate(p.occupied) : "",
+    phone: String(p.phone || "").replace(/[^\d+]/g, ""),
+    dueDay: parseInt(p.dueDay, 10) || 0, start: String(p.start || "").trim(), note: String(p.note || "").trim()
+  };
+  if (!h.name) return { success: false, error: "Enter house no." };
+  if (h.rent < 0 || h.deposit < 0) return { success: false, error: "Amounts can't be negative." };
+  if (h.dueDay < 1 || h.dueDay > 31) return { success: false, error: "Due date must be 1 to 31." };
+  if (!/^\d{4}-\d{2}$/.test(h.start)) return { success: false, error: "Select due date." };
+  const id = String(p.id || "");
+  return withRent(p, function(m) {
+    const key = h.name.toLowerCase();
+    const busy = h.rent > 0 && m.houses.filter(function(x) {
+      return x.id !== id && !x.closed && x.rent > 0 && x.name.trim().toLowerCase() === key;
+    })[0];
+    if (busy) return { success: false, error: busy.name + " is still with " + (busy.tenant || "a tenant") + " — close that account first." };
+    if (id) {
+      const cur = m.houses.filter(function(x) { return x.id === id; })[0];
+      if (!cur) return { success: false, error: "House not found." };
+      if (cur.closed) return { success: false, error: "A closed house can't be edited." };
+      Object.keys(h).forEach(function(k) { cur[k] = h[k]; });
+      return { success: true, id: id };
+    }
+    const nh = Object.assign({ id: rentId(), userName: String(p.userName || "").trim(), active: "Yes", closed: null,
+      createdAt: new Date().toISOString() }, h);
+    m.houses.push(nh);
+    return { success: true, id: nh.id };
+  });
+}
+
+function deleteHouse(p) {
+  const id = String(p.id || "");
+  return withRent(p, function(m) {
+    if (!m.houses.some(function(x) { return x.id === id; })) return { success: false, error: "House not found." };
+    m.houses   = m.houses.filter(function(x) { return x.id !== id; });
+    m.payments = m.payments.filter(function(x) { return x.houseId !== id; });
+    m.bills    = m.bills.filter(function(x) { return x.houseId !== id; });
+    return { success: true };
+  });
+}
+
+function saveRentPayment(p) {
+  const x = {
+    houseId: String(p.houseId || ""), kind: p.kind === "water" ? "water" : "rent", month: String(p.month || "").trim(),
+    amount: rentNum(p.amount), paidOn: p.paidOn ? finDate(p.paidOn) : "", mode: RENT_MODES.indexOf(p.mode) >= 0 ? p.mode : "Other",
+    remarks: String(p.remarks || "").trim(), expected: rentNum(p.expected)
+  };
+  if (!/^\d{4}-\d{2}$/.test(x.month)) return { success: false, error: "Month is required." };
+  if (x.amount <= 0) return { success: false, error: "Enter amount received." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(x.paidOn)) return { success: false, error: "Select paid on date." };
+  const id = String(p.id || "");
+  return withRent(p, function(m) {
+    const h = m.houses.filter(function(y) { return y.id === x.houseId; })[0];
+    if (!h) return { success: false, error: "House not found." };
+    // No more than the month's balance (this payment's old amount freed up when editing)
+    const others = m.payments.filter(function(y) { return y.houseId === h.id && y.kind === x.kind && y.month === x.month && y.id !== id; });
+    const bill = m.bills.filter(function(b) { return b.houseId === h.id && b.month === x.month; })[0];
+    const owed = x.kind === "water" ? (bill ? bill.amount : 0)
+      : (others.length && others[0].expected ? others[0].expected : x.expected || h.rent);
+    const left = owed - others.reduce(function(t, y) { return t + y.amount; }, 0);
+    if (x.amount > left + 0.001) return { success: false, error: "Amount is more than the balance ₹" + Math.max(0, left) + "." };
+    if (!x.expected) x.expected = owed;
+    if (id) {
+      if (h.closed) return { success: false, error: "A closed house's payments can't be edited." };
+      const cur = m.payments.filter(function(y) { return y.id === id; })[0];
+      if (!cur) return { success: false, error: "Payment not found." };
+      Object.keys(x).forEach(function(k) { cur[k] = x[k]; });
+      return { success: true, id: id };
+    }
+    const np = Object.assign({ id: rentId(), closeAdj: false }, x);
+    m.payments.push(np);
+    return { success: true, id: np.id };
+  });
+}
+
+function deleteRentPayment(p) {
+  const id = String(p.id || "");
+  return withRent(p, function(m) {
+    const x = m.payments.filter(function(y) { return y.id === id; })[0];
+    if (!x) return { success: false, error: "Payment not found." };
+    const h = m.houses.filter(function(y) { return y.id === x.houseId; })[0];
+    if (h && h.closed) return { success: false, error: "A closed house's payments can't be deleted." };
+    m.payments = m.payments.filter(function(y) { return y.id !== id; });
+    return { success: true };
+  });
+}
+
+// Add / edit one meter reading; an empty houseId creates a water-only house
+function saveWaterBill(p) {
+  const month = String(p.month || "").trim(), prev = rentNum(p.prev), present = rentNum(p.present);
+  const rate = rentNum(p.rate) || 0.15, usage = present - prev;
+  if (!/^\d{4}-\d{2}$/.test(month)) return { success: false, error: "Select month." };
+  if (usage < 0) return { success: false, error: "Present reading is less than previous." };
+  const b = { month: month, prev: prev, present: present, usage: usage, rate: rate, amount: Math.round(usage * rate) };
+  const id = String(p.id || "");
+  return withRent(p, function(m) {
+    let houseId = String(p.houseId || "");
+    if (!houseId) {
+      const name = String(p.name || "").trim();
+      if (!name) return { success: false, error: "Enter house no." };
+      houseId = rentId();
+      m.houses.push({ id: houseId, userName: String(p.userName || "").trim(), name: name, tenant: String(p.tenant || "").trim(),
+        phone: String(p.phone || "").replace(/[^\d+]/g, ""), rent: 0, deposit: 0, occupied: "", dueDay: 1, start: month, active: "Yes", note: "", closed: null,
+        createdAt: new Date().toISOString() });
+    }
+    const h = m.houses.filter(function(x) { return x.id === houseId; })[0];
+    if (!h) return { success: false, error: "House not found." };
+    if (h.closed) return { success: false, error: "A closed house can't take new readings." };
+    if (m.bills.some(function(x) { return x.houseId === houseId && x.month === month && x.id !== id; })) {
+      return { success: false, error: "Reading for " + rentYmLabel(month) + " already added — edit it." };
+    }
+    b.houseId = houseId;
+    if (!id) { b.id = rentId(); m.bills.push(b); return { success: true, id: b.id }; }
+    const cur = m.bills.filter(function(x) { return x.id === id; })[0];
+    if (!cur) return { success: false, error: "Reading not found." };
+    if (cur.month !== month && m.payments.some(function(x) { return x.houseId === houseId && x.kind === "water" && x.month === cur.month; })) {
+      return { success: false, error: "This month has payments — can't move it to another month." };
+    }
+    Object.keys(b).forEach(function(k) { cur[k] = b[k]; });
+    return { success: true, id: id };
+  });
+}
+
+function deleteWaterBill(p) {
+  const id = String(p.id || "");
+  return withRent(p, function(m) {
+    const b = m.bills.filter(function(x) { return x.id === id; })[0];
+    if (!b) return { success: false, error: "Reading not found." };
+    const h = m.houses.filter(function(x) { return x.id === b.houseId; })[0];
+    if (h && h.closed) return { success: false, error: "A closed house's readings can't be deleted." };
+    if (m.payments.some(function(x) { return x.houseId === b.houseId && x.kind === "water" && x.month === b.month; })) {
+      return { success: false, error: "Delete this month's payments first." };
+    }
+    m.bills = m.bills.filter(function(x) { return x.id !== id; });
+    return { success: true };
+  });
+}
+
+// Close Account — the settlement is recomputed here, not taken from the client
+function closeHouse(p) {
+  const id = String(p.id || "");
+  let sent = {};
+  try { sent = JSON.parse(p.closed || "{}"); } catch (e) { return { success: false, error: "Bad close data." }; }
+  const date = finDate(sent.date || remToday());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { success: false, error: "Select close date." };
+  const other = rentNum(sent.other);
+  if (other < 0) return { success: false, error: "Charges can't be negative." };
+  return withRent(p, function(m) {
+    const h = m.houses.filter(function(x) { return x.id === id; })[0];
+    if (!h) return { success: false, error: "House not found." };
+    if (h.closed) return { success: false, error: "Already closed." };
+    const ym = date.slice(0, 7);
+    const row = rentHouseMonths(h, m.payments).filter(function(r) { return r.month === ym; })[0];
+    const monthDue = row ? row.balance : 0, paint = h.rent;
+    const refund = h.deposit - monthDue - paint - other;
+    if (monthDue > 0) {
+      m.payments.push({ id: rentId(), houseId: h.id, kind: "rent", month: ym, amount: monthDue, paidOn: date,
+        mode: "Deposit", remarks: "Adjusted from deposit", expected: row.rent, closeAdj: true });
+    }
+    h.active = "No";
+    h.closed = { date: date, deposit: h.deposit, monthDue: monthDue, paint: paint, other: other,
+      refund: refund, note: String(sent.note || "").trim() };
+    return { success: true };
+  });
+}
+
+// Rent months of a house (oldest first) — same rules as the app
+function rentHouseMonths(h, payments) {
+  const pays = payments.filter(function(x) { return x.houseId === h.id && x.kind === "rent"; });
+  const lastPay = pays.reduce(function(a, x) { return x.month > a ? x.month : a; }, "");
+  const firstPay = pays.reduce(function(a, x) { return !a || x.month < a ? x.month : a; }, "");
+  const now = rentNow(), start = firstPay && (!h.start || firstPay < h.start) ? firstPay : (h.start || now);
+  const stop = h.closed ? String(h.closed.date).slice(0, 7) : (lastPay || start);
+  const end = h.active === "No" ? (lastPay > stop ? lastPay : stop) : (lastPay > now ? lastPay : now);
+  const rows = [];
+  for (let ym = start; ym <= end; ym = rentYmAdd(ym, 1)) {
+    const mp = pays.filter(function(x) { return x.month === ym; })
+      .sort(function(a, b) { return String(a.paidOn).localeCompare(String(b.paidOn)); });
+    const rent = mp.length && mp[0].expected ? mp[0].expected : h.rent;
+    if (!rent && !mp.length) continue;
+    const paid = mp.reduce(function(t, x) { return t + x.amount; }, 0);
+    rows.push({ month: ym, rent: rent, paid: paid, balance: Math.max(0, rent - paid), pays: mp });
+  }
+  return rows;
+}
+
+// "Rentals <year>": a block per open house with months in that year;
+// "Closed Rentals": a block per closed house with all its months (the
+// storage — see the Rentals header). Hidden I:J carry the house JSON / month data.
+function writeRentYearSheets(ss, m) {
+  const years = {};   // year → [rows]
+  const closedOut = [];
+  const fmtD = function(d) { return /^\d{4}-\d{2}-\d{2}$/.test(d || "") ? d.slice(8) + " " + MONTHS[+d.slice(5, 7) - 1] + " " + d.slice(0, 4) : ""; };
+  const uniq = function(list) { return list.filter(function(v, i) { return v && list.indexOf(v) === i; }); };
+
+  m.houses.slice().sort(function(a, b) {
+    // closed: latest close first; open: by house no.
+    return a.closed && b.closed ? String(b.closed.date).localeCompare(String(a.closed.date)) : (a.name + a.tenant).localeCompare(b.name + b.tenant);
+  }).forEach(function(h) {
+    const rentRows = rentHouseMonths(h, m.payments), byMonth = {};
+    rentRows.forEach(function(r) { (byMonth[r.month] = byMonth[r.month] || {}).rent = r; });
+    m.bills.filter(function(b) { return b.houseId === h.id; }).forEach(function(b) {
+      const wp = m.payments.filter(function(x) { return x.houseId === h.id && x.kind === "water" && x.month === b.month; });
+      (byMonth[b.month] = byMonth[b.month] || {}).water = { bill: b, paid: wp.reduce(function(t, x) { return t + x.amount; }, 0), pays: wp };
+    });
+    const months = Object.keys(byMonth).sort();
+    // No sheet for a year that hasn't started: a month in a later year (advance
+    // payment / reading) is kept in this year's sheet
+    const thisYear = remToday().slice(0, 4);
+    const sheetYear = function(ym) { const y = ym.slice(0, 4); return y > thisYear ? thisYear : y; };
+    const yearList = h.closed ? ["closed"] : uniq(months.map(sheetYear));
+    // no month yet (first due date ahead): keep the house in this year (or its start year if earlier)
+    if (!yearList.length) yearList.push(sheetYear(String(h.start || h.createdAt || remToday())));
+    const houseJson = JSON.stringify({ id: h.id, userName: h.userName, name: h.name, tenant: h.tenant, phone: h.phone || "", rent: h.rent,
+      deposit: h.deposit, occupied: h.occupied, dueDay: h.dueDay, start: h.start, active: h.active, note: h.note,
+      closed: h.closed || null, createdAt: h.createdAt });
+    const strip = function(o, drop) { const c = {}; Object.keys(o).forEach(function(k) { if (drop.indexOf(k) < 0) c[k] = o[k]; }); return c; };
+    yearList.forEach(function(y) {
+      const out = y === "closed" ? closedOut : (years[y] = years[y] || []);
+      out.push({ kind: "title", v: [h.name + (h.tenant ? "  " + h.tenant : "") + (h.closed ? "  (Closed)" : "")], key: "house", data: houseJson });
+      out.push({ kind: "info", v: ["Occupied Date", fmtD(h.occupied), "Deposit Amount", h.deposit, "Rent Monthly", h.rent] });
+      out.push({ kind: "info", v: h.closed
+        ? ["Paint Charge", h.closed.paint, "Water / Litre", "₹" + (m.bills.filter(function(b) { return b.houseId === h.id; }).map(function(b) { return b.rate; })[0] || 0.15),
+           "Closed On", fmtD(h.closed.date), "Final Return Deposit", h.closed.refund]
+        : ["Paint Charge", "1 month rent (" + h.rent + ")", "Water / Litre", "₹0.15"] });
+      out.push({ kind: "head", v: ["Month", "Rent Monthly", "Rent Received", "Water Amount", "Water Received",
+        "Pending Rent/Water Amount", "Transaction Mode", "Remarks"] });
+      const t = [0, 0, 0, 0, 0];
+      months.filter(function(ym) { return y === "closed" || sheetYear(ym) === y; }).forEach(function(ym) {
+        const r = byMonth[ym].rent, w = byMonth[ym].water;
+        const pays = (r ? r.pays : []).concat(w ? w.pays : []);
+        const pending = (r ? r.balance : 0) + (w ? Math.max(0, w.bill.amount - w.paid) : 0);
+        const remarks = (w ? [w.bill.usage + " L (" + w.bill.prev + " → " + w.bill.present + ")"] : [])
+          .concat(pays.map(function(x) { return x.remarks; }));
+        const row = [rentYmLabel(ym), r ? r.rent : "", r ? r.paid : "", w ? w.bill.amount : "", w ? w.paid : "",
+          pending, uniq(pays.map(function(x) { return x.mode; })).join(", "), uniq(remarks).join("; ")];
+        [1, 2, 3, 4, 5].forEach(function(c, i) { t[i] += rentNum(row[c]); });
+        out.push({ kind: "data", v: row, key: ym, data: JSON.stringify({
+          p: pays.map(function(x) { return strip(x, ["houseId", "month"]); }),
+          b: w ? strip(w.bill, ["houseId", "month"]) : null }) });
+      });
+      out.push({ kind: "total", v: ["Total", t[0], t[1], t[2], t[3], t[4], "", ""] });
+      out.push({ kind: "blank", v: [] });
+    });
+  });
+
+  const keep = {};
+  Object.keys(years).forEach(function(y) {
+    keep[RENT_YEAR_PREFIX + y] = true;
+    writeRentSheet(ss, RENT_YEAR_PREFIX + y, years[y]);
+  });
+  if (closedOut.length) writeRentSheet(ss, RENT_CLOSED_SHEET, closedOut);
+  else if (ss.getSheetByName(RENT_CLOSED_SHEET)) ss.getSheetByName(RENT_CLOSED_SHEET).clear();
+  // a year with no open house left is emptied, not deleted
+  rentYearSheets(ss).forEach(function(sh) { if (!keep[sh.getName()]) sh.clear(); });
+}
+
+function writeRentSheet(ss, name, blocks) {
+  const sheet = ss.getSheetByName(name) || ss.insertSheet(name);
+  const vals = blocks.map(function(b) {
+    const a = b.v.slice();
+    while (a.length < 8) a.push("");
+    a.push(b.key || "", b.data || "");
+    return a;
+  });
+  sheet.clear();
+  const all = sheet.getRange(1, 1, vals.length, RENT_YEAR_COLS);
+  // Month labels and the info rows' dates stay text ("Nov 2026", "31 Jul 2026");
+  // amount cells keep the number format so sums work in the sheet
+  const textCells = ["A1:A" + vals.length, "I1:J" + vals.length];
+  blocks.forEach(function(b, i) { if (b.kind === "info") textCells.push("B" + (i + 1), "F" + (i + 1)); });
+  sheet.getRangeList(textCells).setNumberFormat("@");
+  all.setValues(vals);
+  const at = function(kind) { const l = []; blocks.forEach(function(b, i) { if (b.kind === kind) l.push("A" + (i + 1) + ":H" + (i + 1)); }); return l; };
+  const t = at("title"), inf = at("info"), hd = at("head"), tot = at("total");
+  if (t.length) sheet.getRangeList(t).setFontWeight("bold").setFontSize(12).setBackground("#1e7d55").setFontColor("#ffffff");
+  if (inf.length) sheet.getRangeList(inf).setBackground("#eef7f2");
+  if (hd.length) sheet.getRangeList(hd).setFontWeight("bold").setBackground("#d9d9d9");
+  if (tot.length) sheet.getRangeList(tot).setFontWeight("bold").setBackground("#f3f3f3");
+  const data = {};
+  blocks.forEach(function(b, i) { if (b.kind === "data" || b.kind === "total") data[i] = true; });
+  all.setHorizontalAlignments(dataAlignments(vals, data, 8));
+  if (!sheet.isColumnHiddenByUser(9)) {
+    [110, 110, 110, 110, 120, 170, 130, 220].forEach(function(w, i) { sheet.setColumnWidth(i + 1, w); });
+    sheet.hideColumns(9, 2);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

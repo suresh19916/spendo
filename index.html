@@ -430,6 +430,50 @@ html.popup-open{overflow:hidden}
 .rem-grid input{min-width:0}
 .rem-del{width:100%;margin-top:.6rem;color:var(--rd);display:none}
 #fm-month{opacity:.65}
+/* v4.11 — House Rent tab */
+#rent-fab{display:none}
+.rent-subtabs{grid-template-columns:repeat(3,1fr)}
+.rent-subtabs .fin-subtab{padding:.5rem .2rem;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fin-table tr.dash-total td{background:var(--bg3);font-weight:800}
+.rent-card .fin-name{font-size:1.22rem;font-weight:800;letter-spacing:-.01em}
+.house-tn{font-family:'DM Sans',sans-serif;font-size:1.02rem;font-weight:700;color:var(--tx2);margin-left:.5rem}
+.fin-title .house-tn{font-size:1.02rem}
+/* v4.11 — number fields: no spinner arrows anywhere in the app */
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.rent-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.45rem;margin-bottom:.9rem}
+.rent-stat{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r2);padding:.6rem .55rem;min-width:0}
+.rent-stat .l{font-size:.62rem;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.rent-stat .v{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;margin-top:.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rent-stat .s{font-size:.62rem;color:var(--tx3);margin-top:.1rem}
+.rent-badge{display:inline-block;font-size:.66rem;font-weight:700;padding:.18rem .5rem;border-radius:20px;white-space:nowrap}
+.rent-badge.paid{background:var(--grbg);color:var(--gr)}
+.rent-badge.part{background:var(--ambg);color:var(--am)}
+.rent-badge.pend{background:var(--rdbg);color:var(--rd)}
+.rent-badge.up{background:var(--sur2);color:var(--tx3)}
+.rent-right{text-align:right;flex-shrink:0}
+.rent-right .sm{display:block;font-size:.66rem;color:var(--tx3);margin-top:.25rem;white-space:nowrap}
+.rent-card.off{opacity:.55}
+.rent-part{color:var(--am);font-weight:700}
+.rent-hist-row{display:flex;align-items:center;gap:.5rem;padding:.55rem 0;border-bottom:1px solid var(--bdr);font-size:.8rem}
+.rent-hist-row:last-child{border-bottom:none}
+.rent-hist-row .d{flex:1;min-width:0}
+.rent-hist-row .d .sm{display:block;font-size:.66rem;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rent-hist-row .a{font-family:'Syne',sans-serif;font-weight:700;color:var(--gr);white-space:nowrap}
+.rent-hist-row.editing{background:var(--acbg);border-radius:8px;padding-left:.4rem;padding-right:.4rem}
+.rent-box{background:var(--bg3);border:1px solid var(--bdr2);border-radius:var(--r2);padding:0 .8rem;margin-bottom:.9rem}
+.rent-box .carry-row{padding:.5rem 0}
+.rent-box .carry-month{font-size:.8rem;font-weight:500;color:var(--tx2)}
+#rent-pay-bd,#house-close-bd{z-index:210}
+#water-form-bd{z-index:220}
+#remind-bd{z-index:230}
+.rm-btn{background:var(--acbg);border:1px solid rgba(34,227,154,.3);border-radius:8px;color:var(--ac2);font-size:.72rem;font-weight:700;padding:.2rem .45rem;cursor:pointer;margin-top:.25rem;font-family:inherit}
+.hc-in{display:flex;align-items:center;gap:.15rem}
+.hc-in input{width:6.2rem;text-align:right;background:var(--sur2);border:1.5px solid var(--bdr2);border-radius:8px;padding:.35rem .5rem;color:var(--tx);font-family:'Syne',sans-serif;font-weight:700;font-size:.92rem}
+.hc-in input:focus{outline:none;border-color:var(--ac)}
+.rent-settle{font-size:.85rem;font-weight:700;text-align:center;border-radius:var(--r2);padding:.65rem .7rem;margin-bottom:.9rem}
+.rent-settle.g{background:var(--grbg);color:var(--gr)}.rent-settle.r{background:var(--rdbg);color:var(--rd)}
+.rent-settle .sm{display:block;font-size:.68rem;font-weight:500;color:var(--tx3);margin-top:.2rem}
 
 /* ════ App install banner & offline pill ════ */
 #install-bar{position:fixed;left:50%;bottom:calc(5rem + var(--sb));transform:translateX(-50%);z-index:450;width:calc(100% - 1.4rem);max-width:420px;background:var(--sur2);border:1px solid var(--bdr2);border-radius:var(--r);padding:.7rem .8rem;display:none;align-items:center;gap:.6rem;box-shadow:0 6px 22px rgba(0,0,0,.45);animation:tIn .19s ease}
@@ -598,8 +642,8 @@ html.popup-open{overflow:hidden}
 .module-tabs-row{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem}
 .module-tabs-row .module-tabs{flex:1;margin-bottom:0}
 /* v4.8 — main tabs use the Finance sub-tab look */
-.module-tabs-row .module-subtabs{flex:1;min-width:0;margin-bottom:0;grid-template-columns:repeat(3,1fr);gap:.15rem;padding:.2rem}
-.module-subtabs .fin-subtab{padding:.55rem 0;font-size:.76rem;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.module-tabs-row .module-subtabs{flex:1;min-width:0;margin-bottom:0;grid-template-columns:repeat(4,1fr);gap:.15rem;padding:.2rem}
+.module-subtabs .fin-subtab{padding:.55rem 0;font-size:.72rem;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .module-tabs-row{gap:.4rem}
 .module-tabs{
   display:grid;grid-template-columns:1fr;gap:.45rem;
@@ -905,6 +949,7 @@ html.popup-open{overflow:hidden}
         <button class="fin-subtab active" id="mt-exp" onclick="switchModule('exp')">📊 Expenses</button>
         <button class="fin-subtab" id="mt-fin" onclick="switchModule('fin')">💼 Finance</button>
         <button class="fin-subtab" id="mt-rem" onclick="switchModule('rem')">🔔 Reminders</button>
+        <button class="fin-subtab" id="mt-rent" onclick="switchModule('rent')">🏘 Rentals</button>
       </div>
       <!-- Eye toggle: hide/show all amounts -->
       <button class="eye-toggle-btn" id="eye-toggle" onclick="toggleAmounts()" title="Show / Hide amounts">
@@ -1039,6 +1084,29 @@ html.popup-open{overflow:hidden}
       <div id="rem-list"></div>
     </div>
 
+    <!-- ── HOUSE RENT SECTION (v4.11) ── -->
+    <div id="rent-section" style="display:none">
+      <div class="fin-subtabs rent-subtabs">
+        <button class="fin-subtab active" id="rst-dash" onclick="switchRentSub('dash')">📊 Dashboard</button>
+        <button class="fin-subtab" id="rst-rent" onclick="switchRentSub('rent')">🏠 House Rent</button>
+        <button class="fin-subtab" id="rst-water" onclick="switchRentSub('water')">💧 Water</button>
+      </div>
+      <div id="rent-dash-view">
+        <div id="rent-dash"></div>
+      </div>
+      <div id="rent-list-view" style="display:none">
+        <div class="fin-title" id="rent-title">House Rent</div>
+        <div id="rent-summary"></div>
+        <div id="rent-list"></div>
+      </div>
+      <div id="rent-house-view" style="display:none">
+        <button class="fin-back" onclick="closeRentHouse()">← All houses</button>
+        <div id="rent-h-head"></div>
+        <div class="fin-sec" id="rent-h-sec">Month-wise rent</div>
+        <div id="rent-h-table"></div>
+      </div>
+    </div>
+
   </div><!-- end content -->
 
   <!-- v3.4 — Saving tab removed; the Saving Google Sheet and its historical
@@ -1047,6 +1115,7 @@ html.popup-open{overflow:hidden}
   <button class="fab" id="main-fab" onclick="onFabClick()">＋ Add Transaction</button>
   <button class="fab" id="fin-fab" onclick="F.sub === 'chit' ? openChitForm() : openFinForm()">＋ Add Person</button>
   <button class="fab" id="rem-fab" onclick="openRemForm()">＋ Add Reminder</button>
+  <button class="fab" id="rent-fab" onclick="RT.sub === 'water' ? openWaterForm() : openHouseForm()">＋ Add House</button>
 </div>
 
 <!-- ════════════ ADD/EDIT SHEET ════════════ -->
@@ -1372,6 +1441,135 @@ html.popup-open{overflow:hidden}
       <button class="btn btn-primary" id="rem-submit" onclick="saveReminder()">Save</button>
     </div>
     <button class="btn btn-ghost rem-del" id="rem-del" onclick="deleteReminder()">🗑 Delete Reminder</button>
+  </div>
+</div>
+
+<!-- House add / edit (v4.11) -->
+<div class="backdrop" id="house-form-bd">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="house-form-title">Add House</div>
+    <div class="field"><label>House No.</label><input type="text" id="house-name" placeholder="e.g. 1*1" autocomplete="off" maxlength="80"/></div>
+    <div class="field"><label>Tenant Name</label><input type="text" id="house-tenant" placeholder="e.g. Suresh" autocomplete="off" maxlength="80"/></div>
+    <div class="field"><label>Tenant Phone <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="tel" id="house-phone" placeholder="e.g. 98765 43210" autocomplete="off" maxlength="20" inputmode="tel"/></div>
+    <div class="field" id="house-occ-f"><label>Occupied Date</label><input type="date" id="house-occ"/></div>
+    <div class="field" id="house-rent-f"><label>Rent Amount (₹)</label><input type="number" id="house-rent" min="1" step="1" inputmode="decimal" placeholder="7000"/></div>
+    <div class="field" id="house-due-f"><label>Due Date (Every Month)</label><input type="date" id="house-due" oninput="houseDueHint()"/></div>
+    <div class="fin-hint" id="house-due-hint"></div>
+    <div class="field" id="house-dep-f"><label>Deposit Amount (₹) <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="number" id="house-deposit" min="0" step="1" inputmode="decimal" placeholder="e.g. 20000"/></div>
+    <div class="field"><label>Note <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><textarea id="house-note" placeholder="Agreement date, anything else…"></textarea></div>
+    <input type="hidden" id="house-id"/>
+    <div class="sh-actions">
+      <button class="btn btn-ghost" onclick="closeHouseForm()">Cancel</button>
+      <button class="btn btn-primary" id="house-submit" onclick="saveHouse()">Save</button>
+    </div>
+    <button class="btn btn-ghost rem-del" id="house-del" onclick="deleteHouse()">🗑 Delete House</button>
+  </div>
+</div>
+
+<!-- Water meter reading for a month (v4.11) — charge = usage × rate -->
+<div class="backdrop" id="water-form-bd">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="wb-title">Add Water Reading</div>
+    <div class="field" id="wb-house-f"><label>House</label>
+      <div class="sel-wrap"><select id="wb-house" onchange="waterFormHouse()"></select></div>
+    </div>
+    <div id="wb-who">
+      <div class="field"><label>House No.</label><input type="text" id="wb-name" placeholder="e.g. 1*1" autocomplete="off" maxlength="80"/></div>
+      <div class="field"><label>Tenant Name</label><input type="text" id="wb-tenant" placeholder="e.g. Suresh" autocomplete="off" maxlength="80"/></div>
+      <div class="field"><label>Tenant Phone <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="tel" id="wb-phone" placeholder="e.g. 98765 43210" autocomplete="off" maxlength="20" inputmode="tel"/></div>
+    </div>
+    <div class="field"><label>Month</label><input type="month" id="wb-month" onchange="waterFormPrev()"/></div>
+    <div class="rem-grid">
+      <div class="field"><label>Present Reading</label><input type="number" id="wb-present" min="0" step="1" inputmode="decimal" placeholder="e.g. 1500" oninput="waterCalc()"/></div>
+      <div class="field"><label>Previous Reading</label><input type="number" id="wb-prev" min="0" step="1" inputmode="decimal" placeholder="e.g. 1200" oninput="waterCalc()"/></div>
+    </div>
+    <div class="fin-hint" id="wb-prev-hint"></div>
+    <div class="rent-box">
+      <div class="carry-row"><span class="carry-month">Total Usage <span style="color:var(--tx3);font-size:.68rem">(Present − Previous)</span></span><span class="carry-amt" id="wb-usage">—</span></div>
+      <div class="carry-row"><span class="carry-month" id="wb-rate-l">Charge</span><span class="carry-amt pos" id="wb-amount">—</span></div>
+    </div>
+    <input type="hidden" id="wb-id"/>
+    <div class="sh-actions">
+      <button class="btn btn-ghost" onclick="closeWaterForm()">Cancel</button>
+      <button class="btn btn-primary" id="wb-save" onclick="saveWaterBill()">Save</button>
+    </div>
+    <button class="btn btn-ghost rem-del" id="wb-del" onclick="deleteWaterBill()">🗑 Delete Reading</button>
+  </div>
+</div>
+
+<!-- Remind a tenant by WhatsApp (v4.12) — message ready, you press Send -->
+<div class="backdrop" id="remind-bd">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="rm-title">📲 Remind</div>
+    <div class="fin-hint" id="rm-to" style="text-align:center"></div>
+    <div class="field"><label>Message <span style="color:var(--tx3);font-weight:400;text-transform:none">(you can change it)</span></label>
+      <textarea id="rm-text" rows="9" style="min-height:11rem;font-size:.85rem;line-height:1.45"></textarea></div>
+    <div class="sh-actions" style="grid-template-columns:2fr 1fr">
+      <button class="btn btn-primary" onclick="sendRemind()">WhatsApp</button>
+      <button class="btn btn-ghost" onclick="copyRemind()">📋 Copy</button>
+    </div>
+    <button class="btn btn-ghost" id="rm-next" style="width:100%;margin-top:.6rem" onclick="nextRemind()">Next ›</button>
+  </div>
+</div>
+
+<!-- Close a rent house account (v4.11) — settle the deposit -->
+<div class="backdrop" id="house-close-bd">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="hc-title">Close Account</div>
+    <div class="field"><label>Close Date</label><input type="date" id="hc-date" onchange="houseCloseCalc()"/></div>
+    <div class="rent-box">
+      <div class="carry-row"><span class="carry-month">Deposit</span><span class="carry-amt pos" id="hc-dep"></span></div>
+      <div class="carry-row"><span class="carry-month" id="hc-due-l">Current month due</span><span class="carry-amt" id="hc-due"></span></div>
+      <div class="carry-row"><span class="carry-month">Paint charge <span style="color:var(--tx3);font-size:.68rem">(1 month rent)</span></span><span class="carry-amt" id="hc-paint"></span></div>
+      <div class="carry-row"><span class="carry-month">Other charges</span><span class="carry-amt hc-in">− ₹<input type="number" id="hc-other" min="0" step="1" inputmode="decimal" placeholder="0" oninput="houseCloseCalc()"/></span></div>
+    </div>
+    <div class="rent-settle" id="hc-result"></div>
+    <div class="fin-hint" id="hc-water" style="margin-top:-.4rem"></div>
+    <div class="field"><label>Note <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><textarea id="hc-note" placeholder="Keys returned, refund paid by UPI…"></textarea></div>
+    <div class="sh-actions">
+      <button class="btn btn-ghost" onclick="closeHouseClose()">Cancel</button>
+      <button class="btn btn-primary" id="hc-save" onclick="saveHouseClose()">🔒 Close Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rent payment for a month (v4.11) — full balance or partial -->
+<div class="backdrop" id="rent-pay-bd">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="rp-title">Rent</div>
+    <div id="rp-read" style="display:none"></div>
+    <div id="rp-form">
+      <div class="field"><label id="rp-kind-l">Payment</label>
+        <div class="type-toggle" style="margin-bottom:0">
+          <button class="type-btn income" id="rp-full" onclick="setRentPayKind('full')">✓ Full balance</button>
+          <button class="type-btn income" id="rp-part" onclick="setRentPayKind('part')">½ Partial</button>
+        </div>
+      </div>
+      <div class="field"><label>Amount Received (₹)</label><input type="number" id="rp-amount" min="1" step="1" inputmode="decimal" oninput="rentPayHint()"/></div>
+      <div class="fin-hint" id="rp-hint"></div>
+      <div class="rem-grid">
+        <div class="field"><label>Paid On</label><input type="date" id="rp-date"/></div>
+        <div class="field"><label>Mode</label>
+          <div class="sel-wrap"><select id="rp-mode">
+            <option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Cheque</option><option>Deposit</option><option>Other</option>
+          </select></div>
+        </div>
+      </div>
+      <div class="field"><label>Remarks <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="text" id="rp-remarks" placeholder="Note…" autocomplete="off" maxlength="120"/></div>
+      <input type="hidden" id="rp-id"/>
+      <div class="sh-actions">
+        <button class="btn btn-ghost" id="rp-cancel" onclick="closeRentPay()">Cancel</button>
+        <button class="btn btn-primary" id="rp-save" onclick="saveRentPayment()">Save Payment</button>
+      </div>
+    </div>
+    <div id="rp-done" class="fin-collect" style="display:none;margin:0 0 .9rem;text-align:center">✓ Full rent received for this month</div>
+    <div class="fin-sec" id="rp-hist-l">Payments this month</div>
+    <div id="rp-hist"></div>
   </div>
 </div>
 
@@ -1828,6 +2026,7 @@ function toggleAmounts() {
   // Re-render Finance views: shows real values again or re-applies the mask
   renderFinList(); if (F.activeId) renderFinPerson();
   renderChitList(); if (C.activeId) renderChit();
+  renderRent();
   const btn = g("eye-toggle");
   btn.classList.toggle("hidden-mode", S.amountsHidden);
   g("eye-icon-open").style.display   = S.amountsHidden ? "none" : "";
@@ -3212,17 +3411,21 @@ const F = { persons: [], activeId: null, month: null, received: "No", sub: "loan
 const C = { chits: [], activeId: null, month: null, type: "commission" };   // v4.1 — Chit Funds
 
 function switchModule(m) {
-  const fin = m === "fin", rem = m === "rem";
-  g("mt-exp").classList.toggle("active", !fin && !rem);
+  const fin = m === "fin", rem = m === "rem", rent = m === "rent", other = fin || rem || rent;
+  g("mt-exp").classList.toggle("active", !other);
   g("mt-fin").classList.toggle("active", fin);
   g("mt-rem").classList.toggle("active", rem);
-  g("salary-section").style.display   = fin || rem ? "none" : "";
+  g("mt-rent").classList.toggle("active", rent);
+  g("salary-section").style.display   = other ? "none" : "";
   g("finance-section").style.display  = fin ? "" : "none";
   g("reminder-section").style.display = rem ? "" : "none";
-  g("main-fab").style.display         = fin || rem ? "none" : "";
+  g("rent-section").style.display     = rent ? "" : "none";
+  g("main-fab").style.display         = other ? "none" : "";
   g("rem-fab").style.display          = rem ? "flex" : "none";
+  g("rent-fab").style.display         = rent && !RT.activeId && !RT.dash ? "flex" : "none";
   if (fin) switchFinSub(F.sub); else g("fin-fab").style.display = "none";
   if (rem) loadReminders();
+  if (rent) loadRent();
 }
 
 // Finance sub-tabs: "loan" (Hand Loan) | "chit" (Chit Funds)
@@ -3679,6 +3882,809 @@ g("rem-list").addEventListener("click", e => {
 g("rem-form-bd").addEventListener("click", e => { if (e.target === g("rem-form-bd")) closeRemForm(); });
 
 // ════════════════════════════════════════
+//  RENTALS  (v4.11, v4.12) — sub-tabs Dashboard / House Rent / Water
+//  One house list for both charges. House Rent: every month from the first
+//  due date till now (till the close month once closed) shows rent, paid
+//  (sum of that month's payments), balance and status; a month's rent is
+//  saved with its first payment, so a later rent change doesn't alter it.
+//  Water: one bill per meter reading (usage × ₹0.15 / litre). Payments are
+//  full balance or partial, kept per charge (kind "rent" | "water").
+//  Data: Apps Script actions getRent / saveHouse / ... (Code.gs, Rentals),
+//  stored like ChitFunds in "Rentals <year>" sheets (hidden I:J hold details).
+// ════════════════════════════════════════
+const RT = { dash: true, houses: [], payments: [], bills: [], activeId: null, month: null, kind: "full", sub: "rent" };
+const RENT_SUB = {
+  rent:  { title: "House Rent",    short: "Rent",  amt: h => +h.rent || 0,  empty: "No houses yet. Tap “Add House”." },
+  water: { title: "Water Charges", short: "Water", amt: () => 0, empty: "No water readings yet. Tap “Add Reading”." }
+};
+const payKind = x => x.kind || "rent";
+const WATER_RATE = 0.15;   // ₹ per litre (15 paise)
+const fmtL = n => (+n || 0).toLocaleString("en-IN") + " L";
+const paySnap = x => +(x.expected ?? x.rent) || 0;
+const RENT_STATUS = { paid: "Received", part: "Partial", pend: "Pending", up: "Upcoming" };
+
+async function rentApi(params) {
+  return apiGET(Object.assign({ userName: S.userName || S.userId, listUser: finListUser() }, params));
+}
+
+// ── month helpers (yyyy-MM) ──
+const ymNow = () => todayISO().slice(0, 7);
+function ymAdd(ym, n) {
+  const [y, m] = ym.split("-").map(Number), t = y * 12 + (m - 1) + n;
+  return `${Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, "0")}`;
+}
+function ymLabel(ym) { const [y, m] = ym.split("-"); return `${MONTHS[+m - 1]} ${y}`; }
+function rentDueDate(h, ym) {
+  const [y, m] = ym.split("-").map(Number), last = new Date(y, m, 0).getDate();
+  return `${ym}-${String(Math.min(h.dueDay || 1, last)).padStart(2, "0")}`;
+}
+// House no. with the tenant, shown once wherever a house is named:
+// plain text "1*1 · Suresh"; on cards / titles the tenant is small and grey
+const houseLabel = h => h.tenant ? `${h.name} · ${h.tenant}` : h.name;
+const houseLabelHtml = h => esc(h.name) + (h.tenant ? `<span class="house-tn">${esc(h.tenant)}</span>` : "");
+function ordinal(n) { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+
+// Month rows of one charge (rent | water) for a house, newest first
+function rentMonths(h, kind = RT.sub) {
+  const pays = RT.payments.filter(x => x.houseId === h.id && payKind(x) === kind);
+  if (kind === "water") return waterMonths(h, pays);
+  const lastPay = pays.reduce((a, x) => (x.month > a ? x.month : a), "");
+  const now = ymNow(), start = h.start || now;
+  const stop = h.closed ? h.closed.date.slice(0, 7) : lastPay || start;
+  const end = h.active === "No" ? (lastPay > stop ? lastPay : stop) : (lastPay > now ? lastPay : now);
+  const rows = [], today = todayISO();
+  for (let ym = start; ym <= end; ym = ymAdd(ym, 1)) {
+    const mp   = pays.filter(x => x.month === ym).sort((a, b) => String(a.paidOn).localeCompare(String(b.paidOn)));
+    const rent = mp.length && paySnap(mp[0]) ? paySnap(mp[0]) : RENT_SUB[kind].amt(h);
+    if (!rent) continue;   // charge removed — only months already paid into stay listed
+    const paid = mp.reduce((t, x) => t + x.amount, 0);
+    const due  = rentDueDate(h, ym);
+    const status = paid >= rent ? "paid" : paid > 0 ? "part" : due > today ? "up" : "pend";
+    rows.push({ month: ym, label: ymLabel(ym), rent, paid, balance: Math.max(0, rent - paid), status, due, pays: mp });
+  }
+  return rows.reverse();
+}
+// Water: one row per meter reading (bill), newest first
+function waterMonths(h, pays) {
+  return RT.bills.filter(b => b.houseId === h.id).sort((a, b) => b.month.localeCompare(a.month)).map(b => {
+    const mp   = pays.filter(x => x.month === b.month).sort((x, y) => String(x.paidOn).localeCompare(String(y.paidOn)));
+    const paid = mp.reduce((t, x) => t + x.amount, 0);
+    const status = paid >= b.amount ? "paid" : paid > 0 ? "part" : "pend";
+    return { month: b.month, label: ymLabel(b.month), rent: b.amount, paid, balance: Math.max(0, b.amount - paid), status, due: "", pays: mp, bill: b };
+  });
+}
+
+// Unpaid amount of months already due (upcoming months don't count)
+const rentDue = rows => rows.reduce((t, r) => t + (r.status === "up" ? 0 : r.balance), 0);
+const rentBadge = (status, text) => `<span class="rent-badge ${status}">${text || RENT_STATUS[status]}</span>`;
+
+// sub: "dash" (Dashboard) | "rent" | "water"
+function switchRentSub(sub) {
+  RT.dash = sub === "dash";
+  g("rst-dash").classList.toggle("active", RT.dash);
+  g("rst-rent").classList.toggle("active", sub === "rent");
+  g("rst-water").classList.toggle("active", sub === "water");
+  g("rent-dash-view").style.display = RT.dash ? "" : "none";
+  if (RT.dash) {
+    if (RT.activeId) closeRentHouse();
+    g("rent-list-view").style.display = "none";
+    g("rent-fab").style.display = "none";
+    renderRent();
+    return;
+  }
+  g("rent-list-view").style.display = RT.activeId ? "none" : "";
+  g("rent-fab").style.display = RT.activeId ? "none" : "flex";
+  RT.sub = sub;
+  g("rent-title").textContent = RENT_SUB[sub].title;
+  g("rent-h-sec").textContent = sub === "water" ? "Month-wise water charges" : "Month-wise rent";
+  g("rent-fab").textContent   = sub === "water" ? "＋ Add Reading" : "＋ Add House";
+  if (RT.activeId && !rentHouses().some(h => h.id === RT.activeId)) closeRentHouse();
+  renderRent();
+}
+
+// Houses shown in the current sub-tab: that charge set, or payments already taken for it
+function rentHouses() {
+  const k = RT.sub;
+  if (k === "water") return RT.houses.filter(h => RT.bills.some(b => b.houseId === h.id));
+  return RT.houses.filter(h => RENT_SUB[k].amt(h) > 0 || RT.payments.some(x => x.houseId === h.id && payKind(x) === k));
+}
+
+function applyRent(res) {
+  RT.houses   = res.houses || [];
+  RT.payments = res.payments || [];
+  RT.bills    = res.bills || [];
+  RT.meters   = res.meters || [];   // closed houses' last readings (for "Previous")
+  RT.fetchedAt = Date.now();
+  cacheSet("rent", { houses: RT.houses, payments: RT.payments, bills: RT.bills, meters: RT.meters });
+  renderRent();
+}
+
+async function loadRent(force) {
+  if (!force && Date.now() - (RT.fetchedAt || 0) < 60000) return;
+  if (!RT.houses.length) {
+    const cached = cacheGet("rent");
+    if (cached) { RT.houses = cached.houses; RT.payments = cached.payments; RT.bills = cached.bills || []; RT.meters = cached.meters || []; renderRent(); }
+    else g("rent-list").innerHTML = '<div class="empty"><div class="btn-spin" style="margin:0 auto .5rem"></div>Loading…</div>';
+  }
+  try {
+    const res = await rentApi({ action: "getRent" });
+    if (!res.success) { toast(res.error || "Could not load rent", "error"); return; }
+    applyRent(res);
+  } catch (e) {
+    if (!RT.houses.length) g("rent-list").innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div>Could not load. Check internet.</div>';
+  }
+}
+
+function renderRent() {
+  if (RT.dash) { renderRentDash(); maskRent(); return; }
+  renderRentList();
+  if (RT.activeId) renderRentHouse();
+  if (g("rent-pay-bd").classList.contains("open")) renderRentPay();
+  maskRent();
+}
+
+// ── Dashboard (month-wise): received for the month, then one row per open
+// house — Rent | Water | Total Paid / Due. Green = received, red = due.
+function rentDashMove(n) {
+  RT.dashMonth = ymAdd(RT.dashMonth || ymNow(), n);
+  renderRent();
+}
+
+function renderRentDash() {
+  const ym = RT.dashMonth || (RT.dashMonth = ymNow());
+  const forMonth = RT.payments.filter(x => x.month === ym), sum = l => l.reduce((t, x) => t + x.amount, 0);
+  const stat = (l, v) => `<div class="rent-stat"><div class="l">${l}</div><div class="v" style="color:var(--gr)">${fmtINR(v)}</div><div class="s">${ymLabel(ym)}</div></div>`;
+  const cls = r => !r ? "" : r.balance > 0 ? "fin-no" : "fin-yes";
+  let tRent = 0, tWater = 0, tPaid = 0, tDue = 0;
+  const dueIds = [];
+  const rows = RT.houses
+    .sort((a, b) => houseLabel(a).localeCompare(houseLabel(b)))
+    .map(h => {
+      const r = +h.rent > 0 ? rentMonths(h, "rent").find(x => x.month === ym) : null;
+      const w = rentMonths(h, "water").find(x => x.month === ym);
+      if (!r && !w) return "";
+      if ((r ? r.balance : 0) + (w ? w.balance : 0) > 0) dueIds.push(h.id);
+      const amt = (r ? r.rent : 0) + (w ? w.rent : 0);
+      const paid = (r ? r.paid : 0) + (w ? w.paid : 0);
+      const due = (r ? r.balance : 0) + (w ? w.balance : 0);
+      tRent += r ? r.rent : 0; tWater += w ? w.rent : 0; tPaid += paid; tDue += due;
+      return `
+        <tr data-id="${esc(h.id)}">
+          <td><b>${esc(h.name)}</b>${h.tenant ? `<span class="sm">${esc(h.tenant)}</span>` : ""}</td>
+          <td class="${cls(r)}">${r ? fmtINR(r.rent) : "—"}</td>
+          <td class="${cls(w)}">${w ? fmtINR(w.rent) : "—"}</td>
+          <td class="${due > 0 ? "fin-no" : "fin-yes"}">${due > 0 ? fmtINR(due) + " Due" : fmtINR(amt) + " Paid"}${due > 0 && paid > 0 ? `<span class="sm">Paid ${fmtINR(paid)}</span>` : ""}${due > 0 ? `<br><button class="rm-btn" data-remind="${esc(h.id)}">📲 Remind</button>` : ""}</td>
+        </tr>`;
+    }).join("");
+
+  g("rent-dash").innerHTML = `
+    <div class="fin-head-row" style="justify-content:center;gap:.8rem;margin-bottom:.7rem">
+      <button class="fin-icon-btn" onclick="rentDashMove(-1)">‹</button>
+      <div class="fin-title" style="flex:0 1 auto;text-align:center">${ymLabel(ym)}</div>
+      <button class="fin-icon-btn" onclick="rentDashMove(1)">›</button>
+    </div>
+    <div class="rent-stats">
+      ${stat("Rent Received", sum(forMonth.filter(x => payKind(x) === "rent")))}
+      ${stat("Water Received", sum(forMonth.filter(x => payKind(x) === "water")))}
+      ${stat("Total Received", sum(forMonth))}
+    </div>
+    ${dueIds.length ? `<button class="btn btn-ghost" style="width:100%;margin-bottom:.7rem" onclick="openRemind(${esc(JSON.stringify(dueIds))}, '${ym}')">📲 Remind all due (${dueIds.length})</button>` : ""}
+    ${rows ? `
+    <div class="fin-table-wrap"><table class="fin-table fit">
+      <colgroup><col style="width:25%"><col style="width:22%"><col style="width:20%"><col style="width:33%"></colgroup>
+      <thead><tr><th>House No</th><th>Rent</th><th>Water</th><th>Total Paid / Due</th></tr></thead>
+      <tbody>${rows}
+        <tr class="dash-total"><td>Total</td><td>${fmtINR(tRent)}</td><td>${fmtINR(tWater)}</td>
+          <td class="${tDue > 0 ? "fin-no" : "fin-yes"}">${tDue > 0 ? fmtINR(tDue) + " Due" : fmtINR(tPaid) + " Paid"}${tDue > 0 && tPaid > 0 ? `<span class="sm">Paid ${fmtINR(tPaid)}</span>` : ""}</td></tr>
+      </tbody>
+    </table></div>`
+    : `<div class="empty"><div class="empty-ico">🏘</div>No rent or water for ${ymLabel(ym)}.</div>`}`;
+}
+
+function maskRent() {
+  if (!S.amountsHidden) return;
+  const walk = document.createTreeWalker(g("rent-section"), NodeFilter.SHOW_TEXT);
+  for (let n; (n = walk.nextNode());) {
+    if (n.nodeValue.includes("₹")) n.nodeValue = n.nodeValue.replace(/[-+]?₹\s?-?[\d,]+(\.\d+)?/g, "₹•••••");
+  }
+}
+
+function renderRentList() {
+  const sub = RENT_SUB[RT.sub], list = rentHouses();   // open houses only (closed ones aren't sent)
+  if (!list.length) {
+    g("rent-summary").innerHTML = "";
+    g("rent-list").innerHTML = `<div class="empty"><div class="empty-ico">${RT.sub === "water" ? "💧" : "🏠"}</div>${RT.houses.length ? sub.empty : RENT_SUB.rent.empty}</div>`;
+    return;
+  }
+  const now = ymNow();
+  let expected = 0, received = 0, totalDue = 0, pendMonths = 0;
+  const card = h => {
+    const rows = rentMonths(h), cur = rows.find(r => r.month === now), due = rentDue(rows);
+    totalDue += due;
+    pendMonths += rows.filter(r => r.status === "pend" || r.status === "part").length;
+    if (h.active !== "No" && cur) { expected += cur.rent; received += cur.paid; }
+    const badge = !cur ? rentBadge("up", RT.sub === "water" ? "No reading" : "From " + ymLabel(h.start))
+      : cur.status === "part" ? rentBadge("part", `${fmtINR(cur.balance)} due`)
+      : cur.status === "up" ? rentBadge("up", "Due " + fmtShortDate(cur.due))
+      : rentBadge(cur.status);
+    return `
+      <div class="fin-card rent-card" data-id="${esc(h.id)}">
+        <div style="min-width:0">
+          <div class="fin-name">${houseLabelHtml(h)}</div>
+          <div class="fin-sub">${RT.sub === "water" && rows[0]
+            ? `Last: ${rows[0].label} · ${fmtL(rows[0].bill.usage)} · ${fmtINR(rows[0].rent)}`
+            : `${fmtINR(sub.amt(h))}/month · Due ${ordinal(h.dueDay || 1)}`}</div>
+        </div>
+        <div class="rent-right">${badge}<span class="sm">${due > 0 ? "Total due " + fmtINR(due) : "No dues"}</span></div>
+      </div>`;
+  };
+  const byLabel = (a, b) => houseLabel(a).localeCompare(houseLabel(b));
+  const cards = list.slice().sort(byLabel).map(card).join("");
+  g("rent-summary").innerHTML = `
+    <div class="rent-stats">
+      <div class="rent-stat"><div class="l">${MONTHS[+now.slice(5) - 1]} ${sub.short}</div><div class="v">${fmtINR(expected)}</div><div class="s">Expected</div></div>
+      <div class="rent-stat"><div class="l">Received</div><div class="v" style="color:var(--gr)">${fmtINR(received)}</div><div class="s">This month</div></div>
+      <div class="rent-stat"><div class="l">Total Due</div><div class="v" style="color:${totalDue > 0 ? "var(--rd)" : "var(--gr)"}">${fmtINR(totalDue)}</div><div class="s">${pendMonths ? pendMonths + " month" + (pendMonths > 1 ? "s" : "") : "All clear"}</div></div>
+    </div>`;
+  g("rent-list").innerHTML = cards;
+}
+
+function openRentHouse(id) {
+  RT.activeId = id;
+  g("rent-list-view").style.display  = "none";
+  g("rent-house-view").style.display = "";
+  g("rent-fab").style.display        = "none";
+  renderRentHouse();
+  maskRent();
+  window.scrollTo(0, 0);
+}
+
+function closeRentHouse() {
+  RT.activeId = null;
+  g("rent-house-view").style.display = "none";
+  g("rent-list-view").style.display  = "";
+  g("rent-fab").style.display        = "flex";
+}
+
+function renderRentHouse() {
+  const h = RT.houses.find(x => x.id === RT.activeId);
+  if (!h) { closeRentHouse(); return; }
+  const rows = rentMonths(h), due = rentDue(rows);
+  const pend = rows.filter(r => r.status === "pend" || r.status === "part").length;
+  const row = (l, v, cls = "") => `<div class="carry-row"><span class="carry-month">${l}</span><span class="carry-amt ${cls}">${v}</span></div>`;
+  g("rent-h-head").innerHTML = `
+    <div class="fin-head-row">
+      <div class="fin-title">${houseLabelHtml(h)}</div>
+      ${RT.sub === "water" ? `<button class="fin-icon-btn" onclick="openWaterForm(null, RT.activeId)">＋ Reading</button>` : ""}
+      <button class="fin-icon-btn" onclick="openRemind([RT.activeId], ymNow())">📲</button>
+      <button class="fin-icon-btn" onclick="editRentHouse()">✏️ Edit</button>
+      ${RT.sub === "rent" ? `<button class="fin-icon-btn del" onclick="openHouseClose()">🔒 Close</button>` : ""}
+    </div>
+    ${RT.sub === "water"
+      ? (rows[0] ? row("Last Reading", `${fmtL(rows[0].bill.present)} <span style="font-size:.7rem;color:var(--tx3)">(${rows[0].label})</span>`) : "") +
+        row("Rate", `₹${WATER_RATE} / litre`)
+      : row("Rent Amount", fmtINR(h.rent)) +
+        (h.occupied ? row("Occupied On", fmtDate(h.occupied)) : "") +
+        row("Due Date", ordinal(h.dueDay || 1) + " every month")}
+    ${RT.sub === "rent" && +h.deposit ? row("Deposit", fmtINR(h.deposit)) : ""}
+    ${row(`${RENT_SUB[RT.sub].short} Received`, fmtINR(rows.reduce((t, r) => t + r.paid, 0)), "pos")}
+    ${row(`${RENT_SUB[RT.sub].short} Due`, fmtINR(due), due > 0 ? "neg" : "pos")}
+    ${row("Pending Months", pend ? pend + " month" + (pend > 1 ? "s" : "") : "No due", pend ? "neg" : "pos")}
+    ${h.note ? `<div class="fin-sub" style="margin:.2rem 0 .4rem">📝 ${esc(h.note)}</div>` : ""}`;
+  g("rent-h-table").innerHTML = rows.length ? `
+    <div class="fin-table-wrap"><table class="fin-table fit">
+      <colgroup><col style="width:24%"><col style="width:19%"><col style="width:19%"><col style="width:19%"><col style="width:19%"></colgroup>
+      <thead><tr><th>Month<span class="sm">${RT.sub === "water" ? "Usage" : "Due"}</span></th><th>${RENT_SUB[RT.sub].short}</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+      <tbody>${rows.map(r => `
+        <tr data-month="${esc(r.month)}">
+          <td><b>${esc(r.label)}</b><span class="sm">${r.bill ? fmtL(r.bill.usage) : fmtShortDate(r.due)}</span></td>
+          <td>${fmtINR(r.rent)}</td>
+          <td class="${r.status === "paid" ? "fin-yes" : r.status === "part" ? "rent-part" : ""}">${r.paid ? fmtINR(r.paid) : "—"}${r.pays.length > 1 ? `<span class="sm">${r.pays.length} payments</span>` : ""}</td>
+          <td class="${r.balance && r.status !== "up" ? "fin-no" : ""}">${r.balance ? fmtINR(r.balance) : "—"}</td>
+          <td>${rentBadge(r.status)}</td>
+        </tr>`).join("")}</tbody>
+    </table></div>`
+    : `<div class="empty">No months yet</div>`;
+}
+
+function editRentHouse() {
+  const h = RT.houses.find(x => x.id === RT.activeId);
+  if (h) openHouseForm(h);
+}
+
+// ── House add / edit ──
+// The form shows the current sub-tab's charge: House Rent → rent + deposit,
+// Water Charges → water (and can add water to a house already in the list)
+function openHouseForm(h) {
+  const water = RT.sub === "water";
+  g("house-id").value      = h ? h.id : "";
+  g("house-name").value    = h ? h.name : "";
+  g("house-tenant").value  = h ? h.tenant || "" : "";
+  g("house-phone").value   = h ? h.phone || "" : "";
+  g("house-rent").value    = h && +h.rent ? h.rent : "";
+  g("house-due").value     = h ? rentDueDate(h, h.start || ymNow()) : "";   // own date, not tied to occupied date
+  g("house-due-f").style.display = water ? "none" : "";
+  houseDueHint();
+  g("house-due-hint").style.display = water ? "none" : "";
+  g("house-deposit").value = h && +h.deposit ? h.deposit : "";
+  g("house-note").value    = h ? h.note || "" : "";
+  g("house-occ").value     = h ? h.occupied || "" : todayISO();
+  g("house-occ-f").style.display   = water ? "none" : "";
+  g("house-rent-f").style.display  = water ? "none" : "";
+  g("house-dep-f").style.display   = water ? "none" : "";
+  g("house-form-title").textContent = h ? "Edit House" : "Add House";
+  g("house-del").style.display = h ? "block" : "none";
+  g("house-form-bd").classList.add("open");
+}
+
+// Due date picked once: its month = first month listed, its day = due day every month
+function houseDueHint() {
+  const v = g("house-due").value, hint = g("house-due-hint");
+  hint.style.display = "";
+  hint.textContent = /^\d{4}-\d{2}-\d{2}$/.test(v)
+    ? `Due on the ${ordinal(+v.slice(8, 10))} of every month, from ${ymLabel(v.slice(0, 7))}.`
+    : "Pick the first due date — it repeats on the same day every month.";
+}
+
+function closeHouseForm() { g("house-form-bd").classList.remove("open"); }
+
+async function saveHouse() {
+  const water = RT.sub === "water";
+  const id = g("house-id").value;
+  const cur = RT.houses.find(x => x.id === id) || {};
+  const params = {
+    action: "saveHouse", id,
+    name:    g("house-name").value.trim(),
+    tenant:  g("house-tenant").value.trim(),
+    phone:   g("house-phone").value.trim(),
+    rent:    water ? +cur.rent || 0 : parseFloat(g("house-rent").value) || 0,
+    deposit: water ? +cur.deposit || 0 : parseFloat(g("house-deposit").value) || 0,
+    occupied: water ? cur.occupied || "" : g("house-occ").value,
+    dueDay:  water ? cur.dueDay || 1 : +g("house-due").value.slice(8, 10) || 0,
+    start:   water ? cur.start || ymNow() : g("house-due").value.slice(0, 7),
+    note:    g("house-note").value.trim(),
+    active:  cur.active || "Yes"
+  };
+  if (!params.name) { toast("Enter house no.", "error"); return; }
+  if (!water && params.rent <= 0) { toast("Enter rent amount", "error"); return; }
+  if (!water && !params.occupied) { toast("Select occupied date", "error"); return; }
+  if (params.deposit < 0) { toast("Deposit can't be negative", "error"); return; }
+  const busy = !water && RT.houses.find(x => x.id !== id && +x.rent > 0 && houseKey(x) === params.name.toLowerCase());
+  if (busy) { toast(`${busy.name} is still with ${busy.tenant || "a tenant"} — close that account first`, "error"); return; }
+  if (!water && !/^\d{4}-\d{2}-\d{2}$/.test(g("house-due").value)) { toast("Select due date", "error"); return; }
+  setBtn("house-submit", true);
+  try {
+    const res = await rentApi(params);
+    if (!res.success) { toast(res.error || "Save failed", "error"); return; }
+    toast(id ? "House updated" : "House added", "success");
+    closeHouseForm();
+    applyRent(res);
+  } catch (e) {
+    toast("Save failed. Check internet.", "error");
+  } finally {
+    setBtn("house-submit", false, "Save");
+  }
+}
+
+// ── Water meter reading: usage = present − previous, charge = usage × ₹0.15 ──
+// Previous reading is filled from the house's last reading before the month.
+function openWaterForm(bill, houseId) {
+  const edit = !!bill, hid = bill ? bill.houseId : houseId || "";
+  const houses = RT.houses.slice().sort((a, b) => houseLabel(a).localeCompare(houseLabel(b)));
+  g("wb-house").innerHTML = `<option value="">➕ New house</option>` +
+    houses.map(x => `<option value="${esc(x.id)}">${esc(houseLabel(x))}</option>`).join("");
+  g("wb-house").value   = hid;
+  g("wb-house-f").style.display = edit || houseId ? "none" : "";
+  g("wb-name").value    = "";
+  g("wb-tenant").value  = "";
+  g("wb-phone").value   = "";
+  g("wb-id").value      = bill ? bill.id : "";
+  g("wb-month").value   = bill ? bill.month : ymNow();
+  g("wb-present").value = bill ? bill.present : "";
+  g("wb-prev").value    = bill ? bill.prev : "";
+  g("wb-rate-l").innerHTML = `Charge <span style="color:var(--tx3);font-size:.68rem">(usage × ₹${WATER_RATE} / litre)</span>`;
+  const h = RT.houses.find(x => x.id === hid);
+  g("wb-title").textContent = (edit ? "Edit Reading" : "Add Water Reading") + (h && (edit || houseId) ? " — " + houseLabel(h) : "");
+  g("wb-del").style.display = edit ? "block" : "none";
+  waterFormHouse();
+  g("water-form-bd").classList.add("open");
+}
+
+function closeWaterForm() { g("water-form-bd").classList.remove("open"); }
+
+function waterFormHouse() {
+  g("wb-who").style.display = g("wb-house").value ? "none" : "";
+  waterFormPrev();
+}
+
+// Last reading of this house before the chosen month
+// — any tenant of the same house no., so a new tenant's first reading
+// continues from the old tenant's last meter reading
+const houseKey = h => String(h && h.name || "").trim().toLowerCase();
+function waterLastBefore(houseId, month) {
+  const key = houseKey(RT.houses.find(x => x.id === houseId));
+  const ids = RT.houses.filter(x => x.id === houseId || (key && houseKey(x) === key)).map(x => x.id);
+  const own = RT.bills.filter(b => ids.includes(b.houseId) && b.month <= month && b.id !== g("wb-id").value &&
+      (b.month < month || b.houseId !== houseId));
+  // moved-out tenants of the same house no. (their last reading)
+  const old = (RT.meters || []).filter(x => key && houseKey(x) === key && x.month <= month);
+  return own.concat(old).sort((a, b) => b.month.localeCompare(a.month) || b.present - a.present)[0];
+}
+
+// Previous reading: the first reading of a house is typed in; from the
+// second on it is last month's present reading, filled in and locked
+function waterFormPrev() {
+  const hid = g("wb-house").value, last = hid && waterLastBefore(hid, g("wb-month").value);
+  const prev = g("wb-prev");
+  if (last) prev.value = last.present;
+  else if (!g("wb-id").value) prev.value = "";
+  prev.readOnly = !!last;
+  prev.tabIndex = last ? -1 : 0;
+  prev.style.opacity = last ? ".65" : "";
+  const other = !last ? null : !last.houseId ? last : last.houseId !== hid ? RT.houses.find(x => x.id === last.houseId) : null;
+  g("wb-prev-hint").textContent = last
+    ? `Previous = ${ymLabel(last.month)} present reading (${fmtL(last.present)})${other && other.tenant ? ", " + other.tenant + "'s last reading" : ""}.`
+    : "First reading for this house — enter the previous meter reading.";
+  waterCalc();
+}
+
+function waterCalc() {
+  const pres = parseFloat(g("wb-present").value), prev = parseFloat(g("wb-prev").value);
+  if (isNaN(pres) || isNaN(prev)) { g("wb-usage").textContent = "—"; g("wb-usage").style.color = ""; g("wb-amount").textContent = "—"; return null; }
+  const usage = pres - prev, amount = Math.round(usage * WATER_RATE);
+  g("wb-usage").textContent  = usage < 0 ? "Present < Previous" : fmtL(usage);
+  g("wb-usage").style.color  = usage < 0 ? "var(--rd)" : "";
+  g("wb-amount").textContent = usage < 0 ? "—" : fmtINR(amount);
+  return { pres, prev, usage, amount };
+}
+
+async function saveWaterBill() {
+  const c = waterCalc(), houseId = g("wb-house").value, month = g("wb-month").value;
+  const name = g("wb-name").value.trim(), tenant = g("wb-tenant").value.trim(), phone = g("wb-phone").value.trim();
+  if (!houseId && !name) { toast("Enter house no.", "error"); return; }
+  if (!/^\d{4}-\d{2}$/.test(month)) { toast("Select month", "error"); return; }
+  if (!c) { toast("Enter present and previous reading", "error"); return; }
+  if (c.usage < 0) { toast("Present reading is less than previous", "error"); return; }
+  const id = g("wb-id").value;
+  setBtn("wb-save", true);
+  try {
+    const res = await rentApi({ action: "saveWaterBill", id, houseId, name, tenant, phone, month,
+      prev: c.prev, present: c.pres, usage: c.usage, rate: WATER_RATE, amount: c.amount });
+    if (!res.success) { toast(res.error || "Save failed", "error"); return; }
+    toast(`${ymLabel(month)} water: ${fmtL(c.usage)} = ${fmtINR(c.amount)}`, "success");
+    closeWaterForm();
+    applyRent(res);
+  } catch (e) {
+    toast("Save failed. Check internet.", "error");
+  } finally {
+    setBtn("wb-save", false, "Save");
+  }
+}
+
+async function deleteWaterBill() {
+  const id = g("wb-id").value, b = RT.bills.find(x => x.id === id);
+  if (!b || !confirm(`Delete ${ymLabel(b.month)} water reading?`)) return;
+  try {
+    const res = await rentApi({ action: "deleteWaterBill", id });
+    if (!res.success) { toast(res.error || "Delete failed", "error"); return; }
+    toast("Reading deleted", "success");
+    closeWaterForm();
+    applyRent(res);
+  } catch (e) { toast("Delete failed. Check internet.", "error"); }
+}
+
+// ── Remind tenant by WhatsApp ──
+// Opens WhatsApp with the message typed in; you press Send. Saved in
+// the phone as "Room Rent <house no.>", so the message names the room, not
+// the tenant. No phone → WhatsApp asks which contact.
+function rentPhone(h) {
+  let d = String(h.phone || "").replace(/\D/g, "");
+  if (d.length === 11 && d[0] === "0") d = d.slice(1);
+  if (d.length === 10) d = "91" + d;   // India
+  return d;
+}
+
+// WhatsApp message (*text* = bold in WhatsApp). Paid + Balance lines only
+// when part of the month is already paid.
+const MONTH_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function rentRemindText(h, ym) {
+  const r = +h.rent > 0 ? rentMonths(h, "rent").find(x => x.month === ym) : null;
+  const w = rentMonths(h, "water").find(x => x.month === ym);
+  const amt  = (r ? r.rent : 0) + (w ? w.rent : 0);
+  const paid = (r ? r.paid : 0) + (w ? w.paid : 0);
+  const items = [];
+  if (r) items.push(`- Rent: ${fmtINR(r.rent)}`);
+  if (w) items.push(`- Water Charges: ${fmtINR(w.rent)} (${(+w.bill.usage || 0).toLocaleString("en-IN")} Litres)`);
+  items.push(`- *Total: ${fmtINR(amt)}*`);
+  if (paid > 0) items.push(`- Paid: ${fmtINR(paid)}`, `- *Balance: ${fmtINR(Math.max(0, amt - paid))}*`);
+  return [
+    "Hi,", "",
+    `*${MONTH_FULL[+ym.slice(5) - 1]} Month Rent Details:*`, "",
+    items.join("\n"), "",
+    "Please make the payment via UPI or cash.", "",
+    "Also, kindly collect the electricity bill amount from my home.", "",
+    "Thank you!"
+  ].join("\n");
+}
+
+function openRemind(ids, ym) {
+  RT.remind = { ids: ids.filter(id => RT.houses.some(h => h.id === id)), i: 0, ym };
+  if (!RT.remind.ids.length) return;
+  showRemind();
+  g("remind-bd").classList.add("open");
+}
+
+function showRemind() {
+  const q = RT.remind, h = RT.houses.find(x => x.id === q.ids[q.i]);
+  g("rm-title").textContent = `📲 Room Rent ${h.name}` + (q.ids.length > 1 ? `  (${q.i + 1} of ${q.ids.length})` : "");
+  const ph = rentPhone(h);
+  g("rm-to").textContent = ph ? `To ${h.tenant ? h.tenant + " · " : ""}+${ph}` : "No phone saved — WhatsApp will ask which contact.";
+  g("rm-text").value = rentRemindText(h, q.ym);
+  g("rm-next").style.display = q.ids.length > 1 ? "" : "none";
+  g("rm-next").textContent = q.i + 1 < q.ids.length ? "Next ›" : "Done";
+}
+
+function sendRemind() {
+  const h = RT.houses.find(x => x.id === RT.remind.ids[RT.remind.i]);
+  const text = encodeURIComponent(g("rm-text").value), ph = rentPhone(h);
+  window.open(ph ? `https://wa.me/${ph}?text=${text}` : `https://wa.me/?text=${text}`, "_blank");
+}
+
+async function copyRemind() {
+  try { await navigator.clipboard.writeText(g("rm-text").value); toast("Message copied", "success"); }
+  catch (e) { g("rm-text").select(); toast("Select and copy the message", "info"); }
+}
+
+function nextRemind() {
+  const q = RT.remind;
+  if (q.i + 1 >= q.ids.length) { g("remind-bd").classList.remove("open"); return; }
+  q.i++;
+  showRemind();
+}
+
+// ── Close account: settle the deposit ──
+// Final return deposit = Deposit − Current month due − Paint (fixed: one
+// month's current rent) − Other
+// (positive: refund to tenant, negative: tenant to pay). Current month due =
+// unpaid rent of the close month; it is recorded as a "Deposit" payment so the
+// month shows received. Older pending months stay as they are in the list.
+function houseCloseCalc() {
+  const h = RT.houses.find(x => x.id === RT.activeId);
+  if (!h) return null;
+  const date = g("hc-date").value || todayISO(), ym = date.slice(0, 7);
+  const deposit = +h.deposit || 0;
+  const paint = +h.rent || 0, other = parseFloat(g("hc-other").value) || 0;
+  const rows = rentMonths(h, "rent"), cur = rows.find(r => r.month === ym);
+  const monthDue = cur ? cur.balance : 0;
+  const adjust = monthDue > 0 ? [{ kind: "rent", month: ym, amount: monthDue, expected: cur.rent }] : [];
+  const refund = deposit - monthDue - paint - other;
+  const older = rows.filter(r => r.month < ym && r.status !== "up").reduce((t, r) => t + r.balance, 0);
+
+  g("hc-dep").textContent   = fmtINR(deposit);
+  g("hc-paint").textContent = "− " + fmtINR(paint);   // fixed: current monthly rent
+  g("hc-due-l").textContent = `Current month due (${ymLabel(ym)})`;
+  g("hc-due").textContent   = "− " + fmtINR(monthDue);
+  const res = g("hc-result");
+  res.className = "rent-settle " + (refund >= 0 ? "g" : "r");
+  res.innerHTML = `Final Return Deposit Amount: ${refund < 0 ? "−" : ""}${fmtINR(Math.abs(refund))}` +
+    `<span class="sm">${refund >= 0 ? "Refund to tenant" : "Tenant to pay"}${older > 0 ? ` · older pending rent ${fmtINR(older)} not included` : ""}</span>`;
+  const wDue = rentDue(rentMonths(h, "water"));
+  g("hc-water").textContent = RT.bills.some(b => b.houseId === h.id)
+    ? `💧 Water charges close too${wDue > 0 ? ` — ${fmtINR(wDue)} water still due stays in Water Charges` : ""}.` : "";
+  return { h, date, deposit, monthDue, paint, other, adjust, refund };
+}
+
+function openHouseClose() {
+  const h = RT.houses.find(x => x.id === RT.activeId);
+  if (!h) return;
+  g("hc-title").textContent  = `Close — ${houseLabel(h)}`;
+  g("hc-date").value         = todayISO();
+  g("hc-other").value        = "";
+  g("hc-note").value         = "";
+  houseCloseCalc();
+  g("house-close-bd").classList.add("open");
+}
+
+function closeHouseClose() { g("house-close-bd").classList.remove("open"); }
+
+async function saveHouseClose() {
+  const c = houseCloseCalc();
+  if (!c) return;
+  if (c.paint < 0 || c.other < 0) { toast("Charges can't be negative", "error"); return; }
+  if (!confirm(`Close account for “${houseLabel(c.h)}”?\n${c.refund >= 0 ? "Refund to tenant: " + fmtINR(c.refund) : "Tenant to pay: " + fmtINR(-c.refund)}`)) return;
+  const closed = {
+    date: c.date, deposit: c.deposit, monthDue: c.monthDue, paint: c.paint,
+    other: c.other, refund: c.refund, note: g("hc-note").value.trim()
+  };
+  setBtn("hc-save", true);
+  try {
+    const res = await rentApi({ action: "closeHouse", id: c.h.id, closed: JSON.stringify(closed), adjust: JSON.stringify(c.adjust) });
+    if (!res.success) { toast(res.error || "Close failed", "error"); return; }
+    toast(`${houseLabel(c.h)} closed — ${c.refund >= 0 ? "return deposit " + fmtINR(c.refund) : "tenant to pay " + fmtINR(-c.refund)}. Moved to “Closed Rentals” sheet.`, "success");
+    closeHouseClose();
+    applyRent(res);
+  } catch (e) {
+    toast("Close failed. Check internet.", "error");
+  } finally {
+    setBtn("hc-save", false, "🔒 Close Account");
+  }
+}
+
+async function deleteHouse() {
+  const id = g("house-id").value, h = RT.houses.find(x => x.id === id);
+  if (!h) return;
+  const n = RT.payments.filter(x => x.houseId === id).length;
+  if (!confirm(`Delete “${houseLabel(h)}”${n ? ` and its ${n} payment${n > 1 ? "s" : ""}` : ""}? This cannot be undone.`)) return;
+  try {
+    const res = await rentApi({ action: "deleteHouse", id });
+    if (!res.success) { toast(res.error || "Delete failed", "error"); return; }
+    toast("Deleted", "success");
+    closeHouseForm();
+    if (RT.activeId === id) closeRentHouse();
+    applyRent(res);
+  } catch (e) { toast("Delete failed. Check internet.", "error"); }
+}
+
+// ── Month payment sheet: full balance or partial ──
+function rentPayCtx() {
+  const h = RT.houses.find(x => x.id === RT.activeId);
+  const r = h && rentMonths(h).find(x => x.month === RT.month);
+  if (!r) return null;
+  const editId = g("rp-id").value, edit = editId ? r.pays.find(x => x.id === editId) : null;
+  return { h, r, edit, max: r.balance + (edit ? edit.amount : 0) };
+}
+
+function openRentPay(month) {
+  RT.month = month;
+  resetRentPayForm();
+  g("rent-pay-bd").classList.add("open");
+}
+
+function closeRentPay() { g("rent-pay-bd").classList.remove("open"); }
+
+function resetRentPayForm() {
+  g("rp-id").value      = "";
+  g("rp-date").value    = todayISO();
+  g("rp-mode").value    = "Cash";
+  g("rp-remarks").value = "";
+  RT.kind = "full";
+  renderRentPay();
+}
+
+function renderRentPay() {
+  const c = rentPayCtx();
+  if (!c) { closeRentPay(); return; }
+  const { h, r, edit } = c;
+  const short = RENT_SUB[RT.sub].short;
+  g("rp-title").textContent = `${RT.sub === "water" ? "💧" : "🏠"} ${r.label} — ${houseLabel(h)}`;
+  // water: only a small "Edit reading" link (no reading / usage figures)
+  const b = r.bill;
+  g("rp-read").style.display = b && !edit ? "" : "none";
+  if (b) g("rp-read").innerHTML = `<button class="fin-back" style="margin:0 0 .7rem" onclick="openWaterForm(RT.bills.find(x => x.id === '${esc(b.id)}'))">✏️ Edit reading</button>`;
+  const showForm = r.balance > 0 || !!edit;
+  g("rp-form").style.display = showForm ? "" : "none";
+  g("rp-done").style.display = showForm ? "none" : "block";
+  g("rp-done").textContent   = `✓ Full ${short.toLowerCase()} received for this month`;
+  g("rp-kind-l").textContent = edit ? "Edit Payment" : "Payment";
+  g("rp-save").textContent   = edit ? "Update Payment" : "Save Payment";
+  g("rp-cancel").textContent = edit ? "Cancel Edit" : "Cancel";
+  g("rp-cancel").onclick     = edit ? resetRentPayForm : closeRentPay;
+  setRentPayKind(RT.kind, true);
+  g("rp-hist-l").style.display = r.pays.length ? "" : "none";
+  g("rp-hist").innerHTML = r.pays.map(p => `
+    <div class="rent-hist-row${edit && edit.id === p.id ? " editing" : ""}">
+      <div class="d">${fmtShortDate(p.paidOn)} · ${esc(p.mode)}${p.remarks ? `<span class="sm">${esc(p.remarks)}</span>` : ""}</div>
+      <div class="a">${fmtINR(p.amount)}</div>
+      ${`<button class="fin-icon-btn" onclick="editRentPayment('${esc(p.id)}')">✏️</button>
+      <button class="fin-icon-btn del" onclick="deleteRentPayment('${esc(p.id)}')">🗑</button>`}
+    </div>`).join("");
+}
+
+// keep = re-render; keeps a typed partial amount
+function setRentPayKind(kind, keep) {
+  const c = rentPayCtx();
+  if (!c) return;
+  RT.kind = kind;
+  g("rp-full").classList.toggle("active", kind === "full");
+  g("rp-part").classList.toggle("active", kind === "part");
+  g("rp-full").textContent = `✓ Full balance ${fmtINR(c.max)}`;
+  const amt = g("rp-amount");
+  if (kind === "full") { amt.value = c.max; amt.readOnly = true; amt.style.opacity = ".65"; }
+  else {
+    amt.readOnly = false; amt.style.opacity = "";
+    if (!keep) { amt.value = ""; amt.focus(); }
+  }
+  rentPayHint();
+}
+
+function rentPayHint() {
+  const c = rentPayCtx();
+  if (!c) return;
+  const a = parseFloat(g("rp-amount").value) || 0, hint = g("rp-hint");
+  hint.style.color = "";
+  if (RT.kind === "full") hint.textContent = `Marks ${c.r.label} as fully received.`;
+  else if (!a) hint.textContent = `Enter any amount up to ${fmtINR(c.max)}.`;
+  else if (a > c.max) { hint.textContent = `More than the balance ${fmtINR(c.max)}.`; hint.style.color = "var(--rd)"; }
+  else hint.textContent = a === c.max ? "This clears the month." : `Balance after this: ${fmtINR(c.max - a)}`;
+}
+
+function editRentPayment(id) {
+  const c = rentPayCtx(), p = c && c.r.pays.find(x => x.id === id);
+  if (!p) return;
+  g("rp-id").value      = id;
+  g("rp-date").value    = p.paidOn;
+  g("rp-mode").value    = p.mode;
+  g("rp-remarks").value = p.remarks || "";
+  const max = c.r.balance + p.amount;
+  RT.kind = p.amount === max ? "full" : "part";
+  g("rp-amount").value = p.amount;
+  renderRentPay();
+}
+
+async function saveRentPayment() {
+  const c = rentPayCtx();
+  if (!c) return;
+  const amount = parseFloat(g("rp-amount").value) || 0, paidOn = g("rp-date").value;
+  if (amount <= 0) { toast("Enter amount received", "error"); return; }
+  if (amount > c.max + 0.001) { toast(`Amount is more than the balance ${fmtINR(c.max)}`, "error"); return; }
+  if (!paidOn) { toast("Select paid on date", "error"); return; }
+  const id = g("rp-id").value;
+  setBtn("rp-save", true);
+  try {
+    const res = await rentApi({
+      action: "saveRentPayment", id, houseId: c.h.id, kind: RT.sub, month: c.r.month, amount, paidOn,
+      mode: g("rp-mode").value, remarks: g("rp-remarks").value.trim(), expected: c.r.rent
+    });
+    if (!res.success) { toast(res.error || "Save failed", "error"); return; }
+    const left = c.max - amount;
+    toast(left > 0 ? `Saved — ${fmtINR(left)} still due for ${c.r.label}` : `${c.r.label} ${RENT_SUB[RT.sub].short.toLowerCase()} fully received`, "success");
+    closeRentPay();
+    applyRent(res);
+  } catch (e) {
+    toast("Save failed. Check internet.", "error");
+  } finally {
+    setBtn("rp-save", false, id ? "Update Payment" : "Save Payment");
+  }
+}
+
+async function deleteRentPayment(id) {
+  const c = rentPayCtx(), p = c && c.r.pays.find(x => x.id === id);
+  if (!p || !confirm(`Delete payment of ${fmtINR(p.amount)} on ${fmtShortDate(p.paidOn)}?`)) return;
+  try {
+    const res = await rentApi({ action: "deleteRentPayment", id });
+    if (!res.success) { toast(res.error || "Delete failed", "error"); return; }
+    toast("Payment deleted", "success");
+    if (g("rp-id").value === id) g("rp-id").value = "";
+    RT.kind = "full";
+    applyRent(res);
+  } catch (e) { toast("Delete failed. Check internet.", "error"); }
+}
+
+// Dashboard: tap a house row → open it in House Rent (or Water)
+g("rent-dash").addEventListener("click", e => {
+  const rb = e.target.closest("[data-remind]");
+  if (rb) { openRemind([rb.dataset.remind], RT.dashMonth || ymNow()); return; }
+  const hd = e.target.closest("tr[data-id]");
+  if (!hd) return;
+  const h = RT.houses.find(x => x.id === hd.dataset.id);
+  if (!h) return;
+  switchRentSub(+h.rent > 0 ? "rent" : "water");
+  openRentHouse(h.id);
+});
+g("rent-list").addEventListener("click", e => {
+  const card = e.target.closest(".rent-card");
+  if (card) openRentHouse(card.dataset.id);
+});
+g("rent-h-table").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-month]");
+  if (!tr) return;
+  openRentPay(tr.dataset.month);
+});
+["house-form-bd", "rent-pay-bd", "house-close-bd", "water-form-bd", "remind-bd"].forEach(id => {
+  g(id).addEventListener("click", e => { if (e.target === g(id)) g(id).classList.remove("open"); });
+});
+
+// ════════════════════════════════════════
 //  CHIT FUNDS  (v4.1)
 //  Per-month values are computed by the backend (getChits):
 //    Comm Owner = form commission, By Hand = Chitty − Bid,
@@ -3986,6 +4992,7 @@ g("chit-table").addEventListener("click", e => {
     if (g("master-data-screen").style.display === "flex") return loadMasterData;
     if (g("app").style.display !== "flex") return null;
     if (g("reminder-section").style.display !== "none") return () => loadReminders(true);
+    if (g("rent-section").style.display !== "none") return () => loadRent(true);
     if (g("finance-section").style.display === "none") return loadAll;
     return F.sub === "chit" ? () => loadChits(true) : () => loadFinance(true);
   }
@@ -4102,6 +5109,13 @@ if (IS_IOS && !IS_STANDALONE) {
     setTimeout(() => { fromPop = false; }, 0);
   });
 })();
+
+// v4.11 — mouse wheel over a focused number field scrolls the page instead
+// of changing the value (whole app)
+document.addEventListener("wheel", e => {
+  const el = e.target;
+  if (el instanceof HTMLInputElement && el.type === "number" && document.activeElement === el) el.blur();
+}, { passive: true });
 
 // Offline indicator
 function syncOnline() { g("offline-pill").classList.toggle("show", !navigator.onLine); }
