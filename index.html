@@ -380,8 +380,8 @@ img{-webkit-user-drag:none}
 .fin-back{background:none;border:none;color:var(--ac2);font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;padding:0;margin-bottom:.7rem}
 .fin-table-wrap{overflow-x:auto;background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r)}
 .fin-table{width:100%;border-collapse:collapse;font-size:.74rem;white-space:nowrap}
-.fin-table th{background:var(--bg3);color:var(--tx2);font-weight:700;text-align:left;padding:.55rem .6rem;font-size:.66rem;text-transform:uppercase;letter-spacing:.03em}
-.fin-table td{padding:.55rem .6rem;border-top:1px solid var(--bdr)}
+.fin-table th{background:var(--bg3);color:var(--tx2);font-weight:700;text-align:left;padding:.4rem .6rem;font-size:.66rem;text-transform:uppercase;letter-spacing:.03em}
+.fin-table td{padding:.38rem .6rem;border-top:1px solid var(--bdr);line-height:1.25}
 .fin-table tbody tr{cursor:pointer}
 .fin-table tbody tr:active{background:var(--sur2)}
 .fin-yes{color:var(--gr);font-weight:700}.fin-no{color:var(--rd);font-weight:700}
@@ -402,12 +402,16 @@ html.popup-open{overflow:hidden}
 .chit-check input{width:18px;height:18px;margin:0;flex-shrink:0;accent-color:var(--ac);cursor:pointer}
 .chit-check:has(input:checked){border-color:var(--ac);background:var(--acbg);color:var(--ac2)}
 .fin-table.fit{table-layout:fixed;white-space:normal}
-.fin-table.fit th,.fin-table.fit td{padding:.5rem .3rem;vertical-align:top;overflow:hidden;text-overflow:ellipsis;overflow-wrap:break-word}
+.fin-table.fit th,.fin-table.fit td{padding:.36rem .3rem;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;overflow-wrap:break-word}
 .fin-table.fit th{text-transform:none;letter-spacing:0;font-size:.68rem;word-break:normal}
 .fin-table.fit th:first-child,.fin-table.fit td:first-child{padding-left:.55rem}
 .fin-table.fit th:last-child,.fin-table.fit td:last-child{padding-right:.55rem}
 .fin-table.dash.fit{font-size:.7rem}
-.fin-table .sm{display:block;font-size:.66rem;color:var(--tx3);font-weight:400;margin-top:.1rem}
+.fin-table .sm{display:block;font-size:.64rem;color:var(--tx3);font-weight:400;margin-top:0;line-height:1.2}
+/* compact 📲 remind: amount/badge left, icon right, same line */
+.rm-line{display:flex;align-items:center;justify-content:space-between;gap:.3rem}
+.rent-right .rm-line{justify-content:flex-end}
+.rm-ico{font-size:.7rem;line-height:1;padding:.12rem .28rem;margin:0;border-radius:6px;flex-shrink:0}
 .fin-table.dash td:first-child{font-weight:700}
 .fin-table.dash.fit td{vertical-align:middle}
 .fin-table .pct{font-size:.64rem;color:var(--tx3);white-space:nowrap}
@@ -435,6 +439,11 @@ html.popup-open{overflow:hidden}
 .rent-subtabs{grid-template-columns:repeat(3,1fr)}
 .rent-subtabs .fin-subtab{padding:.5rem .2rem;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fin-table tr.dash-total td{background:var(--bg3);font-weight:800}
+.fin-table tr.dash-sep td{background:var(--grbg);color:var(--gr);font-weight:700;text-align:left;padding-top:.28rem;padding-bottom:.28rem}
+.fin-table tr.dash-sep.due td{background:var(--rdbg);color:var(--rd)}
+.rent-sep{color:var(--gr)}
+.rent-sep.due{color:var(--rd)}
+.rent-sep .amt{float:right}
 .rent-card .fin-name{font-size:1.22rem;font-weight:800;letter-spacing:-.01em}
 .house-tn{font-family:'DM Sans',sans-serif;font-size:1.02rem;font-weight:700;color:var(--tx2);margin-left:.5rem}
 .fin-title .house-tn{font-size:1.02rem}
@@ -446,6 +455,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 .rent-stat .l{font-size:.62rem;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 .rent-stat .v{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;margin-top:.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rent-stat .s{font-size:.62rem;color:var(--tx3);margin-top:.1rem}
+.fin-table .rent-badge{max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
 .rent-badge{display:inline-block;font-size:.66rem;font-weight:700;padding:.18rem .5rem;border-radius:20px;white-space:nowrap}
 .rent-badge.paid{background:var(--grbg);color:var(--gr)}
 .rent-badge.part{background:var(--ambg);color:var(--am)}
@@ -4073,25 +4083,31 @@ function renderRentDash() {
   const stat = (l, v) => `<div class="rent-stat"><div class="l">${l}</div><div class="v" style="color:var(--gr)">${fmtINR(v)}</div><div class="s">${ymLabel(ym)}</div></div>`;
   const cls = r => !r ? "" : r.balance > 0 ? "fin-no" : "fin-yes";
   let tRent = 0, tWater = 0, tPaid = 0, tDue = 0;
-  const rows = RT.houses
+  const dashRows = RT.houses
     .sort((a, b) => houseLabel(a).localeCompare(houseLabel(b)))
     .map(h => {
       const r = +h.rent > 0 ? rentMonths(h, "rent").find(x => x.month === ym) : null;
       const w = rentMonths(h, "water").find(x => x.month === ym);
       const prev = rentPrevDue(h, ym);   // earlier months still unpaid, carried in
-      if (!r && !w && !prev.amt) return "";
+      if (!r && !w && !prev.amt) return null;
       const amt = (r ? r.rent : 0) + (w ? w.rent : 0) + prev.amt;
       const paid = (r ? r.paid : 0) + (w ? w.paid : 0);
       const due = (r ? r.balance : 0) + (w ? w.balance : 0) + prev.amt;
       tRent += r ? r.rent : 0; tWater += w ? w.rent : 0; tPaid += paid; tDue += due;
-      return `
+      return { due, paid, html: `
         <tr data-id="${esc(h.id)}">
           <td><b>${esc(h.name)}</b>${h.tenant ? `<span class="sm">${esc(h.tenant)}</span>` : ""}</td>
           <td class="${cls(r)}">${r ? `<span class="dash-pay" data-pay="rent">${fmtINR(r.rent)}</span>` : "—"}</td>
           <td class="${cls(w)}">${w ? `<span class="dash-pay" data-pay="water">${fmtINR(w.rent)}</span>` : "—"}</td>
-          <td class="${due > 0 ? "fin-no" : "fin-yes"}">${due > 0 ? fmtINR(due) + " Due" : fmtINR(amt) + " Paid"}${prev.amt ? `<span class="sm">incl. ${fmtINR(prev.amt)} previous (${prev.months.join(", ")})</span>` : ""}${due > 0 && paid > 0 ? `<span class="sm">Paid ${fmtINR(paid)}</span>` : ""}${due > 0 ? `<br><button class="rm-btn" data-remind="${esc(h.id)}">📲 Remind</button>` : ""}</td>
-        </tr>`;
-    }).join("");
+          <td class="${due > 0 ? "fin-no" : "fin-yes"}">${due > 0 ? `<span class="rm-line"><span>${fmtINR(due)} Due</span><button class="rm-btn rm-ico" data-remind="${esc(h.id)}" title="Remind">📲</button></span>` : fmtINR(amt) + " Paid"}${
+            due > 0 && (paid > 0 || prev.amt) ? `<span class="sm">${[paid > 0 ? "Paid " + fmtINR(paid) : "", prev.amt ? `incl. ${fmtINR(prev.amt)} prev (${prev.months.join(", ")})` : ""].filter(Boolean).join(" · ")}</span>` : ""}</td>
+        </tr>` };
+    }).filter(Boolean);
+  // Split: houses with due stay on top; fully received (no due) go below
+  const dueList  = dashRows.filter(x => x.due > 0), recvList = dashRows.filter(x => x.due <= 0);
+  const sepRow = (cls, label, amt) => `<tr class="dash-sep ${cls}"><td colspan="4">${label} — ${fmtINR(amt)}</td></tr>`;
+  const rows = (dueList.length ? sepRow("due", "⏳ Due Amount", dueList.reduce((t, x) => t + x.due, 0)) + dueList.map(x => x.html).join("") : "")
+    + (recvList.length ? sepRow("", "✅ Received Amount", recvList.reduce((t, x) => t + x.paid, 0)) + recvList.map(x => x.html).join("") : "");
 
   g("rent-dash").innerHTML = `
     <div class="rent-stats">
@@ -4128,29 +4144,48 @@ function renderRentList() {
   }
   const now = rentYm();
   let expected = 0, received = 0, totalDue = 0, pendMonths = 0;
+  const recvIds = new Set();   // received & no due → shown below
+  const dueOf = {}, recvOf = {};
   const card = h => {
     const rows = rentMonths(h), cur = rows.find(r => r.month === now), due = rentDue(rows);
     totalDue += due;
     pendMonths += rows.filter(r => r.status === "pend" || r.status === "part").length;
     if (h.active !== "No" && cur) { expected += cur.rent; received += cur.paid; }
+    if (cur && cur.status === "paid" && due <= 0) recvIds.add(h.id);
+    dueOf[h.id] = due; recvOf[h.id] = cur ? cur.paid : 0;
     const badge = !cur ? rentBadge("up", RT.sub === "water" ? "No reading" : "From " + ymLabel(h.start))
       : cur.status === "part" ? rentBadge("part", `${fmtINR(cur.balance)} due`)
       : cur.status === "up" ? rentBadge("up", "Due " + fmtShortDate(cur.due))
       : rentBadge(cur.status);
+    const remind = (cur && cur.balance > 0) || rentPrevDue(h, now, RT.sub).amt > 0
+      ? `<button class="rm-btn rm-ico" data-remind="${esc(h.id)}" title="Remind">📲</button>` : "";
+    const dep = RT.sub === "rent" && depositInfo(h).pending > 0
+      ? `<span class="sm" style="color:var(--am)">Deposit ${fmtINR(depositInfo(h).pending)}</span>` : "";
+    const charge = RT.sub === "water"
+      ? (rows[0] ? `${fmtINR(rows[0].rent)}<span class="sm">${rows[0].label} · ${fmtL(rows[0].bill.usage)}</span>` : "—")
+      : `${fmtINR(rentAt(h, now))}<span class="sm">Due ${ordinal(h.dueDay || 1)}</span>`;
     return `
-      <div class="fin-card rent-card" data-id="${esc(h.id)}">
-        <div style="min-width:0">
-          <div class="fin-name">${houseLabelHtml(h)}</div>
-          <div class="fin-sub">${RT.sub === "water" && rows[0]
-            ? `Last: ${rows[0].label} · ${fmtL(rows[0].bill.usage)} · ${fmtINR(rows[0].rent)}`
-            : `${fmtINR(RT.sub === "rent" ? rentAt(h, now) : sub.amt(h))}/month · Due ${ordinal(h.dueDay || 1)}`}${RT.sub === "rent" && depositInfo(h).pending > 0
-              ? ` · <span style="color:var(--am)">Deposit due ${fmtINR(depositInfo(h).pending)}</span>` : ""}</div>
-        </div>
-        <div class="rent-right">${badge}<span class="sm">${due > 0 ? "Total due " + fmtINR(due) : "No dues"}</span>${(cur && cur.balance > 0) || rentPrevDue(h, now, RT.sub).amt > 0 ? `<button class="rm-btn" data-remind="${esc(h.id)}">📲 Remind</button>` : ""}</div>
-      </div>`;
+        <tr data-id="${esc(h.id)}">
+          <td>${esc(h.name)}${h.tenant ? `<span class="sm">${esc(h.tenant)}</span>` : ""}</td>
+          <td>${charge}</td>
+          <td>${badge}</td>
+          <td class="${due > 0 ? "fin-no" : "fin-yes"}">${remind
+            ? `<span class="rm-line"><span>${due > 0 ? fmtINR(due) + " Due" : "—"}</span>${remind}</span>`
+            : due > 0 ? fmtINR(due) + " Due" : cur && cur.paid > 0 ? fmtINR(cur.paid) + " Paid" : "—"}${dep}</td>
+        </tr>`;
   };
   const byLabel = (a, b) => houseLabel(a).localeCompare(houseLabel(b));
-  const cards = list.slice().sort(byLabel).map(card).join("");
+  const sorted = list.slice().sort(byLabel).map(h => ({ h, html: card(h) }));
+  const recvL  = sorted.filter(x => recvIds.has(x.h.id)), dueL = sorted.filter(x => !recvIds.has(x.h.id));
+  const sepRow = (cls, label, amt) => `<tr class="dash-sep ${cls}"><td colspan="4">${label} — ${fmtINR(amt)}</td></tr>`;
+  const body   = (dueL.length ? sepRow("due", "⏳ Due Amount", dueL.reduce((t, x) => t + dueOf[x.h.id], 0)) + dueL.map(x => x.html).join("") : "")
+    + (recvL.length ? sepRow("", "✅ Received Amount", recvL.reduce((t, x) => t + recvOf[x.h.id], 0)) + recvL.map(x => x.html).join("") : "");
+  const cards  = `
+    <div class="fin-table-wrap"><table class="fin-table dash fit">
+      <colgroup><col style="width:25%"><col style="width:24%"><col style="width:24%"><col style="width:27%"></colgroup>
+      <thead><tr><th>House No</th><th>${RT.sub === "water" ? "Last Bill" : "Rent"}</th><th>Status</th><th>Paid / Due</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>`;
   g("rent-summary").innerHTML = `
     <div class="rent-stats">
       <div class="rent-stat"><div class="l">${MONTHS[+now.slice(5) - 1]} ${sub.short}</div><div class="v">${fmtINR(expected)}</div><div class="s">Expected</div></div>
@@ -4891,8 +4926,8 @@ g("rent-dash").addEventListener("click", e => {
 g("rent-list").addEventListener("click", e => {
   const rb = e.target.closest("[data-remind]");
   if (rb) { openRemind([rb.dataset.remind], rentYm(), RT.sub); return; }   // this tab's charge only
-  const card = e.target.closest(".rent-card");
-  if (card) openRentHouse(card.dataset.id);
+  const tr = e.target.closest("tr[data-id]");
+  if (tr) openRentHouse(tr.dataset.id);
 });
 g("rent-h-table").addEventListener("click", e => {
   const tr = e.target.closest("tr[data-month]");
