@@ -110,6 +110,7 @@ function handleRequest(e) {
       case "saveRentNote":      return respond(saveRentNote(p));
       case "saveRentPayment":   return respond(saveRentPayment(p));
       case "deleteRentPayment": return respond(deleteRentPayment(p));
+      case "saveRentPayTotal":  return respond(saveRentPayTotal(p));
       case "saveWaterBill":     return respond(saveWaterBill(p));
       case "deleteWaterBill":   return respond(deleteWaterBill(p));
       case "closeHouse":        return respond(closeHouse(p));
@@ -2454,8 +2455,8 @@ function saveChitMonth(p) {
 //  saved with its first payment, else the house's current rent. Water is one
 //  bill per meter reading: Usage = Present − Previous, Amount = round(Usage ×
 //  Rate). Close Account: Final Return Deposit = Deposit − close month's unpaid
-//  rent − Paint (one month's rent) − Other; the close month's unpaid rent is
-//  saved as a "Deposit" payment. The deposit can come in parts (kind
+//  rent − unpaid water − Paint (one month's rent) − Other; the close month's
+//  unpaid rent and each unpaid water bill are saved as "Deposit" payments. The deposit can come in parts (kind
 //  "deposit" payments); Deposit here = the part received.
 // ─────────────────────────────────────────────────────────────
 
@@ -2704,6 +2705,43 @@ function saveRentPayment(p) {
   });
 }
 
+// Dashboard "Total Due": one amount received for a house, split over its
+// unpaid rent / water months. items = [{ kind, month, amount, expected }]
+// (the client's split, oldest month first); each is checked against its
+// balance and saved as its own payment, all or none.
+function saveRentPayTotal(p) {
+  let items = [];
+  try { items = JSON.parse(p.items || "[]"); } catch (e) { return { success: false, error: "Bad payment data." }; }
+  const paidOn = p.paidOn ? finDate(p.paidOn) : "", mode = RENT_MODES.indexOf(p.mode) >= 0 ? p.mode : "Other";
+  const remarks = String(p.remarks || "").trim(), houseId = String(p.houseId || "");
+  if (!Array.isArray(items) || !items.length) return { success: false, error: "Nothing to pay." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(paidOn)) return { success: false, error: "Select paid on date." };
+  return withRent(p, function(m) {
+    const h = m.houses.filter(function(y) { return y.id === houseId; })[0];
+    if (!h) return { success: false, error: "House not found." };
+    if (h.closed) return { success: false, error: "A closed house can't take payments." };
+    const add = [];
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i], kind = it.kind === "water" ? "water" : "rent", month = String(it.month || "").trim(), amount = rentNum(it.amount);
+      if (!/^\d{4}-\d{2}$/.test(month)) return { success: false, error: "Month is required." };
+      if (amount <= 0) continue;
+      const pays = m.payments.filter(function(y) { return y.houseId === h.id && y.kind === kind && y.month === month; });
+      const bill = m.bills.filter(function(b) { return b.houseId === h.id && b.month === month; })[0];
+      const owed = kind === "water" ? (bill ? bill.amount : 0)
+        : (pays.length && pays[0].expected ? pays[0].expected : rentNum(it.expected) || rentAt(h, month));
+      const left = owed - pays.reduce(function(t, y) { return t + y.amount; }, 0);
+      if (amount > left + 0.001) {
+        return { success: false, error: (kind === "water" ? "Water" : "Rent") + " " + rentYmLabel(month) + ": amount is more than the balance ₹" + Math.max(0, left) + "." };
+      }
+      add.push({ id: rentId(), houseId: h.id, kind: kind, month: month, amount: amount, paidOn: paidOn, mode: mode,
+        remarks: remarks, expected: owed, closeAdj: false });
+    }
+    if (!add.length) return { success: false, error: "Enter amount received." };
+    add.forEach(function(x) { m.payments.push(x); });
+    return { success: true, count: add.length };
+  });
+}
+
 function deleteRentPayment(p) {
   const id = String(p.id || "");
   return withRent(p, function(m) {
@@ -2784,13 +2822,20 @@ function closeHouse(p) {
     const row = rentHouseMonths(h, m.payments).filter(function(r) { return r.month === ym; })[0];
     const monthDue = row ? row.balance : 0, paint = rentAt(h, ym);
     const received = rentDepositReceived(m, h);
-    const refund = received - monthDue - paint - other;
+    // every unpaid water bill is also taken from the deposit
+    const waterDues = rentWaterDues(m, h);
+    const waterDue = waterDues.reduce(function(t, w) { return t + w.balance; }, 0);
+    const refund = received - monthDue - waterDue - paint - other;
     if (monthDue > 0) {
       m.payments.push({ id: rentId(), houseId: h.id, kind: "rent", month: ym, amount: monthDue, paidOn: date,
         mode: "Deposit", remarks: "Adjusted from deposit", expected: row.rent, closeAdj: true });
     }
+    waterDues.forEach(function(w) {
+      m.payments.push({ id: rentId(), houseId: h.id, kind: "water", month: w.month, amount: w.balance, paidOn: date,
+        mode: "Deposit", remarks: "Adjusted from deposit", expected: w.amount, closeAdj: true });
+    });
     h.active = "No";
-    h.closed = { date: date, deposit: received, monthDue: monthDue, paint: paint, other: other,
+    h.closed = { date: date, deposit: received, monthDue: monthDue, waterDue: waterDue, paint: paint, other: other,
       refund: refund, note: String(sent.note || "").trim() };
     return { success: true };
   });
@@ -2804,6 +2849,15 @@ function rentAt(h, ym) {
   let r = hist[0].rent;
   hist.forEach(function(x) { if (x.from <= ym) r = x.rent; });
   return r;
+}
+
+// Unpaid water bills of a house: [{ month, amount, balance }]
+function rentWaterDues(m, h) {
+  return m.bills.filter(function(b) { return b.houseId === h.id; }).map(function(b) {
+    const paid = m.payments.filter(function(x) { return x.houseId === h.id && x.kind === "water" && x.month === b.month; })
+      .reduce(function(t, x) { return t + x.amount; }, 0);
+    return { month: b.month, amount: b.amount, balance: Math.max(0, b.amount - paid) };
+  }).filter(function(w) { return w.balance > 0; });
 }
 
 // Deposit received so far (houses from before part-deposits: the full deposit)
