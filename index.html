@@ -4033,8 +4033,9 @@ function applyRent(res) {
   RT.payments = res.payments || [];
   RT.bills    = res.bills || [];
   RT.meters   = res.meters || [];   // closed houses' last readings (for "Previous")
+  RT.vacant   = res.vacant || [];   // closed house nos. waiting for a new tenant
   RT.fetchedAt = Date.now();
-  cacheSet("rent", { houses: RT.houses, payments: RT.payments, bills: RT.bills, meters: RT.meters });
+  cacheSet("rent", { houses: RT.houses, payments: RT.payments, bills: RT.bills, meters: RT.meters, vacant: RT.vacant });
   renderRent();
 }
 
@@ -4042,7 +4043,7 @@ async function loadRent(force) {
   if (!force && Date.now() - (RT.fetchedAt || 0) < 60000) return;
   if (!RT.houses.length) {
     const cached = cacheGet("rent");
-    if (cached) { RT.houses = cached.houses; RT.payments = cached.payments; RT.bills = cached.bills || []; RT.meters = cached.meters || []; renderRent(); }
+    if (cached) { RT.houses = cached.houses; RT.payments = cached.payments; RT.bills = cached.bills || []; RT.meters = cached.meters || []; RT.vacant = cached.vacant || []; renderRent(); }
     else g("rent-list").innerHTML = '<div class="empty"><div class="btn-spin" style="margin:0 auto .5rem"></div>Loading…</div>';
   }
   try {
@@ -4138,6 +4139,24 @@ function maskRent() {
 
 function renderRentList() {
   const sub = RENT_SUB[RT.sub], list = rentHouses();   // open houses only (closed ones aren't sent)
+  const vacant = RT.sub === "rent" ? (RT.vacant || []).slice().sort((a, b) => a.name.localeCompare(b.name)) : [];
+  const vacantRows = vacant.length ? `<tr class="dash-sep"><td colspan="4">🔑 Vacant — ${vacant.length} house${vacant.length > 1 ? "s" : ""}</td></tr>` +
+    vacant.map((v, i) => `
+        <tr>
+          <td>${esc(v.name)}<span class="sm">Closed ${v.closedOn ? fmtShortDate(v.closedOn) : ""}${v.tenant ? " · " + esc(v.tenant) : ""}</span></td>
+          <td>${fmtINR(v.rent)}<span class="sm">Due ${ordinal(v.dueDay || 1)}</span></td>
+          <td>${rentBadge("up", "Vacant")}</td>
+          <td><button class="rm-btn" data-vacant="${i}">＋ New Tenant</button></td>
+        </tr>`).join("") : "";
+  RT.vacantShown = vacant;
+  if (!list.length && vacantRows) {
+    g("rent-summary").innerHTML = "";
+    g("rent-list").innerHTML = `<div class="fin-table-wrap"><table class="fin-table dash fit">
+      <colgroup><col style="width:25%"><col style="width:24%"><col style="width:24%"><col style="width:27%"></colgroup>
+      <thead><tr><th>House No</th><th>Rent</th><th>Status</th><th>Paid / Due</th></tr></thead>
+      <tbody>${vacantRows}</tbody></table></div>`;
+    return;
+  }
   if (!list.length) {
     g("rent-summary").innerHTML = "";
     g("rent-list").innerHTML = `<div class="empty"><div class="empty-ico">${RT.sub === "water" ? "💧" : "🏠"}</div>${RT.houses.length ? sub.empty : RENT_SUB.rent.empty}</div>`;
@@ -4185,7 +4204,7 @@ function renderRentList() {
     <div class="fin-table-wrap"><table class="fin-table dash fit">
       <colgroup><col style="width:25%"><col style="width:24%"><col style="width:24%"><col style="width:27%"></colgroup>
       <thead><tr><th>House No</th><th>${RT.sub === "water" ? "Last Bill" : "Rent"}</th><th>Status</th><th>Paid / Due</th></tr></thead>
-      <tbody>${body}</tbody>
+      <tbody>${body}${vacantRows}</tbody>
     </table></div>`;
   g("rent-summary").innerHTML = `
     <div class="rent-stats">
@@ -4272,18 +4291,19 @@ function editRentHouse() {
 // ── House add / edit ──
 // The form shows the current sub-tab's charge: House Rent → rent + deposit,
 // Water Charges → water (and can add water to a house already in the list)
-function openHouseForm(h) {
+// seed (no h): a vacant house no. — new tenant, same house no. / rent / due day
+function openHouseForm(h, seed) {
   const water = RT.sub === "water";
   g("house-id").value      = h ? h.id : "";
-  g("house-name").value    = h ? h.name : "";
+  g("house-name").value    = h ? h.name : seed ? seed.name : "";
   g("house-tenant").value  = h ? h.tenant || "" : "";
   g("house-phone").value   = h ? h.phone || "" : "";
-  g("house-rent").value    = h && +h.rent ? rentAt(h, rentYm()) : "";
+  g("house-rent").value    = h && +h.rent ? rentAt(h, rentYm()) : seed && +seed.rent ? seed.rent : "";
   RT.editRent = h ? rentAt(h, rentYm()) : null;
   g("house-rent-from").value = rentYm();
   g("house-rent-note").value = "";
   houseRentChanged();
-  g("house-due").value     = h ? rentDueDate(h, h.start || ymNow()) : "";   // own date, not tied to occupied date
+  g("house-due").value     = h ? rentDueDate(h, h.start || ymNow()) : seed ? rentDueDate(seed, ymNow()) : "";   // own date, not tied to occupied date
   g("house-due-f").style.display = water ? "none" : "";
   houseDueHint();
   g("house-due-hint").style.display = water ? "none" : "";
@@ -4998,6 +5018,8 @@ g("rent-dash").addEventListener("click", e => {
 g("rent-list").addEventListener("click", e => {
   const rb = e.target.closest("[data-remind]");
   if (rb) { openRemind([rb.dataset.remind], rentYm(), RT.sub); return; }   // this tab's charge only
+  const vb = e.target.closest("[data-vacant]");
+  if (vb) { const v = (RT.vacantShown || [])[+vb.dataset.vacant]; if (v) openHouseForm(null, v); return; }
   const tr = e.target.closest("tr[data-id]");
   if (tr) openRentHouse(tr.dataset.id);
 });

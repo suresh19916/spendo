@@ -2440,7 +2440,8 @@ function saveChitMonth(p) {
 //    (blank row between blocks)
 //  A closed house (Close Account) moves to the "Closed Rentals" sheet — one
 //  block with all its months — and leaves the year sheets and the app; the
-//  new tenant's house takes its place in "Rentals <year>".
+//  new tenant's house takes its place in "Rentals <year>". Till then the
+//  house no. stays in the app as "Vacant" (＋ New Tenant prefills it).
 //  Sheets are made only for years that have started — a later-year month
 //  (advance payment) is kept in the current year's sheet.
 //  Columns I:J are hidden and hold every detail (several part payments a
@@ -2543,6 +2544,15 @@ function rentResult(m, listUser) {
       .sort(function(a, b) { return b.month.localeCompare(a.month); })[0];
     if (last) meters.push({ name: h.name, tenant: h.tenant, month: last.month, present: last.present });
   });
+  // Vacant: a closed house's number with no open house of that number yet —
+  // kept in the list so the next tenant moves into the same house no.
+  const openNames = {}, vacant = {};
+  houses.forEach(function(h) { openNames[h.name.trim().toLowerCase()] = true; });
+  mine.filter(function(h) { return h.closed && h.rent > 0; }).forEach(function(h) {
+    const key = h.name.trim().toLowerCase(), on = String(h.closed.date || "");
+    if (!key || openNames[key] || (vacant[key] && vacant[key].closedOn >= on)) return;
+    vacant[key] = { name: h.name, tenant: h.tenant, rent: rentAt(h, rentNow()), dueDay: h.dueDay, closedOn: on };
+  });
   const ids = {};
   houses.forEach(function(h) { ids[h.id] = true; });
   const strip = function(h) { const o = {}; Object.keys(h).forEach(function(k) { if (k !== "createdAt") o[k] = h[k]; }); return o; };
@@ -2550,7 +2560,8 @@ function rentResult(m, listUser) {
     houses: houses.map(strip),
     payments: m.payments.filter(function(x) { return ids[x.houseId]; }),
     bills: m.bills.filter(function(b) { return ids[b.houseId]; }),
-    meters: meters
+    meters: meters,
+    vacant: Object.keys(vacant).map(function(k) { return vacant[k]; })
   };
 }
 
@@ -2565,7 +2576,7 @@ function withRent(p, fn) {
     if (!res.success) return res;
     writeRentYearSheets(ss, m);
     const out = rentResult(m, p.listUser);
-    res.houses = out.houses; res.payments = out.payments; res.bills = out.bills; res.meters = out.meters;
+    res.houses = out.houses; res.payments = out.payments; res.bills = out.bills; res.meters = out.meters; res.vacant = out.vacant;
     return res;
   } finally {
     lock.releaseLock();
@@ -2574,7 +2585,7 @@ function withRent(p, fn) {
 
 function getRent(p) {
   const out = rentResult(rentModel(SpreadsheetApp.getActiveSpreadsheet()), p.listUser);
-  return { success: true, houses: out.houses, payments: out.payments, bills: out.bills, meters: out.meters };
+  return { success: true, houses: out.houses, payments: out.payments, bills: out.bills, meters: out.meters, vacant: out.vacant };
 }
 
 function saveHouse(p) {
