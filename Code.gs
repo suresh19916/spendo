@@ -431,13 +431,16 @@ function getTransactions(p) {
   const userFilter = String(p.userName || "").trim();
   const sheet    = ss.getSheetByName(monthSheetKey(month, year)); // read-only — viewing a month must never create its sheet
   const data     = sheet ? sheet.getDataRange().getValues() : [];
-  const rows     = [];
+  const raw      = [];
   for (let r = 1; r < data.length; r++) {
     if (!data[r][0]) continue;
     // v2.3 user filter — col 2 is Name
     if (userFilter && String(data[r][2]).trim() !== userFilter) continue;
-    rows.push(rowToObj(data[r]));
+    raw.push(data[r]);
   }
+  // An expense that crosses the balance is stored as two rows (covered +
+  // Over Usage) with the same ID — the UI shows it as one transaction.
+  const rows = mergeDuplicateIdRows(raw).map(rowToObj);
   return { success: true, transactions: rows, month: month };
 }
 
@@ -651,9 +654,10 @@ function getAdminReport(p) {
   // Map: name → { income, expense, transactions[] }
   const userMap = {};
 
-  for (let r = 1; r < data.length; r++) {
-    const row = data[r];
-    if (!row[0]) continue;
+  // Reunite split rows (covered + Over Usage halves share an ID) so each
+  // transaction is listed once; totals are unchanged by the merge.
+  const txRows = mergeDuplicateIdRows(data.slice(1).filter(function(row) { return row[0]; }));
+  txRows.forEach(function(row) {
     const name   = String(row[2] || "Unknown").trim();
     const type   = String(row[3]).trim();
     const amount = parseFloat(row[5]) || 0;
@@ -666,7 +670,7 @@ function getAdminReport(p) {
     if (type === "Expense") userMap[name].expense += amount;
 
     userMap[name].transactions.push(rowToObj(row));
-  }
+  });
 
   // Sort transactions newest-first within each user
   const users = Object.values(userMap).map(function(u) {
@@ -2940,7 +2944,8 @@ function writeRentYearSheets(ss, m) {
         "Deposit Received", rentDepositReceived(m, h)] });
       out.push({ kind: "info", v: h.closed
         ? ["Paint Charge", h.closed.paint, "Water / Litre", "₹" + (m.bills.filter(function(b) { return b.houseId === h.id; }).map(function(b) { return b.rate; })[0] || 0.15),
-           "Closed On", fmtD(h.closed.date), "Final Return Deposit", h.closed.refund]
+           "Closed On", fmtD(h.closed.date),
+           h.closed.refund >= 0 ? "Final Return Deposit" : "Collect from Tenant", Math.abs(h.closed.refund)]
         : ["Paint Charge", "1 month rent (" + rentAt(h, rentNow()) + ")", "Water / Litre", "₹0.15"] });
       out.push({ kind: "head", v: ["Month", "Rent Monthly", "Rent Received", "Water Amount", "Water Received",
         "Pending Rent/Water Amount", "Transaction Mode", "Remarks"] });

@@ -1560,7 +1560,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     </div>
     <div class="rent-settle" id="hc-result"></div>
     <div class="fin-hint" id="hc-water" style="margin-top:-.4rem"></div>
-    <div class="field"><label>Note <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><textarea id="hc-note" placeholder="Keys returned, refund paid by UPI…"></textarea></div>
+    <div class="field"><label>Note <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><textarea id="hc-note" placeholder="Keys returned, refund paid / amount collected by UPI…"></textarea></div>
     <div class="sh-actions">
       <button class="btn btn-ghost" onclick="closeHouseClose()">Cancel</button>
       <button class="btn btn-primary" id="hc-save" onclick="saveHouseClose()">🔒 Close Account</button>
@@ -4702,8 +4702,8 @@ function houseCloseCalc() {
   g("hc-water-r").style.display = waterDue > 0 ? "" : "none";
   const res = g("hc-result");
   res.className = "rent-settle " + (refund >= 0 ? "g" : "r");
-  res.innerHTML = `Final Return Deposit Amount: ${refund < 0 ? "−" : ""}${fmtINR(Math.abs(refund))}` +
-    `<span class="sm">${refund >= 0 ? "Refund to tenant" : "Tenant to pay"}${older > 0 ? ` · older pending rent ${fmtINR(older)} not included` : ""}</span>`;
+  res.innerHTML = (refund >= 0 ? `Final Return Deposit Amount: ${fmtINR(refund)}` : `Amount to Collect from Tenant: ${fmtINR(-refund)}`) +
+    `<span class="sm">${refund >= 0 ? "Refund to tenant" : "Charges exceed deposit — collect from tenant"}${older > 0 ? ` · older pending rent ${fmtINR(older)} not included` : ""}</span>`;
   g("hc-water").textContent = RT.bills.some(b => b.houseId === h.id)
     ? `💧 Water charges close too${waterDue > 0 ? ` — ${fmtINR(waterDue)} water due adjusted from deposit` : ""}.` : "";
   return { h, date, deposit, monthDue, waterDue, paint, other, adjust, refund };
@@ -4726,7 +4726,7 @@ async function saveHouseClose() {
   const c = houseCloseCalc();
   if (!c) return;
   if (c.paint < 0 || c.other < 0) { toast("Charges can't be negative", "error"); return; }
-  if (!confirm(`Close account for “${houseLabel(c.h)}”?\n${c.refund >= 0 ? "Refund to tenant: " + fmtINR(c.refund) : "Tenant to pay: " + fmtINR(-c.refund)}`)) return;
+  if (!confirm(`Close account for “${houseLabel(c.h)}”?\n${c.refund >= 0 ? "Refund to tenant: " + fmtINR(c.refund) : "Collect from tenant: " + fmtINR(-c.refund)}`)) return;
   const closed = {
     date: c.date, deposit: c.deposit, monthDue: c.monthDue, waterDue: c.waterDue, paint: c.paint,
     other: c.other, refund: c.refund, note: g("hc-note").value.trim()
@@ -4735,7 +4735,7 @@ async function saveHouseClose() {
   try {
     const res = await rentApi({ action: "closeHouse", id: c.h.id, closed: JSON.stringify(closed), adjust: JSON.stringify(c.adjust) });
     if (!res.success) { toast(res.error || "Close failed", "error"); return; }
-    toast(`${houseLabel(c.h)} closed — ${c.refund >= 0 ? "return deposit " + fmtINR(c.refund) : "tenant to pay " + fmtINR(-c.refund)}. Moved to “Closed Rentals” sheet.`, "success");
+    toast(`${houseLabel(c.h)} closed — ${c.refund >= 0 ? "return deposit " + fmtINR(c.refund) : "collect " + fmtINR(-c.refund) + " from tenant"}. Moved to “Closed Rentals” sheet.`, "success");
     closeHouseClose();
     applyRent(res);
   } catch (e) {
