@@ -408,6 +408,7 @@ html.popup-open{overflow:hidden}
 .fin-table.fit th:last-child,.fin-table.fit td:last-child{padding-right:.55rem}
 .fin-table.dash.fit{font-size:.7rem}
 .fin-table .sm{display:block;font-size:.64rem;color:var(--tx3);font-weight:400;margin-top:0;line-height:1.2}
+.fin-table .nw{white-space:nowrap}
 /* compact 📲 remind: amount/badge left, icon right, same line */
 .rm-line{display:flex;align-items:center;justify-content:space-between;gap:.3rem}
 .rent-right .rm-line{justify-content:flex-end}
@@ -1465,7 +1466,13 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <div class="sheet">
     <div class="sh-handle"></div>
     <div class="sh-title" id="house-form-title">Add House</div>
-    <div class="field"><label>House No.</label><input type="text" id="house-name" placeholder="e.g. 1*1" autocomplete="off" maxlength="80"/></div>
+    <div class="field"><label>House No.</label>
+      <div class="cat-combo" id="house-pick-combo" style="display:none;margin-bottom:.45rem">
+        <input type="text" id="house-pick-search" placeholder="Search house no…" autocomplete="off" onfocus="openHousePick()" oninput="filterHousePick()"/>
+        <input type="hidden" id="house-pick"/>
+        <div class="cat-dropdown" id="house-pick-dropdown"></div>
+      </div>
+      <input type="text" id="house-name" placeholder="e.g. 1*1 Ground Floor" autocomplete="off" maxlength="80"/></div>
     <div class="field"><label>Tenant Name</label><input type="text" id="house-tenant" placeholder="e.g. Suresh" autocomplete="off" maxlength="80"/></div>
     <div class="field"><label>Tenant Phone <span style="color:var(--tx3);font-weight:400;text-transform:none">(optional)</span></label><input type="tel" id="house-phone" placeholder="e.g. 98765 43210" autocomplete="off" maxlength="20" inputmode="tel"/></div>
     <div class="field" id="house-occ-f"><label>Occupied Date</label><input type="date" id="house-occ"/></div>
@@ -3472,6 +3479,12 @@ function switchFinSub(sub) {
   else { closeChit(); loadChits(); }
 }
 
+// "2026-12-17" → "17 Dec" (Finance upcoming cell — the row label has the year)
+function fmtDayMonth(d) {
+  const dt = new Date(d);
+  return isNaN(dt.getTime()) ? String(d || "—") : dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+}
+
 function fmtShortDate(d) {
   const dt = new Date(d);
   return isNaN(dt.getTime()) ? String(d || "—")
@@ -3587,10 +3600,12 @@ function renderFinPerson() {
       <tbody>${p.rows.map((r, i) => `
         <tr data-month="${esc(r.month)}">
           <td><b>${esc(r.label)}</b><span class="sm">${fmtINR(r.interest)}</span></td>
-          <td class="${r.received === "Yes" ? "fin-yes" : r.upcoming ? "" : "fin-no"}">${
-            r.received === "Yes" ? "Yes"
-            : r.upcoming ? `<span style="color:var(--tx3)">Upcoming</span><span class="sm">${fmtShortDate(r.dueDate)}</span>` : "No"}</td>
-          <td class="${r.received === "Yes" ? "fin-yes" : ""}">${r.received === "Yes" ? fmtINR(r.collected) : "—"}</td>
+          <td class="${r.received === "Yes" || r.coveredBy ? "fin-yes" : r.upcoming ? "" : "fin-no"}">${
+            r.received === "Yes" || r.coveredBy ? "Yes"
+            : r.upcoming ? `<span class="nw" style="color:var(--tx3)">Upcoming</span><span class="sm nw">${fmtDayMonth(r.dueDate)}</span>` : "No"}</td>
+          <td class="${r.received === "Yes" ? "fin-yes" : ""}">${r.received === "Yes"
+            ? fmtINR(r.collected) + (r.paidFor ? `<span class="sm">(${esc(r.paidFor)})</span>` : "")
+            : r.coveredBy ? `—<span class="sm">with ${esc(r.coveredBy.split(" ")[0])}</span>` : "—"}</td>
           ${r.upcoming && r.received !== "Yes" ? "<td>—</td>"
             : `<td class="${r.pending > 0 ? "fin-no" : "fin-yes"}">${fmtINR(r.pending)}${finPendingNote(r, i ? p.rows[i - 1].pending : 0)}</td>`}
           <td>${esc(r.transaction) || "—"}${r.remarks ? `<span class="sm">${esc(r.remarks)}</span>` : ""}</td>
@@ -3669,10 +3684,12 @@ function finPendingNote(r, carried) {
     : `<span class="sm">this month</span>`;
 }
 
-// Pending carried into a month = previous row's pending
+// Pending carried into a month = previous row's pending; months shown as
+// paid together with a later one (coveredBy) still count as carried here
 function finCarriedInto(p, month) {
-  const i = p.rows.findIndex(x => x.month === month);
-  return i > 0 ? p.rows[i - 1].pending : 0;
+  let i = p.rows.findIndex(x => x.month === month) - 1, carried = 0;
+  for (; i >= 0 && p.rows[i].coveredBy; i--) carried += p.rows[i].interest;
+  return carried + (i >= 0 ? p.rows[i].pending : 0);
 }
 
 function setFinReceived(v) {
@@ -3698,7 +3715,7 @@ function openFinMonth(month) {
   g("fm-title").textContent = p.name;
   g("fm-month").value       = r.label;
   g("fm-interest").value    = r.interest;
-  setFinReceived(r.received);
+  setFinReceived(r.coveredBy ? "Yes" : r.received);
   const sel = g("fm-txn");
   if (r.transaction && ![...sel.options].some(o => o.value === r.transaction)) sel.add(new Option(r.transaction));
   sel.value = r.transaction;
@@ -4139,16 +4156,18 @@ function maskRent() {
 
 function renderRentList() {
   const sub = RENT_SUB[RT.sub], list = rentHouses();   // open houses only (closed ones aren't sent)
-  const vacant = RT.sub === "rent" ? (RT.vacant || []).slice().sort((a, b) => a.name.localeCompare(b.name)) : [];
+  // Vacant house nos. only in the month they were closed (not every month)
+  const vacant = RT.sub === "rent" ? (RT.vacant || []).filter(v => String(v.closedOn || "").slice(0, 7) === rentYm())
+    .sort((a, b) => a.name.localeCompare(b.name)) : [];
   const vacantRows = vacant.length ? `<tr class="dash-sep"><td colspan="4">🔑 Vacant — ${vacant.length} house${vacant.length > 1 ? "s" : ""}</td></tr>` +
     vacant.map((v, i) => `
         <tr>
-          <td>${esc(v.name)}<span class="sm">Closed ${v.closedOn ? fmtShortDate(v.closedOn) : ""}${v.tenant ? " · " + esc(v.tenant) : ""}</span></td>
-          <td>${fmtINR(v.rent)}<span class="sm">Due ${ordinal(v.dueDay || 1)}</span></td>
+          <td>${esc(v.name)}</td>
+          <td>Closed<span class="sm">${v.closedOn ? fmtShortDate(v.closedOn) : "—"}</span></td>
           <td>${rentBadge("up", "Vacant")}</td>
-          <td><button class="rm-btn" data-vacant="${i}">＋ New Tenant</button></td>
+          <td class="fin-yes">No due${v.refund > 0 ? `<span class="sm">Paid to tenant ${fmtINR(v.refund)}</span>`
+            : v.refund < 0 ? `<span class="sm">Collected from tenant ${fmtINR(-v.refund)}</span>` : ""}</td>
         </tr>`).join("") : "";
-  RT.vacantShown = vacant;
   if (!list.length && vacantRows) {
     g("rent-summary").innerHTML = "";
     g("rent-list").innerHTML = `<div class="fin-table-wrap"><table class="fin-table dash fit">
@@ -4296,6 +4315,13 @@ function openHouseForm(h, seed) {
   const water = RT.sub === "water";
   g("house-id").value      = h ? h.id : "";
   g("house-name").value    = h ? h.name : seed ? seed.name : "";
+  // Add House: choose a vacant house no. from the list (fills the name only)
+  // or "New house no." to type one
+  const vac = !h && RT.sub === "rent" ? [...new Set((RT.vacant || []).map(v => v.name))].sort() : [];
+  RT.vacantNames = vac;
+  g("house-pick-combo").style.display = vac.length ? "" : "none";
+  if (vac.length) selectHousePick(seed && vac.includes(seed.name) ? seed.name : vac[0]);
+  else g("house-name").style.display = "";
   g("house-tenant").value  = h ? h.tenant || "" : "";
   g("house-phone").value   = h ? h.phone || "" : "";
   g("house-rent").value    = h && +h.rent ? rentAt(h, rentYm()) : seed && +seed.rent ? seed.rent : "";
@@ -4320,6 +4346,50 @@ function openHouseForm(h, seed) {
   g("house-del").style.display = h ? "block" : "none";
   g("house-form-bd").classList.add("open");
 }
+
+// House No. picker — same search combobox as the Expense Category field.
+// Options: vacant house nos. + "➕ New house no." (value "")
+const HOUSE_NEW = "➕ New house no.";
+function renderHousePick(list) {
+  const cur = g("house-pick").value;
+  g("house-pick-dropdown").innerHTML = list.map(n =>
+    `<div class="cat-opt${n === cur ? " sel" : ""}" data-val="${esc(n)}">🔑 ${esc(n)} <span style="color:var(--tx3)">(Vacant)</span></div>`).join("")
+    + `<div class="cat-opt${cur === "" ? " sel" : ""}" data-val="">${HOUSE_NEW}</div>`;
+}
+function filterHousePick() {
+  const q = g("house-pick-search").value.trim().toLowerCase();
+  renderHousePick((RT.vacantNames || []).filter(n => n.toLowerCase().includes(q)));
+  openHousePick();
+}
+function openHousePick() {
+  if (g("house-pick-combo").classList.contains("open")) return;
+  const inp = g("house-pick-search");
+  inp.placeholder = g("house-pick").value || HOUSE_NEW;
+  inp.value = "";
+  renderHousePick(RT.vacantNames || []);
+  g("house-pick-combo").classList.add("open");
+  scrollToSel("house-pick-dropdown");
+}
+function closeHousePick() {
+  g("house-pick-combo").classList.remove("open");
+  g("house-pick-search").value = g("house-pick").value || HOUSE_NEW;
+  g("house-pick-search").placeholder = "Search house no…";
+}
+function selectHousePick(v) {
+  g("house-pick").value = v;
+  closeHousePick();
+  const inp = g("house-name");
+  inp.value = v;
+  inp.style.display = v ? "none" : "";   // vacant chosen: no typing; new: type the house no.
+  if (!v) inp.focus();
+}
+g("house-pick-dropdown").addEventListener("click", e => {
+  const opt = e.target.closest(".cat-opt");
+  if (opt) selectHousePick(opt.dataset.val);
+});
+document.addEventListener("click", e => {
+  if (!g("house-pick-combo").contains(e.target)) closeHousePick();
+});
 
 // Due date picked once: its month = first month listed, its day = due day every month
 function houseDueHint() {
@@ -5018,8 +5088,6 @@ g("rent-dash").addEventListener("click", e => {
 g("rent-list").addEventListener("click", e => {
   const rb = e.target.closest("[data-remind]");
   if (rb) { openRemind([rb.dataset.remind], rentYm(), RT.sub); return; }   // this tab's charge only
-  const vb = e.target.closest("[data-vacant]");
-  if (vb) { const v = (RT.vacantShown || [])[+vb.dataset.vacant]; if (v) openHouseForm(null, v); return; }
   const tr = e.target.closest("tr[data-id]");
   if (tr) openRentHouse(tr.dataset.id);
 });

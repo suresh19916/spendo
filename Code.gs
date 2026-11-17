@@ -1893,13 +1893,24 @@ function parseFinance(ss) {
     if (!/^\d{4}-\d{2}$/.test(key)) continue;
     const interest = row[1] === "" || row[1] === null ? null : (parseFloat(row[1]) || 0);
     months[cur.id + "|" + key] = {
-      received   : /^yes/i.test(String(row[2] || "").trim()) ? "Yes" : "No",
+      // "Yes (with Oct 2026)" marks a month paid with a later one — not a Yes of its own
+      received   : /^yes/i.test(String(row[2] || "").trim()) && !/^yes \(with /i.test(String(row[2]).trim()) ? "Yes" : "No",
       interest   : interest,
       transaction: String(row[4 + o] || ""),
       remarks    : String(row[5 + o] || "")
     };
   }
   return { persons: persons, months: months };
+}
+
+// "2026-09","2026-10" → "Sep & Oct"; months across years get the year: "Dec 25 & Jan 26"
+function finMonthList(keys) {
+  const N = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const multiYear = keys[0].substring(0, 4) !== keys[keys.length - 1].substring(0, 4);
+  const names = keys.map(function(k) {
+    return N[parseInt(k.substring(5), 10) - 1] + (multiYear ? " " + k.substring(2, 4) : "");
+  });
+  return names.length > 1 ? names.slice(0, -1).join(", ") + " & " + names[names.length - 1] : names[0];
 }
 
 // Builds month rows, pending carry-forward and counts for each person
@@ -1921,12 +1932,24 @@ function computeFinance(model) {
       const key = Utilities.formatDate(due, tz, "yyyy-MM");
       const m   = model.months[pr.id + "|" + key] || { received: "No", transaction: "", remarks: "", interest: null };
       const interest = m.interest === null ? pr.interest : m.interest;
-      let collected = 0;
-      if (m.received === "Yes") { collected = pending + interest; pending = 0; }
+      const label = Utilities.formatDate(due, tz, "MMM yyyy");
+      let collected = 0, paidFor = null;
+      if (m.received === "Yes") {
+        collected = pending + interest; pending = 0;
+        // Earlier unpaid months collected together with this one: show them
+        // as received (pending 0) and list them all on this month (v4.12)
+        const covered = [];
+        for (let j = pr.rows.length - 1; j >= 0 && pr.rows[j].received !== "Yes" && !pr.rows[j].coveredBy; j--) covered.unshift(pr.rows[j]);
+        if (covered.length) {
+          covered.forEach(function(c) { c.coveredBy = label; c.pending = 0; });
+          paidFor = finMonthList(covered.map(function(c) { return c.month; }).concat(key));
+        }
+      }
       else if (!upcoming) pending += interest;
-      pr.rows.push({ month: key, label: Utilities.formatDate(due, tz, "MMM yyyy"),
+      pr.rows.push({ month: key, label: label,
                      dueDate: Utilities.formatDate(due, tz, "yyyy-MM-dd"), interest: interest,
                      received: m.received, collected: collected, pending: pending, upcoming: upcoming,
+                     coveredBy: "", paidFor: paidFor,
                      transaction: m.transaction, remarks: m.remarks });
       if (upcoming) break;
     }
@@ -1971,7 +1994,8 @@ function writeFinance(ss, model) {
     pr.rows.forEach(function(r) {
       data[out.length] = true;
       out.push(pad([r.label, r.interest,
-        r.received === "Yes" ? "Yes" : r.upcoming ? "Due " + r.dueDate : "No",
+        r.received === "Yes" ? (r.paidFor ? "Yes (" + r.paidFor + ")" : "Yes")
+          : r.coveredBy ? "Yes (with " + r.coveredBy + ")" : r.upcoming ? "Due " + r.dueDate : "No",
         r.received === "Yes" ? r.collected : "",
         r.upcoming && r.received !== "Yes" ? "" : r.pending, r.transaction, r.remarks, r.month]));
     });
@@ -2555,7 +2579,8 @@ function rentResult(m, listUser) {
   mine.filter(function(h) { return h.closed && h.rent > 0; }).forEach(function(h) {
     const key = h.name.trim().toLowerCase(), on = String(h.closed.date || "");
     if (!key || openNames[key] || (vacant[key] && vacant[key].closedOn >= on)) return;
-    vacant[key] = { name: h.name, tenant: h.tenant, rent: rentAt(h, rentNow()), dueDay: h.dueDay, closedOn: on };
+    vacant[key] = { name: h.name, tenant: h.tenant, rent: rentAt(h, rentNow()), dueDay: h.dueDay, closedOn: on,
+                    refund: Number(h.closed.refund) || 0 };   // > 0 returned to tenant, < 0 collected from tenant
   });
   const ids = {};
   houses.forEach(function(h) { ids[h.id] = true; });
@@ -3188,7 +3213,9 @@ function remDesiredEvents(ss) {
       persons.filter(function(pr) { return !pr.closed && mine(pr); }).forEach(function(pr) {
         pr.rows.forEach(function(r) {
           if (!inWin(r.dueDate)) return;
-          if (r.received === "Yes") ev(key + pr.id + "|" + r.month, pr.name + " " + inr(r.collected) + " interest received",
+          if (r.coveredBy) ev(key + pr.id + "|" + r.month, pr.name + " interest received with " + r.coveredBy,
+                              r.dueDate, t[0], t[1], []);
+          else if (r.received === "Yes") ev(key + pr.id + "|" + r.month, pr.name + " " + inr(r.collected) + " interest received",
                                        r.dueDate, t[0], t[1], []);
           else ev(key + pr.id + "|" + r.month, pr.name + " " + inr(r.interest) + " interest due",
                   r.dueDate, t[0], t[1], pops(true));
