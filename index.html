@@ -4049,6 +4049,7 @@ const rentBadge = (status, text) => `<span class="rent-badge ${status}">${text |
 function switchRentSub(sub) {
   RT.dash = sub === "dash";
   RT.report = sub === "report";
+  if (!RT.report) RT.reportKey = null;
   g("rst-dash").classList.toggle("active", RT.dash);
   g("rst-rent").classList.toggle("active", sub === "rent");
   g("rst-water").classList.toggle("active", sub === "water");
@@ -5143,79 +5144,88 @@ function confirmCollectBy() {
   saveRentPayment(by);
 }
 
-// ── Report (v4.13): rent & water collected in the month (by paid-on date),
-// grouped by who collected it — You first, then others by name — house-wise.
-// Deposit adjustments on close aren't collections, so they're left out.
+// ── Report (v4.13): like Hand Loan — a table of who collected (You first,
+// then others by name), tap a row → that collector's house-wise rent & water.
+// Month = paid-on date (‹ month › above). Deposit adjustments on close aren't
+// collections, so they're left out.
+function rentReportGroups(ym) {
+  const groups = {};
+  RT.payments.filter(x => (payKind(x) === "rent" || payKind(x) === "water") && !x.closeAdj
+    && String(x.paidOn || "").slice(0, 7) === ym).forEach(x => {
+    const by = (x.collectedBy || "").trim(), me = isMe(by), key = me ? "0" : by ? "1" + by.toLowerCase() : "2";   // Me, others, not recorded
+    const gp = groups[key] = groups[key] || { key, me, name: me ? rentMe() : by, rent: 0, water: 0, pays: [] };
+    gp[payKind(x)] += x.amount;
+    gp.pays.push(x);
+  });
+  return Object.keys(groups).sort().map(k => groups[k]);
+}
+const rentReportName = gp => gp.name ? "Collected By: " + gp.name : "Collector not recorded";
+
 function renderRentReport() {
-  const ym = rentYm();
-  const list = RT.payments.filter(x => (payKind(x) === "rent" || payKind(x) === "water") && !x.closeAdj
-    && String(x.paidOn || "").slice(0, 7) === ym);
-  const sum = (l, k) => l.filter(x => !k || payKind(x) === k).reduce((t, x) => t + x.amount, 0);
+  const ym = rentYm(), list = rentReportGroups(ym);
+  if (RT.reportKey) { renderRentReportDetail(list.find(x => x.key === RT.reportKey), ym); return; }
   if (!list.length) {
     g("rent-report").innerHTML = `<div class="empty"><div class="empty-ico">📋</div>Nothing collected in ${ymLabel(ym)}.</div>`;
     return;
   }
-  // group: key = collector name ("" = not recorded, older payments)
-  const groups = {};
-  list.forEach(x => {
-    const by = (x.collectedBy || "").trim(), me = isMe(by), key = me ? "0" : by ? "1" + by.toLowerCase() : "2";   // You, others, not recorded
-    (groups[key] = groups[key] || { me, name: me ? rentMe() : by, pays: [] }).pays.push(x);
+  const t = list.reduce((a, x) => ({ rent: a.rent + x.rent, water: a.water + x.water }), { rent: 0, water: 0 });
+  g("rent-report").innerHTML = `
+    <div class="fin-title">Collection Report</div>
+    <div class="fin-table-wrap"><table class="fin-table dash fit">
+      <colgroup><col style="width:34%"><col style="width:22%"><col style="width:20%"><col style="width:24%"></colgroup>
+      <thead><tr><th>Collected By</th><th>Rent</th><th>Water</th><th>Total</th></tr></thead>
+      <tbody>${list.map(x => `
+        <tr data-rkey="${esc(x.key)}">
+          <td>${x.me ? "👤" : "👥"} ${esc(x.name || "Not recorded")}</td>
+          <td>${x.rent ? fmtINR(x.rent) : "—"}</td>
+          <td>${x.water ? fmtINR(x.water) : "—"}</td>
+          <td class="fin-yes">${fmtINR(x.rent + x.water)}</td>
+        </tr>`).join("")}
+        <tr class="dash-total"><td>Total</td><td>${fmtINR(t.rent)}</td><td>${fmtINR(t.water)}</td><td>${fmtINR(t.rent + t.water)}</td></tr>
+      </tbody>
+    </table></div>`;
+}
+
+// One collector: summary card + house-wise table (like Hand Loan's person view)
+function renderRentReportDetail(gp, ym) {
+  const back = `<button class="fin-back" onclick="closeRentReport()">‹ Back</button>`;
+  if (!gp) { g("rent-report").innerHTML = back + `<div class="empty"><div class="empty-ico">📋</div>Nothing collected in ${ymLabel(ym)}.</div>`; return; }
+  const row = (l, v, cls = "") => `<div class="carry-row"><span class="carry-month">${l}</span><span class="carry-amt ${cls}">${v}</span></div>`;
+  const byHouse = {};
+  gp.pays.forEach(x => {
+    const e = byHouse[x.houseId] = byHouse[x.houseId] || { h: RT.houses.find(h => h.id === x.houseId), rent: 0, water: 0 };
+    e[payKind(x)] += x.amount;
   });
-  const order = Object.keys(groups).sort((a, b) => a.localeCompare(b));
-  const houseOf = id => RT.houses.find(h => h.id === id);
-  const cards = order.map((k, i) => {
-    const gp = groups[k], byHouse = {};
-    gp.pays.forEach(x => {
-      const e = byHouse[x.houseId] = byHouse[x.houseId] || { h: houseOf(x.houseId), rent: 0, water: 0 };
-      e[payKind(x)] += x.amount;
-    });
-    const rows = Object.values(byHouse)
-      .sort((a, b) => (a.h ? houseLabel(a.h) : "").localeCompare(b.h ? houseLabel(b.h) : ""))
-      .map(e => `
+  const houses = Object.values(byHouse).sort((a, b) => (a.h ? houseLabel(a.h) : "").localeCompare(b.h ? houseLabel(b.h) : ""));
+  g("rent-report").innerHTML = back + `
+    <div class="budget-card">
+      <div class="fin-head-row"><div class="fin-title">${gp.me ? "👤" : "👥"} ${esc(rentReportName(gp))}</div></div>
+      ${row("Month", ymLabel(ym))}
+      ${row("Houses", houses.length)}
+      ${row("Rent Collected", fmtINR(gp.rent), "pos")}
+      ${row("Water Collected", fmtINR(gp.water), "pos")}
+      ${row("Total Collected", fmtINR(gp.rent + gp.water), "pos")}
+    </div>
+    <div class="fin-sec">House-wise collection</div>
+    <div class="fin-table-wrap"><table class="fin-table fit">
+      <colgroup><col style="width:30%"><col style="width:22%"><col style="width:22%"><col style="width:26%"></colgroup>
+      <thead><tr><th>House No</th><th>Rent</th><th>Water</th><th>Total</th></tr></thead>
+      <tbody>${houses.map(e => `
         <tr>
           <td>${e.h ? `<b>${esc(e.h.name)}</b>${e.h.tenant ? `<span class="sm">${esc(e.h.tenant)}</span>` : ""}` : "—"}</td>
           <td>${e.rent ? fmtINR(e.rent) : "—"}</td>
           <td>${e.water ? fmtINR(e.water) : "—"}</td>
           <td class="fin-yes">${fmtINR(e.rent + e.water)}</td>
-        </tr>`).join("");
-    const open = RT.reportOpen && RT.reportOpen.has(k);
-    return `
-      <div class="sv-rpt-user-card-exp${open ? " expanded" : ""}" data-rkey="${esc(k)}">
-        <div class="sv-rpt-card-hdr" onclick="toggleRentReportCard(this)">
-          <div class="sv-rpt-card-hdr-row">
-            <div class="rpt-user-nm">${gp.me ? "👤" : "👥"} ${gp.name ? "Collected By: " + esc(gp.name) : "Collector not recorded"}</div>
-            <div style="display:flex;align-items:center;gap:.45rem">
-              <div class="rpt-user-bal pos">${fmtINR(sum(gp.pays))}</div>
-              <span class="sv-rpt-chevron">▼</span>
-            </div>
-          </div>
-          <div class="rpt-user-meta">
-            <div class="rpt-meta-box"><div class="rpt-meta-lbl">🏠 Rent</div><div class="rpt-meta-val g">${fmtINR(sum(gp.pays, "rent"))}</div></div>
-            <div class="rpt-meta-box"><div class="rpt-meta-lbl">💧 Water</div><div class="rpt-meta-val g">${fmtINR(sum(gp.pays, "water"))}</div></div>
-          </div>
-        </div>
-        <div class="sv-rpt-card-body${open ? " open" : ""}">
-          <div class="sv-rpt-card-body-inner">
-            <div class="fin-table-wrap"><table class="fin-table fit">
-              <colgroup><col style="width:30%"><col style="width:22%"><col style="width:22%"><col style="width:26%"></colgroup>
-              <thead><tr><th>House No</th><th>Rent</th><th>Water</th><th>Total</th></tr></thead>
-              <tbody>${rows}</tbody>
-            </table></div>
-          </div>
-        </div>
-      </div>`;
-  }).join("");
-  g("rent-report").innerHTML = cards;
+        </tr>`).join("")}</tbody>
+    </table></div>`;
 }
 
-// Report card: tap the header to expand / collapse its house-wise list (kept open across re-renders)
-function toggleRentReportCard(hdr) {
-  const card = hdr.parentElement, body = card.querySelector(".sv-rpt-card-body"), open = !body.classList.contains("open");
-  body.classList.toggle("open", open);
-  card.classList.toggle("expanded", open);
-  RT.reportOpen = RT.reportOpen || new Set();
-  RT.reportOpen[open ? "add" : "delete"](card.dataset.rkey);
-}
+function openRentReport(key) { RT.reportKey = key; renderRentReport(); maskRent(); window.scrollTo(0, 0); }
+function closeRentReport() { RT.reportKey = null; renderRentReport(); maskRent(); }
+g("rent-report").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-rkey]");
+  if (tr) openRentReport(tr.dataset.rkey);
+});
 
 async function deleteRentPayment(id) {
   const c = rentPayCtx(), p = c && c.r.pays.find(x => x.id === id);
