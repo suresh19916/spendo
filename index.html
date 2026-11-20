@@ -437,7 +437,8 @@ html.popup-open{overflow:hidden}
 #fm-month{opacity:.65}
 /* v4.11 — House Rent tab */
 #rent-fab{display:none}
-.rent-subtabs{grid-template-columns:repeat(3,1fr)}
+.rent-subtabs{grid-template-columns:repeat(4,1fr)}
+#rp-by-bd{z-index:220}
 .rent-subtabs .fin-subtab{padding:.5rem .2rem;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fin-table tr.dash-total td{background:var(--bg3);font-weight:800}
 .fin-table tr.dash-sep td{background:var(--grbg);color:var(--gr);font-weight:700;text-align:left;padding-top:.28rem;padding-bottom:.28rem}
@@ -1102,6 +1103,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
         <button class="fin-subtab active" id="rst-dash" onclick="switchRentSub('dash')">📊 Dashboard</button>
         <button class="fin-subtab" id="rst-rent" onclick="switchRentSub('rent')">🏠 House Rent</button>
         <button class="fin-subtab" id="rst-water" onclick="switchRentSub('water')">💧 Water</button>
+        <button class="fin-subtab" id="rst-report" onclick="switchRentSub('report')">📋 Report</button>
       </div>
       <div class="fin-head-row" style="justify-content:center;gap:.8rem;margin-bottom:.7rem">
         <button class="fin-icon-btn" onclick="rentDashMove(-1)">‹</button>
@@ -1110,6 +1112,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       </div>
       <div id="rent-dash-view">
         <div id="rent-dash"></div>
+      </div>
+      <div id="rent-report-view" style="display:none">
+        <div id="rent-report"></div>
       </div>
       <div id="rent-list-view" style="display:none">
         <div class="fin-title" id="rent-title">House Rent</div>
@@ -1575,6 +1580,28 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   </div>
 </div>
 
+<!-- Collected By (v4.13) — asked once on Save Payment (rent / water) -->
+<div class="backdrop" id="rp-by-bd">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title">Collected By</div>
+    <div class="field">
+      <div class="type-toggle" style="margin-bottom:0">
+        <button class="type-btn income" id="rpb-me" onclick="setCollectBy('me')">👤 Me</button>
+        <button class="type-btn income" id="rpb-other" onclick="setCollectBy('other')">👥 Someone else</button>
+      </div>
+    </div>
+    <div class="field" id="rpb-name-f" style="display:none"><label>Name</label>
+      <input type="text" id="rpb-name" list="rpb-names" placeholder="Who collected it?" autocomplete="off" maxlength="40"/>
+      <datalist id="rpb-names"></datalist>
+    </div>
+    <div class="sh-actions">
+      <button class="btn btn-ghost" onclick="g('rp-by-bd').classList.remove('open')">Back</button>
+      <button class="btn btn-primary" id="rpb-save" onclick="confirmCollectBy()">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- Rent payment for a month (v4.11) — full balance or partial -->
 <div class="backdrop" id="rent-pay-bd">
   <div class="sheet">
@@ -1590,6 +1617,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       </div>
       <div class="field"><label>Amount Received (₹)</label><input type="number" id="rp-amount" min="1" step="1" inputmode="decimal" oninput="rentPayHint()"/></div>
       <div class="fin-hint" id="rp-hint"></div>
+      <label id="rp-adj-f" style="display:none;align-items:center;gap:.45rem;font-size:.78rem;color:var(--tx2);margin:-.3rem 0 .8rem;cursor:pointer">
+        <input type="checkbox" id="rp-adj" onchange="rentPayHint()"/> <span id="rp-adj-l">Adjust balance</span>
+      </label>
       <div class="rem-grid">
         <div class="field"><label>Paid On</label><input type="date" id="rp-date"/></div>
         <div class="field"><label>Mode</label>
@@ -3460,7 +3490,7 @@ function switchModule(m) {
   g("rent-section").style.display     = rent ? "" : "none";
   g("main-fab").style.display         = other ? "none" : "";
   g("rem-fab").style.display          = rem ? "flex" : "none";
-  g("rent-fab").style.display         = rent && !RT.activeId && !RT.dash ? "flex" : "none";
+  g("rent-fab").style.display         = rent && !RT.activeId && !RT.dash && !RT.report ? "flex" : "none";
   if (fin) switchFinSub(F.sub); else g("fin-fab").style.display = "none";
   if (rem) loadReminders();
   if (rent) loadRent();
@@ -3993,10 +4023,10 @@ function rentMonths(h, kind = RT.sub) {
     const mp   = pays.filter(x => x.month === ym).sort((a, b) => String(a.paidOn).localeCompare(String(b.paidOn)));
     const rent = mp.length && paySnap(mp[0]) ? paySnap(mp[0]) : kind === "rent" ? rentAt(h, ym) : RENT_SUB[kind].amt(h);
     if (!rent) continue;   // charge removed — only months already paid into stay listed
-    const paid = mp.reduce((t, x) => t + x.amount, 0);
+    const paid = mp.reduce((t, x) => t + x.amount, 0), adj = mp.reduce((t, x) => t + (+x.adjust || 0), 0);
     const due  = rentDueDate(h, ym);
-    const status = paid >= rent ? "paid" : paid > 0 ? "part" : due > today ? "up" : "pend";
-    rows.push({ month: ym, label: ymLabel(ym), rent, paid, balance: Math.max(0, rent - paid), status, due, pays: mp });
+    const status = paid + adj >= rent ? "paid" : paid > 0 ? "part" : due > today ? "up" : "pend";
+    rows.push({ month: ym, label: ymLabel(ym), rent, paid, adj, balance: Math.max(0, rent - paid - adj), status, due, pays: mp });
   }
   return rows.reverse();
 }
@@ -4004,9 +4034,10 @@ function rentMonths(h, kind = RT.sub) {
 function waterMonths(h, pays) {
   return RT.bills.filter(b => b.houseId === h.id).sort((a, b) => b.month.localeCompare(a.month)).map(b => {
     const mp   = pays.filter(x => x.month === b.month).sort((x, y) => String(x.paidOn).localeCompare(String(y.paidOn)));
-    const paid = mp.reduce((t, x) => t + x.amount, 0);
-    const status = paid >= b.amount ? "paid" : paid > 0 ? "part" : "pend";
-    return { month: b.month, label: ymLabel(b.month), rent: b.amount, paid, balance: Math.max(0, b.amount - paid), status, due: "", pays: mp, bill: b };
+    // paid = money received; adj = balance written off ("Adjust") — settles the bill, not received
+    const paid = mp.reduce((t, x) => t + x.amount, 0), adj = mp.reduce((t, x) => t + (+x.adjust || 0), 0);
+    const status = paid + adj >= b.amount ? "paid" : paid > 0 ? "part" : "pend";
+    return { month: b.month, label: ymLabel(b.month), rent: b.amount, paid, adj, balance: Math.max(0, b.amount - paid - adj), status, due: "", pays: mp, bill: b };
   });
 }
 
@@ -4017,11 +4048,14 @@ const rentBadge = (status, text) => `<span class="rent-badge ${status}">${text |
 // sub: "dash" (Dashboard) | "rent" | "water"
 function switchRentSub(sub) {
   RT.dash = sub === "dash";
+  RT.report = sub === "report";
   g("rst-dash").classList.toggle("active", RT.dash);
   g("rst-rent").classList.toggle("active", sub === "rent");
   g("rst-water").classList.toggle("active", sub === "water");
+  g("rst-report").classList.toggle("active", RT.report);
   g("rent-dash-view").style.display = RT.dash ? "" : "none";
-  if (RT.dash) {
+  g("rent-report-view").style.display = RT.report ? "" : "none";
+  if (RT.dash || RT.report) {
     if (RT.activeId) closeRentHouse();
     g("rent-list-view").style.display = "none";
     g("rent-fab").style.display = "none";
@@ -4080,6 +4114,11 @@ const rentCollected = ym => (RT.collected || []).filter(c => String(c.closedOn |
 
 function renderRent() {
   g("rent-month-label").textContent = ymLabel(rentYm());
+  if (RT.report) {
+    renderRentReport();
+    maskRent();
+    return;
+  }
   if (RT.dash) {
     renderRentDash();
     if (g("rent-pay-bd").classList.contains("open")) renderRentPay();
@@ -4121,7 +4160,7 @@ function renderRentDash() {
           <td><b>${esc(h.name)}</b>${h.tenant ? `<span class="sm">${esc(h.tenant)}</span>` : ""}</td>
           <td class="${cls(r)}">${r ? `<span class="dash-pay" data-pay="rent">${fmtINR(r.rent)}</span>` : "—"}</td>
           <td class="${cls(w)}">${w ? `<span class="dash-pay" data-pay="water">${fmtINR(w.rent)}</span>` : "—"}</td>
-          <td class="${due > 0 ? "fin-no" : "fin-yes"}">${due > 0 ? `<span class="rm-line"><span class="dash-pay" data-pay="total">${fmtINR(due)} Due</span><button class="rm-btn rm-ico" data-remind="${esc(h.id)}" title="Remind">📲</button></span>` : fmtINR(amt) + " Paid"}${
+          <td class="${due > 0 ? "fin-no" : "fin-yes"}">${due > 0 ? `<span class="rm-line"><span class="dash-pay" data-pay="total">${fmtINR(due)} Due</span><button class="rm-btn rm-ico" data-remind="${esc(h.id)}" title="Remind">📲</button></span>` : fmtINR(paid) + " Paid"}${
             due > 0 && (paid > 0 || prev.amt) ? `<span class="sm">${[paid > 0 ? "Paid " + fmtINR(paid) : "", prev.amt ? `incl. ${fmtINR(prev.amt)} prev (${prev.months.join(", ")})` : ""].filter(Boolean).join(" · ")}</span>` : ""}</td>
         </tr>` };
     }).filter(Boolean);
@@ -4840,7 +4879,7 @@ function rentPayCtx() {
     : rentMonths(h).find(x => x.month === RT.month));
   if (!r) return null;
   const editId = g("rp-id").value, edit = editId ? r.pays.find(x => x.id === editId) : null;
-  return { h, r, edit, max: r.balance + (edit ? edit.amount : 0) };
+  return { h, r, edit, max: r.balance + (edit ? edit.amount + (+edit.adjust || 0) : 0) };
 }
 
 // From the Dashboard: pay one charge (rent | water) of one house for a month,
@@ -4918,6 +4957,7 @@ function resetRentPayForm() {
   g("rp-date").value    = todayISO();
   g("rp-mode").value    = "Cash";
   g("rp-remarks").value = "";
+  g("rp-adj").checked   = false;
   RT.kind = "full";
   renderRentPay();
 }
@@ -4955,7 +4995,7 @@ function renderRentPay() {
   }
   g("rp-hist").innerHTML = r.pays.map(p => `
     <div class="rent-hist-row${edit && edit.id === p.id ? " editing" : ""}">
-      <div class="d">${fmtShortDate(p.paidOn)} · ${esc(p.mode)}${p.remarks ? `<span class="sm">${esc(p.remarks)}</span>` : ""}</div>
+      <div class="d">${fmtShortDate(p.paidOn)} · ${esc(p.mode)}${p.remarks || p.collectedBy || +p.adjust ? `<span class="sm">${[p.collectedBy ? "Collected By: " + esc(p.collectedBy) : "", +p.adjust ? "Adjusted " + fmtINR(p.adjust) : "", esc(p.remarks || "")].filter(Boolean).join(" · ")}</span>` : ""}</div>
       <div class="a">${fmtINR(p.amount)}</div>
       ${`<button class="fin-icon-btn" onclick="editRentPayment('${esc(p.id)}')">✏️</button>
       <button class="fin-icon-btn del" onclick="deleteRentPayment('${esc(p.id)}')">🗑</button>`}
@@ -4979,6 +5019,8 @@ function setRentPayKind(kind, keep) {
   rentPayHint();
 }
 
+// Adjust is offered only on a water partial payment that leaves a balance
+const rentCanAdjust = (a, c) => RT.sub === "water" && !RT.payKind && RT.kind === "part" && a > 0 && a < c.max;
 function rentPayHint() {
   const c = rentPayCtx();
   if (!c) return;
@@ -4993,9 +5035,14 @@ function rentPayHint() {
       + (a < c.max ? ` · Due after this: ${fmtINR(c.max - a)}` : "");
     return;
   }
+  // Water partial: "Adjust" writes off the rest of the bill (not counted as received)
+  const canAdj = rentCanAdjust(a, c);
+  g("rp-adj-f").style.display = canAdj ? "flex" : "none";
+  if (canAdj) g("rp-adj-l").textContent = `Adjust balance ${fmtINR(c.max - a)} (not received)`;
   if (RT.kind === "full") hint.textContent = `Marks ${c.r.label} as fully received.`;
   else if (!a) hint.textContent = `Enter any amount up to ${fmtINR(c.max)}.`;
   else if (a > c.max) { hint.textContent = `More than the balance ${fmtINR(c.max)}.`; hint.style.color = "var(--rd)"; }
+  else if (canAdj && g("rp-adj").checked) hint.textContent = `Bill settled — ${fmtINR(c.max - a)} adjusted, only ${fmtINR(a)} counted as received.`;
   else hint.textContent = a === c.max ? "This clears the month." : `Balance after this: ${fmtINR(c.max - a)}`;
 }
 
@@ -5006,13 +5053,14 @@ function editRentPayment(id) {
   g("rp-date").value    = p.paidOn;
   g("rp-mode").value    = p.mode;
   g("rp-remarks").value = p.remarks || "";
-  const max = c.r.balance + p.amount;
+  const max = c.r.balance + p.amount + (+p.adjust || 0);
   RT.kind = p.amount === max ? "full" : "part";
+  g("rp-adj").checked = +p.adjust > 0;
   g("rp-amount").value = p.amount;
   renderRentPay();
 }
 
-async function saveRentPayment() {
+async function saveRentPayment(by) {
   const c = rentPayCtx();
   if (!c) return;
   const amount = parseFloat(g("rp-amount").value) || 0, paidOn = g("rp-date").value;
@@ -5020,12 +5068,19 @@ async function saveRentPayment() {
   if (amount > c.max + 0.001) { toast(`Amount is more than the balance ${fmtINR(c.max)}`, "error"); return; }
   if (!paidOn) { toast("Select paid on date", "error"); return; }
   const id = g("rp-id").value;
+  // Rent / water: ask who collected it before saving (deposit: not asked)
+  if (RT.payKind !== "deposit" && by === undefined) {
+    const p = id ? c.r.pays.find(x => x.id === id) : null;
+    openCollectBy(p ? p.collectedBy : "");
+    return;
+  }
+  by = by || "";
   setBtn("rp-save", true);
   if (RT.payKind === "total") {
     try {
       const res = await rentApi({
         action: "saveRentPayTotal", houseId: c.h.id, items: JSON.stringify(splitTotalDue(c.r.items, amount)), paidOn,
-        mode: g("rp-mode").value, remarks: g("rp-remarks").value.trim()
+        mode: g("rp-mode").value, remarks: g("rp-remarks").value.trim(), collectedBy: by
       });
       if (!res.success) { toast(res.error || "Save failed", "error"); return; }
       const left = c.max - amount;
@@ -5043,10 +5098,11 @@ async function saveRentPayment() {
     const res = await rentApi({
       action: "saveRentPayment", id, houseId: c.h.id, kind: RT.payKind || RT.sub,
       month: RT.payKind === "deposit" ? paidOn.slice(0, 7) : c.r.month, amount, paidOn,
-      mode: g("rp-mode").value, remarks: g("rp-remarks").value.trim(), expected: c.r.rent
+      mode: g("rp-mode").value, remarks: g("rp-remarks").value.trim(), expected: c.r.rent, collectedBy: by,
+      adjust: rentCanAdjust(amount, c) && g("rp-adj").checked ? "1" : ""
     });
     if (!res.success) { toast(res.error || "Save failed", "error"); return; }
-    const left = c.max - amount;
+    const left = rentCanAdjust(amount, c) && g("rp-adj").checked ? 0 : c.max - amount;
     toast(RT.payKind === "deposit" ? (left > 0 ? `Saved — deposit ${fmtINR(left)} still pending` : "Full deposit received")
       : left > 0 ? `Saved — ${fmtINR(left)} still due for ${c.r.label}` : `${c.r.label} ${RENT_SUB[RT.sub].short.toLowerCase()} fully received`, "success");
     closeRentPay();
@@ -5056,6 +5112,109 @@ async function saveRentPayment() {
   } finally {
     setBtn("rp-save", false, id ? "Update Payment" : "Save Payment");
   }
+}
+
+// ── Collected By (v4.13): "Me" saves the logged-in user's name ──
+const rentMe = () => String(S.userName || S.userId || "").trim();
+const isMe = n => !!n && n.trim().toLowerCase() === rentMe().toLowerCase();
+
+function openCollectBy(prev) {
+  const me = !prev || isMe(prev);
+  g("rpb-name").value = me ? "" : prev;
+  // names used before (not you) as suggestions
+  const names = [...new Set(RT.payments.map(x => (x.collectedBy || "").trim()).filter(n => n && !isMe(n)))].sort();
+  g("rpb-names").innerHTML = names.map(n => `<option value="${esc(n)}">`).join("");
+  setCollectBy(me ? "me" : "other");
+  g("rp-by-bd").classList.add("open");
+}
+
+function setCollectBy(who) {
+  RT.collectWho = who;
+  g("rpb-me").classList.toggle("active", who === "me");
+  g("rpb-other").classList.toggle("active", who === "other");
+  g("rpb-name-f").style.display = who === "other" ? "" : "none";
+  if (who === "other") g("rpb-name").focus();
+}
+
+function confirmCollectBy() {
+  const by = RT.collectWho === "other" ? g("rpb-name").value.trim() : rentMe();
+  if (!by) { toast("Enter who collected it", "error"); return; }
+  g("rp-by-bd").classList.remove("open");
+  saveRentPayment(by);
+}
+
+// ── Report (v4.13): rent & water collected in the month (by paid-on date),
+// grouped by who collected it — You first, then others by name — house-wise.
+// Deposit adjustments on close aren't collections, so they're left out.
+function renderRentReport() {
+  const ym = rentYm();
+  const list = RT.payments.filter(x => (payKind(x) === "rent" || payKind(x) === "water") && !x.closeAdj
+    && String(x.paidOn || "").slice(0, 7) === ym);
+  const sum = (l, k) => l.filter(x => !k || payKind(x) === k).reduce((t, x) => t + x.amount, 0);
+  if (!list.length) {
+    g("rent-report").innerHTML = `<div class="empty"><div class="empty-ico">📋</div>Nothing collected in ${ymLabel(ym)}.</div>`;
+    return;
+  }
+  // group: key = collector name ("" = not recorded, older payments)
+  const groups = {};
+  list.forEach(x => {
+    const by = (x.collectedBy || "").trim(), me = isMe(by), key = me ? "0" : by ? "1" + by.toLowerCase() : "2";   // You, others, not recorded
+    (groups[key] = groups[key] || { me, name: me ? rentMe() : by, pays: [] }).pays.push(x);
+  });
+  const order = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+  const houseOf = id => RT.houses.find(h => h.id === id);
+  const cards = order.map((k, i) => {
+    const gp = groups[k], byHouse = {};
+    gp.pays.forEach(x => {
+      const e = byHouse[x.houseId] = byHouse[x.houseId] || { h: houseOf(x.houseId), rent: 0, water: 0 };
+      e[payKind(x)] += x.amount;
+    });
+    const rows = Object.values(byHouse)
+      .sort((a, b) => (a.h ? houseLabel(a.h) : "").localeCompare(b.h ? houseLabel(b.h) : ""))
+      .map(e => `
+        <tr>
+          <td>${e.h ? `<b>${esc(e.h.name)}</b>${e.h.tenant ? `<span class="sm">${esc(e.h.tenant)}</span>` : ""}` : "—"}</td>
+          <td>${e.rent ? fmtINR(e.rent) : "—"}</td>
+          <td>${e.water ? fmtINR(e.water) : "—"}</td>
+          <td class="fin-yes">${fmtINR(e.rent + e.water)}</td>
+        </tr>`).join("");
+    const open = RT.reportOpen && RT.reportOpen.has(k);
+    return `
+      <div class="sv-rpt-user-card-exp${open ? " expanded" : ""}" data-rkey="${esc(k)}">
+        <div class="sv-rpt-card-hdr" onclick="toggleRentReportCard(this)">
+          <div class="sv-rpt-card-hdr-row">
+            <div class="rpt-user-nm">${gp.me ? "👤" : "👥"} ${gp.name ? "Collected By: " + esc(gp.name) : "Collector not recorded"}</div>
+            <div style="display:flex;align-items:center;gap:.45rem">
+              <div class="rpt-user-bal pos">${fmtINR(sum(gp.pays))}</div>
+              <span class="sv-rpt-chevron">▼</span>
+            </div>
+          </div>
+          <div class="rpt-user-meta">
+            <div class="rpt-meta-box"><div class="rpt-meta-lbl">🏠 Rent</div><div class="rpt-meta-val g">${fmtINR(sum(gp.pays, "rent"))}</div></div>
+            <div class="rpt-meta-box"><div class="rpt-meta-lbl">💧 Water</div><div class="rpt-meta-val g">${fmtINR(sum(gp.pays, "water"))}</div></div>
+          </div>
+        </div>
+        <div class="sv-rpt-card-body${open ? " open" : ""}">
+          <div class="sv-rpt-card-body-inner">
+            <div class="fin-table-wrap"><table class="fin-table fit">
+              <colgroup><col style="width:30%"><col style="width:22%"><col style="width:22%"><col style="width:26%"></colgroup>
+              <thead><tr><th>House No</th><th>Rent</th><th>Water</th><th>Total</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table></div>
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+  g("rent-report").innerHTML = cards;
+}
+
+// Report card: tap the header to expand / collapse its house-wise list (kept open across re-renders)
+function toggleRentReportCard(hdr) {
+  const card = hdr.parentElement, body = card.querySelector(".sv-rpt-card-body"), open = !body.classList.contains("open");
+  body.classList.toggle("open", open);
+  card.classList.toggle("expanded", open);
+  RT.reportOpen = RT.reportOpen || new Set();
+  RT.reportOpen[open ? "add" : "delete"](card.dataset.rkey);
 }
 
 async function deleteRentPayment(id) {
@@ -5099,7 +5258,7 @@ g("rent-h-table").addEventListener("click", e => {
   if (!tr) return;
   openRentPay(tr.dataset.month);
 });
-["house-form-bd", "rent-pay-bd", "house-close-bd", "water-form-bd", "remind-bd"].forEach(id => {
+["house-form-bd", "rent-pay-bd", "house-close-bd", "water-form-bd", "remind-bd", "rp-by-bd"].forEach(id => {
   g(id).addEventListener("click", e => { if (e.target === g(id)) g(id).classList.remove("open"); });
 });
 

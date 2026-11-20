@@ -2550,7 +2550,8 @@ function rentModel(ss) {
     payments: vals(payments).map(function(x) {
       return { id: x.id, houseId: x.houseId, kind: x.kind === "water" ? "water" : x.kind === "deposit" ? "deposit" : "rent", month: x.month,
         amount: rentNum(x.amount), paidOn: x.paidOn || "", mode: x.mode || "", remarks: x.remarks || "",
-        expected: rentNum(x.expected), closeAdj: !!x.closeAdj };
+        expected: rentNum(x.expected), closeAdj: !!x.closeAdj, collectedBy: String(x.collectedBy || ""),
+        adjust: rentNum(x.adjust) };   // balance written off with this payment — settles, not received
     }),
     bills: vals(bills).map(function(b) {
       return { id: b.id, houseId: b.houseId, month: b.month, prev: rentNum(b.prev), present: rentNum(b.present),
@@ -2612,7 +2613,7 @@ function withRent(p, fn) {
     if (!res.success) return res;
     writeRentYearSheets(ss, m);
     const out = rentResult(m, p.listUser);
-    res.houses = out.houses; res.payments = out.payments; res.bills = out.bills; res.meters = out.meters; res.vacant = out.vacant;
+    res.houses = out.houses; res.payments = out.payments; res.bills = out.bills; res.meters = out.meters; res.vacant = out.vacant; res.collected = out.collected;
     return res;
   } finally {
     lock.releaseLock();
@@ -2621,7 +2622,7 @@ function withRent(p, fn) {
 
 function getRent(p) {
   const out = rentResult(rentModel(SpreadsheetApp.getActiveSpreadsheet()), p.listUser);
-  return { success: true, houses: out.houses, payments: out.payments, bills: out.bills, meters: out.meters, vacant: out.vacant };
+  return { success: true, houses: out.houses, payments: out.payments, bills: out.bills, meters: out.meters, vacant: out.vacant, collected: out.collected };
 }
 
 function saveHouse(p) {
@@ -2716,7 +2717,8 @@ function saveRentPayment(p) {
   const x = {
     houseId: String(p.houseId || ""), kind: p.kind === "water" ? "water" : p.kind === "deposit" ? "deposit" : "rent", month: String(p.month || "").trim(),
     amount: rentNum(p.amount), paidOn: p.paidOn ? finDate(p.paidOn) : "", mode: RENT_MODES.indexOf(p.mode) >= 0 ? p.mode : "Other",
-    remarks: String(p.remarks || "").trim(), expected: rentNum(p.expected)
+    remarks: String(p.remarks || "").trim(), expected: rentNum(p.expected),
+    collectedBy: String(p.collectedBy || "").trim().slice(0, 40)   // who took the money (v4.13)
   };
   if (!/^\d{4}-\d{2}$/.test(x.month)) return { success: false, error: "Month is required." };
   if (x.amount <= 0) return { success: false, error: "Enter amount received." };
@@ -2734,8 +2736,10 @@ function saveRentPayment(p) {
     const owed = x.kind === "deposit" ? h.deposit
       : x.kind === "water" ? (bill ? bill.amount : 0)
       : (others.length && others[0].expected ? others[0].expected : x.expected || rentAt(h, x.month));
-    const left = owed - others.reduce(function(t, y) { return t + y.amount; }, 0);
+    const left = owed - others.reduce(function(t, y) { return t + y.amount + (y.adjust || 0); }, 0);
     if (x.amount > left + 0.001) return { success: false, error: "Amount is more than the balance ₹" + Math.max(0, left) + "." };
+    // Water partial + "Adjust": the rest of the bill is written off (not received)
+    x.adjust = x.kind === "water" && String(p.adjust) === "1" ? Math.max(0, Math.round((left - x.amount) * 100) / 100) : 0;
     if (!x.expected) x.expected = owed;
     // deposit paid before rent is counted → kept in the first rent month's row
     if (x.kind === "deposit" && h.start && x.month < h.start) x.month = h.start;
@@ -2761,6 +2765,7 @@ function saveRentPayTotal(p) {
   try { items = JSON.parse(p.items || "[]"); } catch (e) { return { success: false, error: "Bad payment data." }; }
   const paidOn = p.paidOn ? finDate(p.paidOn) : "", mode = RENT_MODES.indexOf(p.mode) >= 0 ? p.mode : "Other";
   const remarks = String(p.remarks || "").trim(), houseId = String(p.houseId || "");
+  const collectedBy = String(p.collectedBy || "").trim().slice(0, 40);
   if (!Array.isArray(items) || !items.length) return { success: false, error: "Nothing to pay." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(paidOn)) return { success: false, error: "Select paid on date." };
   return withRent(p, function(m) {
@@ -2776,12 +2781,12 @@ function saveRentPayTotal(p) {
       const bill = m.bills.filter(function(b) { return b.houseId === h.id && b.month === month; })[0];
       const owed = kind === "water" ? (bill ? bill.amount : 0)
         : (pays.length && pays[0].expected ? pays[0].expected : rentNum(it.expected) || rentAt(h, month));
-      const left = owed - pays.reduce(function(t, y) { return t + y.amount; }, 0);
+      const left = owed - pays.reduce(function(t, y) { return t + y.amount + (y.adjust || 0); }, 0);
       if (amount > left + 0.001) {
         return { success: false, error: (kind === "water" ? "Water" : "Rent") + " " + rentYmLabel(month) + ": amount is more than the balance ₹" + Math.max(0, left) + "." };
       }
       add.push({ id: rentId(), houseId: h.id, kind: kind, month: month, amount: amount, paidOn: paidOn, mode: mode,
-        remarks: remarks, expected: owed, closeAdj: false });
+        remarks: remarks, expected: owed, closeAdj: false, collectedBy: collectedBy });
     }
     if (!add.length) return { success: false, error: "Enter amount received." };
     add.forEach(function(x) { m.payments.push(x); });
@@ -2902,7 +2907,7 @@ function rentAt(h, ym) {
 function rentWaterDues(m, h) {
   return m.bills.filter(function(b) { return b.houseId === h.id; }).map(function(b) {
     const paid = m.payments.filter(function(x) { return x.houseId === h.id && x.kind === "water" && x.month === b.month; })
-      .reduce(function(t, x) { return t + x.amount; }, 0);
+      .reduce(function(t, x) { return t + x.amount + (x.adjust || 0); }, 0);
     return { month: b.month, amount: b.amount, balance: Math.max(0, b.amount - paid) };
   }).filter(function(w) { return w.balance > 0; });
 }
@@ -2929,7 +2934,8 @@ function rentHouseMonths(h, payments) {
     const rent = mp.length && mp[0].expected ? mp[0].expected : rentAt(h, ym);
     if (!rent && !mp.length) continue;
     const paid = mp.reduce(function(t, x) { return t + x.amount; }, 0);
-    rows.push({ month: ym, rent: rent, paid: paid, balance: Math.max(0, rent - paid), pays: mp });
+    const adj = mp.reduce(function(t, x) { return t + (x.adjust || 0); }, 0);
+    rows.push({ month: ym, rent: rent, paid: paid, balance: Math.max(0, rent - paid - adj), pays: mp });
   }
   return rows;
 }
@@ -2951,7 +2957,8 @@ function writeRentYearSheets(ss, m) {
     rentRows.forEach(function(r) { (byMonth[r.month] = byMonth[r.month] || {}).rent = r; });
     m.bills.filter(function(b) { return b.houseId === h.id; }).forEach(function(b) {
       const wp = m.payments.filter(function(x) { return x.houseId === h.id && x.kind === "water" && x.month === b.month; });
-      (byMonth[b.month] = byMonth[b.month] || {}).water = { bill: b, paid: wp.reduce(function(t, x) { return t + x.amount; }, 0), pays: wp };
+      (byMonth[b.month] = byMonth[b.month] || {}).water = { bill: b, paid: wp.reduce(function(t, x) { return t + x.amount; }, 0),
+        adj: wp.reduce(function(t, x) { return t + (x.adjust || 0); }, 0), pays: wp };
     });
     m.payments.filter(function(x) { return x.houseId === h.id && x.kind === "deposit"; }).forEach(function(x) {
       const e = byMonth[x.month] = byMonth[x.month] || {};
@@ -2985,12 +2992,13 @@ function writeRentYearSheets(ss, m) {
       months.filter(function(ym) { return y === "closed" || sheetYear(ym) === y; }).forEach(function(ym) {
         const r = byMonth[ym].rent, w = byMonth[ym].water, dep = byMonth[ym].dep || [];
         const pays = (r ? r.pays : []).concat(w ? w.pays : [], dep);
-        const pending = (r ? r.balance : 0) + (w ? Math.max(0, w.bill.amount - w.paid) : 0);
+        const pending = (r ? r.balance : 0) + (w ? Math.max(0, w.bill.amount - w.paid - w.adj) : 0);
         const remarks = (w ? [w.bill.usage + " L (" + w.bill.prev + " → " + w.bill.present + ")"] : [])
           .concat((h.rentHistory || []).filter(function(x) { return x.from === ym && x.note; })
             .map(function(x) { return "Rent " + x.rent + ": " + x.note; }))
           .concat(dep.map(function(x) { return "Deposit " + x.amount + " received"; }))
-          .concat(pays.map(function(x) { return x.kind === "deposit" ? "" : x.remarks; }));
+          .concat(pays.map(function(x) { return x.kind === "deposit" ? "" : x.remarks; }))
+          .concat(pays.map(function(x) { return x.adjust ? "Water " + x.adjust + " adjusted" : ""; }));
         const row = [rentYmLabel(ym), r ? r.rent : "", r ? r.paid : "", w ? w.bill.amount : "", w ? w.paid : "",
           pending, uniq(pays.map(function(x) { return x.mode; })).join(", "), uniq(remarks).join("; ")];
         [1, 2, 3, 4, 5].forEach(function(c, i) { t[i] += rentNum(row[c]); });
