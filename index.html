@@ -4051,8 +4051,9 @@ function applyRent(res) {
   RT.bills    = res.bills || [];
   RT.meters   = res.meters || [];   // closed houses' last readings (for "Previous")
   RT.vacant   = res.vacant || [];   // closed house nos. waiting for a new tenant
+  RT.collected = res.collected || [];   // amounts collected from tenants on close
   RT.fetchedAt = Date.now();
-  cacheSet("rent", { houses: RT.houses, payments: RT.payments, bills: RT.bills, meters: RT.meters, vacant: RT.vacant });
+  cacheSet("rent", { houses: RT.houses, payments: RT.payments, bills: RT.bills, meters: RT.meters, vacant: RT.vacant, collected: RT.collected });
   renderRent();
 }
 
@@ -4060,7 +4061,7 @@ async function loadRent(force) {
   if (!force && Date.now() - (RT.fetchedAt || 0) < 60000) return;
   if (!RT.houses.length) {
     const cached = cacheGet("rent");
-    if (cached) { RT.houses = cached.houses; RT.payments = cached.payments; RT.bills = cached.bills || []; RT.meters = cached.meters || []; RT.vacant = cached.vacant || []; renderRent(); }
+    if (cached) { RT.houses = cached.houses; RT.payments = cached.payments; RT.bills = cached.bills || []; RT.meters = cached.meters || []; RT.vacant = cached.vacant || []; RT.collected = cached.collected || []; renderRent(); }
     else g("rent-list").innerHTML = '<div class="empty"><div class="btn-spin" style="margin:0 auto .5rem"></div>Loading…</div>';
   }
   try {
@@ -4074,6 +4075,8 @@ async function loadRent(force) {
 
 // One month for Dashboard, House Rent and Water (‹ Nov 2026 ›)
 const rentYm = () => RT.dashMonth || (RT.dashMonth = ymNow());
+// Collected from tenants on close (refund < 0) in month ym — counted as rent received that month only
+const rentCollected = ym => (RT.collected || []).filter(c => String(c.closedOn || "").slice(0, 7) === ym).reduce((t, c) => t + (+c.amount || 0), 0);
 
 function renderRent() {
   g("rent-month-label").textContent = ymLabel(rentYm());
@@ -4130,9 +4133,9 @@ function renderRentDash() {
 
   g("rent-dash").innerHTML = `
     <div class="rent-stats">
-      ${stat("Rent Received", sum(forMonth.filter(x => payKind(x) === "rent")))}
+      ${stat("Rent Received", sum(forMonth.filter(x => payKind(x) === "rent")) + rentCollected(ym))}
       ${stat("Water Received", sum(forMonth.filter(x => payKind(x) === "water")))}
-      ${stat("Total Received", sum(forMonth))}
+      ${stat("Total Received", sum(forMonth) + rentCollected(ym))}
     </div>
     ${rows ? `
     <div class="fin-table-wrap"><table class="fin-table fit">
@@ -4182,7 +4185,7 @@ function renderRentList() {
     return;
   }
   const now = rentYm();
-  let expected = 0, received = 0, totalDue = 0, pendMonths = 0;
+  let expected = 0, received = RT.sub === "rent" ? rentCollected(now) : 0, totalDue = 0, pendMonths = 0;
   const recvIds = new Set();   // received & no due → shown below
   const dueOf = {}, recvOf = {};
   const card = h => {

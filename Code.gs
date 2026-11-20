@@ -2582,6 +2582,12 @@ function rentResult(m, listUser) {
     vacant[key] = { name: h.name, tenant: h.tenant, rent: rentAt(h, rentNow()), dueDay: h.dueDay, closedOn: on,
                     refund: Number(h.closed.refund) || 0 };   // > 0 returned to tenant, < 0 collected from tenant
   });
+  // Amount collected from a tenant on close (refund < 0) — counted as rent
+  // received in the close month only (kept apart from vacant: a new tenant
+  // in the same house no. must not drop it)
+  const collected = mine.filter(function(h) { return h.closed && (Number(h.closed.refund) || 0) < 0; }).map(function(h) {
+    return { name: h.name, tenant: h.tenant, closedOn: String(h.closed.date || ""), amount: -Number(h.closed.refund) };
+  });
   const ids = {};
   houses.forEach(function(h) { ids[h.id] = true; });
   const strip = function(h) { const o = {}; Object.keys(h).forEach(function(k) { if (k !== "createdAt") o[k] = h[k]; }); return o; };
@@ -2590,7 +2596,8 @@ function rentResult(m, listUser) {
     payments: m.payments.filter(function(x) { return ids[x.houseId]; }),
     bills: m.bills.filter(function(b) { return ids[b.houseId]; }),
     meters: meters,
-    vacant: Object.keys(vacant).map(function(k) { return vacant[k]; })
+    vacant: Object.keys(vacant).map(function(k) { return vacant[k]; }),
+    collected: collected
   };
 }
 
